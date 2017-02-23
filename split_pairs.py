@@ -1,4 +1,4 @@
-import argparse
+import sys, argparse
 
 parser = argparse.ArgumentParser('Splits .sam entries into different'
 'read pair categories')
@@ -14,16 +14,17 @@ args = parser.parse_args()
 pairs_file = open(args.out_pairs, 'wb')
 sam_file = open(args.out_sam, 'wb')
 
-if args.header:
-    with open(args.header, 'wb') as header_file:
-        for line in header_file.readlines():
-            pairs_file.write(line)
-            sam_file.write(line)
-
-
 IN_STREAM = args.infile
 
+header_sent = not(args.header)
+
 for line in IN_STREAM.readlines():
+    if not header_sent:
+        with open(args.header, 'rb') as header_file:
+            for header_line in header_file.readlines():
+                sam_file.write(header_line)
+        header_sent = True
+
     if line.startswith(b'#'):
         pairs_file.write(line)
         continue
