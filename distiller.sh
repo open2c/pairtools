@@ -9,27 +9,27 @@ OUTNAME=$4
 } | {
 # save unmapped/single-sided/multimapped/abnormal chimeras 
 # and output flipped pairs followed by the two bam entries, separated by \v
-    python split_sams_append_pairs.py 
-        --header $OUTNAME.header.sam
-        --unmapped >(samtools view -bS - > $OUTNAME.unmapped.bam)
-        --singlesided >(samtools view -bS - > $OUTNAME.singlesided.bam)
-        --multimapped >(samtools view -bS - > $OUTNAME.mutimapped.bam)
-        --abnormal-chimera >(samtools view -bS - >$OUTNAME.abnormal_chimera.bam)
+    python split_sams_append_pairs.py \
+        --header $OUTNAME.header.sam \
+        --unmapped >(samtools view -bS - > $OUTNAME.unmapped.bam) \
+        --singlesided >(samtools view -bS - > $OUTNAME.singlesided.bam) \
+        --multimapped >(samtools view -bS - > $OUTNAME.mutimapped.bam) \
+        --abnormal-chimera >(samtools view -bS - >$OUTNAME.abnormal_chimera.bam) 
         
 } | {
 # sort pairs together with bams
-    sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n --field-separator='\v' 
+    sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n --field-separator=\v
 } | {
 # remove duplicates 
-    python dedup.py 
-        --out >(python split_pairs.py 
-                --header $OUTNAME.header.sam
-                --out-pairs $OUTNAME.dedup.pairs
+    python dedup.py \
+        --out >(python split_pairs.py \
+                --header $OUTNAME.header.sam \
+                --out-pairs $OUTNAME.dedup.pairs \
                 --out-sam >(samtools view -bS - > $OUTNAME.dedup.bam)
-        )
-        --dupfile >(python split_pairs.py
-                --header $OUTNAME.header.sam
-                --out-pairs /dev/null
+        ) \
+        --dupfile >(python split_pairs.py \
+                --header $OUTNAME.header.sam \
+                --out-pairs /dev/null \
                 --out-sam >(samtools view -bS - > $OUTNAME.dups.bam)
         )
 }
