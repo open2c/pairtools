@@ -187,6 +187,7 @@ if __name__ == '__main__':
     abnormal_chimera_file = open(args.abnormal_chimera, 'wb')
 
 
+    header_sent = False
 
     while True:
         sam1 = IN_STREAM.readline()
@@ -201,7 +202,11 @@ if __name__ == '__main__':
             abnormal_chimera_file.write(sam1)
             continue
 
-        header_file.close()
+        if not header_sent:
+            header_file.flush()
+            header_file.close()
+            del(header_file)
+            header_sent = True
 
         sam2 = IN_STREAM.readline()
 
