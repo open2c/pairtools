@@ -8,7 +8,7 @@ OUTNAME=$4
      samtools view -h -F 2048
 } | {
 # save unmapped/single-sided/multimapped/abnormal chimeras 
-# and output flipped pairs followed by the two bam entries, separated by \v
+# and output lines with flipped pairs and the two sam entries, separated by \v
     python split_sams_append_pairs.py \
         --header $OUTNAME.header.sam \
         --unmapped >(samtools view -bS - > $OUTNAME.unmapped.bam) \
@@ -17,10 +17,10 @@ OUTNAME=$4
         --abnormal-chimera >(samtools view -bS - >$OUTNAME.abnormal_chimera.bam) 
         
 } | {
-# sort pairs together with bams
+# lexicographic block-sort pairs together with sam entries
     sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n --field-separator=\v
 } | {
-# remove duplicates 
+# remove duplicates and split pairs and sams
     python dedup.py \
         --out >(python split_pairs.py \
                 --header $OUTNAME.header.sam \
