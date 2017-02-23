@@ -19,11 +19,18 @@ OUTNAME=$4
 } | {
 # sort pairs together with bams
     sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n --field-separator='\v' 
-} 
-
-# remove duplicates in the pair list and flag duplicates in bams
-#    | dedup  \
-# split off pairs into a separate list
-#    | python tee_contacts.py ${OUTNAME}.validPairs.txt.gz \
-#    | samtools -bS - > ${OUTNAME}.validPairs.bam
+} | {
+# remove duplicates 
+    python dedup.py 
+        --out >(python split_pairs.py 
+                --header $OUTNAME.header.sam
+                --out-pairs $OUTNAME.dedup.pairs
+                --out-sam >(samtools view -bS - > $OUTNAME.dedup.bam)
+        )
+        --dupfile >(python split_pairs.py
+                --header $OUTNAME.header.sam
+                --out-pairs /dev/null
+                --out-sam >(samtools view -bS - > $OUTNAME.dups.bam)
+        )
+}
 
