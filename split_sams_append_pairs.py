@@ -162,7 +162,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser('Splits .sam entries into different'
     'read pair categories')
-    parser.add_argument("--input", type=str, default=None)
+    parser.add_argument('infile', nargs='?', 
+        type=argparse.FileType('rb'), 
+        default=sys.stdin.buffer)
     parser.add_argument("--header", type=str, required=True)
     parser.add_argument("--unmapped", type=str, required=True)
     parser.add_argument("--singlesided", type=str, required=True)
@@ -176,16 +178,15 @@ if __name__ == '__main__':
     MIN_MAPQ = args.min_mapq
     MAX_CHIMERA_DIST = args.max_chimera_dist
 
-    if args.input:
-        IN_STREAM = open(args.input, 'rb')
-    else:
-        IN_STREAM = fileinput.input(mode='rb')
+    IN_STREAM = args.infile
 
     header_file = open(args.header, 'wb')
     unmapped_file = open(args.unmapped, 'wb')
     singlesided_file = open(args.singlesided, 'wb')
     multimapped_file = open(args.multimapped, 'wb')
     abnormal_chimera_file = open(args.abnormal_chimera, 'wb')
+
+
 
     while True:
         sam1 = IN_STREAM.readline()

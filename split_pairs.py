@@ -2,7 +2,9 @@ import argparse
 
 parser = argparse.ArgumentParser('Splits .sam entries into different'
 'read pair categories')
-parser.add_argument("--input", type=str, default=None)
+parser.add_argument('infile', nargs='?', 
+        type=argparse.FileType('rb'), 
+        default=sys.stdin.buffer)
 parser.add_argument("--header", type=str, default=None)
 parser.add_argument("--out-pairs", type=str, required=True)
 parser.add_argument("--out-sam", type=str, required=True)
@@ -18,10 +20,8 @@ if args.header:
             pairs_file.write(line)
             sam_file.write(line)
 
-if args.input:
-    IN_STREAM = open(args.input, 'rb')
-else:
-    IN_STREAM = fileinput.input(mode='rb')
+
+IN_STREAM = args.infile
 
 for line in IN_STREAM.readlines():
     if line.startswith(b'#'):
