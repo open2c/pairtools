@@ -9,12 +9,12 @@ OUTNAME=$4
 } | {
 # save unmapped/single-sided/multimapped/abnormal chimeras 
 # and output flipped pairs followed by the two bam entries, separated by \v
-    python filter_addpairs.py 
+    python split_sams_append_pairs.py 
         --header $OUTNAME.header.sam
-        --unmapped $OUTNAME.unmapped.bam
-        --singlesided $OUTNAME.singlesided.bam
-        --multimapped $OUTNAME.mutimapped.bam
-        --abnormal-chimera $OUTNAME.abnormal_chimera.bam
+        --unmapped >(samtools view -bS - > $OUTNAME.unmapped.bam)
+        --singlesided >(samtools view -bS - > $OUTNAME.singlesided.bam)
+        --multimapped >(samtools view -bS - > $OUTNAME.mutimapped.bam)
+        --abnormal-chimera >(samtools view -bS - >$OUTNAME.abnormal_chimera.bam)
         
 } #| {
 # sort pairs together with bams

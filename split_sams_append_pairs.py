@@ -139,34 +139,6 @@ def cmp_chrms(chrm1, chrm2):
     else:
         return 0
 
-#def sam_bam_writer(out_path):                                                          
-#    """                                                                            
-#    Creates a writing process using samtools view -bS.
-#    """    
-#    if out_path.endswith('.bam'):
-#        open(args.unmapped, 'wb')                                                                        
-#        writer = ["samtools", "view", "-bS", "-"]                                          
-#        pwrite = subprocess.Popen(
-#            writer, 
-#            stdin=subprocess.PIPE, 
-#            stdout=out_stream, 
-#            shell=False, 
-#            bufsize=-1)
-#    return pwrite
-#
-#def sam_writer(out_stream):                                                          
-#    """                                                                            
-#    Creates a writing process using samtools view -bS.
-#    """                                                                            
-#    writer = ["samtools", "view", "-bS", "-"]                                          
-#    pwrite = subprocess.Popen(
-#        writer, 
-#        stdin=subprocess.PIPE, 
-#        stdout=out_stream, 
-#        shell=False, 
-#        bufsize=-1)
-#    return pwrite
-
 def write_pair_sam(algn1, algn2, sam1, sam2):
     sys.stdout.buffer.write(algn1[0])
     sys.stdout.buffer.write(b'\v')
@@ -210,26 +182,10 @@ if __name__ == '__main__':
         IN_STREAM = fileinput.input(mode='rb')
 
     header_file = open(args.header, 'wb')
-    header_writer = bam_writer(header_file)                                                
-    header_pipe = header_writer.stdin   
-
     unmapped_file = open(args.unmapped, 'wb')
-    unmapped_writer = bam_writer(unmapped_file)                                                
-    unmapped_pipe = unmapped_writer.stdin   
-
     singlesided_file = open(args.singlesided, 'wb')
-    singlesided_writer = bam_writer(singlesided_file)                                                
-    singlesided_pipe = singlesided_writer.stdin   
-
     multimapped_file = open(args.multimapped, 'wb')
-    multimapped_writer = bam_writer(multimapped_file)                                                
-    multimapped_pipe = multimapped_writer.stdin   
-
     abnormal_chimera_file = open(args.abnormal_chimera, 'wb')
-    abnormal_chimera_writer = bam_writer(abnormal_chimera_file)                                                
-    abnormal_chimera_pipe = abnormal_chimera_writer.stdin   
-    
-    header = []
 
     while True:
         sam1 = IN_STREAM.readline()
@@ -237,12 +193,11 @@ if __name__ == '__main__':
             break
 
         if sam1.startswith(b'@'):
-            header.append(sam1)
-
-            unmapped_pipe.write(sam1)
-            singlesided_pipe.write(sam1)
-            multimapped_pipe.write(sam1)
-            abnormal_chimera_pipe.write(sam1)
+            header_file.write(sam1)
+            unmapped_file.write(sam1)
+            singlesided_file.write(sam1)
+            multimapped_file.write(sam1)
+            abnormal_chimera_file.write(sam1)
             continue
 
         sam2 = IN_STREAM.readline()
@@ -254,18 +209,18 @@ if __name__ == '__main__':
         algn2 = get_algn_loc_mapq(samcols2)
 
         if (not algn1[8]) and (not algn2[8]):
-            unmapped_pipe.write(sam1)
-            unmapped_pipe.write(sam2)
+            unmapped_file.write(sam1)
+            unmapped_file.write(sam2)
             continue
 
         elif (not algn1[8]) or (not algn2[8]):
-            singlesided_pipe.write(sam1)
-            singlesided_pipe.write(sam2)
+            singlesided_file.write(sam1)
+            singlesided_file.write(sam2)
             continue
 
         elif (algn1[3] < MIN_MAPQ) or (algn1[3] < MIN_MAPQ):
-            multimapped_pipe.write(sam1)
-            multimapped_pipe.write(sam2)
+            multimapped_file.write(sam1)
+            multimapped_file.write(sam2)
             continue
 
         sup_algn1 = get_supp_alignment(samcols1)
@@ -275,8 +230,8 @@ if __name__ == '__main__':
             algn1, algn2, sup_algn1, sup_algn2, 
             MIN_MAPQ, MAX_CHIMERA_DIST):
 
-            abnormal_chimera_pipe.write(sam1)
-            abnormal_chimera_pipe.write(sam2)
+            abnormal_chimera_file.write(sam1)
+            abnormal_chimera_file.write(sam2)
             continue
 
         pair_order = cmp_chrms(algn1[0], algn2[0])
@@ -293,11 +248,6 @@ if __name__ == '__main__':
 
         if pair_order == -1:
             write_pair_sam(algn2, algn1, sam2, sam1)
-
-    unmapped_writer.communicate()
-    singlesided_writer.communicate()
-    multimapped_writer.communicate()
-    abnormal_chimera_writer.communicate()
 
     unmapped_file.close()
     singlesided_file.close()
