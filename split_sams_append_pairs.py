@@ -200,6 +200,8 @@ if __name__ == '__main__':
             abnormal_chimera_file.write(sam1)
             continue
 
+        header_file.close()
+
         sam2 = IN_STREAM.readline()
 
         samcols1 = sam1.rstrip().split(b'\t')                         
@@ -236,7 +238,7 @@ if __name__ == '__main__':
 
         pair_order = cmp_chrms(algn1[0], algn2[0])
         if pair_order == 0:
-            pair_order = int(algn1[1] > algn2[1]) * 2 - 1
+            pair_order = int(algn1[1] < algn2[1]) * 2 - 1
 
         # SAM is already tab-separated and
         # any printable character between ! and ~ may appear in the PHRED field! 

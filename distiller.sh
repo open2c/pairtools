@@ -16,9 +16,10 @@ OUTNAME=$4
         --multimapped >(samtools view -bS - > $OUTNAME.mutimapped.bam)
         --abnormal-chimera >(samtools view -bS - >$OUTNAME.abnormal_chimera.bam)
         
-} #| {
+} | {
 # sort pairs together with bams
-#    | sort -k 1,1 -k 2,2n -k 4,4 -k 5,5n --field-separator='\v' \
+    sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n --field-separator='\v' 
+} 
 
 # remove duplicates in the pair list and flag duplicates in bams
 #    | dedup  \
