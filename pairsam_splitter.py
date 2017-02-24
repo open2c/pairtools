@@ -1,7 +1,8 @@
 import sys, argparse
 
-parser = argparse.ArgumentParser('Splits .sam entries into different'
-'read pair categories')
+parser = argparse.ArgumentParser(
+    'Splits .sam entries into different '
+    'read pair categories')
 parser.add_argument('infile', nargs='?', 
         type=argparse.FileType('rb'), 
         default=sys.stdin.buffer)
@@ -33,7 +34,7 @@ for line in IN_STREAM.readlines():
     pairs_file.write(b'\t'.join(cols[:6]))
     pairs_file.write(b'\n')
     
-    for col in cols:
+    for col in cols[6:]:
         sam_file.write(col)
         sam_file.write(b'\n')
 
