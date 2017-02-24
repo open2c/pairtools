@@ -4,12 +4,9 @@ FASTQ2=$3
 OUTNAME=$4                                                 
 
 ~/programming/bwa/bwa mem -SP $INDEX $FASTQ1 $FASTQ2 | {
-# drop the supplementary alignments b/c the information is already contained in the primary one
-     samtools view -h -F 2048
-} | {
 # save unmapped/single-sided/multimapped/abnormal chimeras 
 # and output lines with flipped pairs and the two sam entries, separated by \v
-    python split_sams_append_pairs.py \
+    python hisplitter.py \
         --header $OUTNAME.header.sam \
         --unmapped >(samtools view -bS - > $OUTNAME.unmapped.bam) \
         --singlesided >(samtools view -bS - > $OUTNAME.singlesided.bam) \
