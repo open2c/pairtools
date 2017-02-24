@@ -29,12 +29,12 @@ for line in IN_STREAM.readlines():
         pairs_file.write(line)
         continue
 
-    cols = line.split(b'\v')
+    cols = line[:-1].split(b'\v')
     pairs_file.write(b'\t'.join(cols[:6]))
     pairs_file.write(b'\n')
     
-    sam_file.write(cols[6])
-    sam_file.write(b'\n')
-    sam_file.write(cols[7])
+    for col in cols:
+        sam_file.write(col)
+        sam_file.write(b'\n')
 
     
