@@ -6,37 +6,52 @@ import io
 # inline
 
 ORD_M = ord('M')
+ORD_I = ord('I')
+ORD_D = ord('D')
 ORD_S = ord('S')
 ORD_H = ord('H')
 
-def parse_cigar(CIGAR, strand):
-    mapped_len = 0
+def parse_cigar(CIGAR):
+    matched_bp = 0
+    algn_ref_span = 0
+    algn_read_span = 0
+    read_len = 0
     clip5 = 0
     clip3 = 0
-    cur_num = 0
-    total_len = 0
-    for charval in CIGAR:
-        #charval = ord(symbol)
-        if charval >= 48 and charval <= 57:
-            cur_num = cur_num * 10 + charval
-        else:
-            if charval == ORD_M: 
-                mapped_len += cur_num
-            elif charval == ORD_S:
-                if mapped_len == 0:
-                    clip5 = cur_num
-                else: 
-                    clip3 = cur_num
-            elif charval == ORD_H:
-                raise Exception('Unexpected hard-clipping!')
 
-            total_len += cur_num
-            cur_num = 0
+    if CIGAR != b'*':
+        cur_num = 0
+        for charval in CIGAR:
+            if charval >= 48 and charval <= 57:
+                cur_num = cur_num * 10 + (charval - 48)
+            else:
+                if charval == ORD_M: 
+                    matched_bp += cur_num
+                    algn_ref_span += cur_num
+                    algn_read_span += cur_num
+                    read_len += cur_num
+                elif charval == ORD_I: 
+                    algn_read_span += cur_num
+                    read_len += cur_num
+                elif charval == ORD_D: 
+                    algn_ref_span += cur_num
+                elif charval == ORD_S:
+                    read_len += cur_num
+                    if matched_bp == 0:
+                        clip5 = cur_num
+                    else: 
+                        clip3 = cur_num
 
-    if strand == b'-':
-        clip5, clip3 = clip3, clip5
-                
-    return clip5, clip3, mapped_len, total_len
+                cur_num = 0
+                    
+    return {
+        'clip5':clip5, 
+        'clip3':clip3, 
+        'algn_ref_span':algn_ref_span, 
+        'algn_read_span':algn_read_span,
+        'read_len':read_len,
+        'matched_bp':matched_bp,
+    }
 
 # inline
 def get_supp_alignment(samcols):
@@ -49,24 +64,23 @@ def get_supp_alignment(samcols):
         strand = SAcols[2]
         mapq = int(SAcols[4])
 
-        clip5, clip3, mapped_len, total_len = parse_cigar(SAcols[3], strand)
+        cigar = parse_cigar(SAcols[3])
 
         if strand == b'+':
-            pos = int(SAcols[1]) + clip5
+            pos = int(SAcols[1])
         else:
-            pos = int(SAcols[1]) + total_len - clip5
+            pos = int(SAcols[1]) + cigar['algn_ref_span']
 
-        return {
+        out = {
             'chrom':chrom, 
             'pos':pos, 
             'strand':strand, 
             'mapq':mapq, 
-            'clip5':clip5, 
-            'clip3':clip3, 
-            'mapped_len':mapped_len, 
-            'total_len':total_len, 
             'is_mapped':True
             }
+        out.update(cigar)
+        return out
+
     return None
 
 # inline
@@ -76,28 +90,26 @@ def get_algn_loc_mapq(samcols):
     mapq = int(samcols[4])
 
     is_mapped = (int(samcols[1]) & 0x04) == 0                       
+    cigar = parse_cigar(samcols[5])
+    pos = 0
     if is_mapped:
-        clip5, clip3, mapped_len, total_len = parse_cigar(samcols[5], strand)
-    else:
-        clip5, clip3, mapped_len, total_len = 0, 0, 0, 0
+        if strand == b'+':
+            pos = int(samcols[3])
+        else:
+            pos = int(samcols[3]) + cigar['algn_ref_span']
 
-    if strand == b'+':
-        pos = int(samcols[3]) + clip5
-    else:
-        pos = int(samcols[3]) + total_len - clip5
-
-    return {
+    out = {
         'chrom':chrom, 
         'pos':pos, 
         'strand':strand, 
         'mapq':mapq, 
-        'clip5':clip5, 
-        'clip3':clip3, 
-        'mapped_len':mapped_len, 
-        'total_len':total_len, 
         'is_mapped':is_mapped
-        }
+    }
 
+    out.update(cigar)
+
+    return out
+    
 # inline in cython!
 def get_chimera_position(
     repr_algn1, 
@@ -207,6 +219,7 @@ def process_sams(
     algn1 = get_algn_loc_mapq(sam1_repr_cols)
     algn2 = get_algn_loc_mapq(sam2_repr_cols)
 
+
     if (not algn1['is_mapped']) and (not algn2['is_mapped']):
         save_sams(unmapped_file, sams1, sams2)
         return
@@ -218,6 +231,7 @@ def process_sams(
     elif (algn1['mapq'] < MIN_MAPQ) or (algn1['mapq'] < MIN_MAPQ):
         save_sams(multimapped_file, sams1, sams2)
         return
+
 
     sup_algn1 = get_supp_alignment(sam1_repr_cols)
     sup_algn2 = get_supp_alignment(sam2_repr_cols)
@@ -265,11 +279,12 @@ if __name__ == '__main__':
     parser.add_argument('infile', nargs='?', 
         type=argparse.FileType('rb'), 
         default=sys.stdin.buffer)
-    parser.add_argument("--header", type=str, required=True)
-    parser.add_argument("--unmapped", type=str, required=True)
-    parser.add_argument("--singlesided", type=str, required=True)
-    parser.add_argument("--multimapped", type=str, required=True)
-    parser.add_argument("--abnormal-chimera", type=str, required=True)
+    parser.add_argument("--out-basename", type=str, default='')
+    parser.add_argument("--header", type=str, default='')
+    parser.add_argument("--unmapped", type=str, default='')
+    parser.add_argument("--singlesided", type=str, default='')
+    parser.add_argument("--multimapped", type=str, default='')
+    parser.add_argument("--abnormal-chimera", type=str, default='')
     parser.add_argument("--min-mapq", type=int, default=10)
     parser.add_argument("--max-chimera-dist", type=int, default=10)
 
@@ -278,11 +293,38 @@ if __name__ == '__main__':
     MAX_CHIMERA_DIST = args.max_chimera_dist
     IN_STREAM = args.infile
 
-    header_file = open(args.header, 'wb')
-    unmapped_file = open(args.unmapped, 'wb')
-    singlesided_file = open(args.singlesided, 'wb')
-    multimapped_file = open(args.multimapped, 'wb')
-    abnormal_chimera_file = open(args.abnormal_chimera, 'wb')
+    if not(args.out_basename) and not(
+        args.header 
+        or args.unmapped 
+        or args.singlesided
+        or args.multimapped
+        or args.abnormal_chimera):
+        raise Exception(
+            'Please, provide either out_basename or individual '
+            'output paths.')
+
+    if (args.out_basename) and (
+        args.header 
+        or args.unmapped 
+        or args.singlesided
+        or args.multimapped
+        or args.abnormal_chimera):
+        raise Exception(
+            'Please, provide only either out_basename or individual '
+            'output paths.')
+
+    if args.out_basename:
+        header_file = open(args.out_basename + '.header.sam', 'wb')
+        unmapped_file  = open(args.out_basename + '.unmapped.sam', 'wb')
+        singlesided_file = open(args.out_basename + '.singlesided.sam', 'wb')
+        multimapped_file = open(args.out_basename + '.multimapped.sam', 'wb')
+        abnormal_chimera_file = open(args.out_basename + '.abnormal_chimera.sam', 'wb')
+    else:
+        header_file = open(args.header, 'wb')
+        unmapped_file = open(args.unmapped, 'wb')
+        singlesided_file = open(args.singlesided, 'wb')
+        multimapped_file = open(args.multimapped, 'wb')
+        abnormal_chimera_file = open(args.abnormal_chimera, 'wb')
 
     # The first few lines of a SAM file are header lines. These lines
     # begin with @ and they must be sent to all output files.
@@ -318,6 +360,15 @@ if __name__ == '__main__':
         append_sam(last_line, sams1, sams2)
         prev_read_id = read_id
         last_line = IN_STREAM.readline()
+
+    # taking care of the last pair
+    process_sams(
+        sams1, 
+        sams2,
+        unmapped_file, 
+        singlesided_file, 
+        multimapped_file, 
+        abnormal_chimera_file)
 
     unmapped_file.close()
     singlesided_file.close()
