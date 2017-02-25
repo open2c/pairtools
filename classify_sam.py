@@ -126,8 +126,8 @@ def process_sams(
     sam1_repr_cols = sams1[0].rstrip().split('\t')                         
     sam2_repr_cols = sams2[0].rstrip().split('\t')                         
 
-    algn1 = get_algn_loc_mapq(sam1_repr_cols)
-    algn2 = get_algn_loc_mapq(sam2_repr_cols)
+    algn1 = parse_algn(sam1_repr_cols)
+    algn2 = parse_algn(sam2_repr_cols)
 
     if (not algn1['is_mapped']) and (not algn2['is_mapped']):
         save_sams(unmapped_file, sams1, sams2)
@@ -141,8 +141,8 @@ def process_sams(
         save_sams(multimapped_file, sams1, sams2)
         return
 
-    sup_algn1 = get_supp_alignment(sam1_repr_cols)
-    sup_algn2 = get_supp_alignment(sam2_repr_cols)
+    sup_algn1 = parse_supp_algn(sam1_repr_cols)
+    sup_algn2 = parse_supp_algn(sam2_repr_cols)
 
     algn1_5, algn2_5, is_chimera, is_normal_chimera = get_chimera_position(
         algn1, algn2, sup_algn1, sup_algn2, 
@@ -163,58 +163,31 @@ def process_sams(
         write_pair_sam(algn2_5, algn1_5, sams2, sams1)
     return
 
+def parse_algn(samcols):                                         
+    chrom = samcols[2]                                             
+    strand = '+' if ((int(samcols[1]) & 0x10) == 0) else '-'
+    mapq = int(samcols[4])
 
-ORD_M = ord('M')
-ORD_I = ord('I')
-ORD_D = ord('D')
-ORD_S = ord('S')
-ORD_H = ord('H')
+    is_mapped = (int(samcols[1]) & 0x04) == 0                       
+    cigar = parse_cigar(samcols[5])
+    pos = 0
+    if is_mapped:
+        if strand == '+':
+            pos = int(samcols[3])
+        else:
+            pos = int(samcols[3]) + cigar['algn_ref_span']
 
-def parse_cigar(CIGAR):
-    matched_bp = 0
-    algn_ref_span = 0
-    algn_read_span = 0
-    read_len = 0
-    clip5 = 0
-    clip3 = 0
-
-    if CIGAR != '*':
-        cur_num = 0
-        for char in CIGAR:
-            charval = ord(char)
-            if charval >= 48 and charval <= 57:
-                cur_num = cur_num * 10 + (charval - 48)
-            else:
-                if charval == ORD_M: 
-                    matched_bp += cur_num
-                    algn_ref_span += cur_num
-                    algn_read_span += cur_num
-                    read_len += cur_num
-                elif charval == ORD_I: 
-                    algn_read_span += cur_num
-                    read_len += cur_num
-                elif charval == ORD_D: 
-                    algn_ref_span += cur_num
-                elif charval == ORD_S:
-                    read_len += cur_num
-                    if matched_bp == 0:
-                        clip5 = cur_num
-                    else: 
-                        clip3 = cur_num
-
-                cur_num = 0
-                    
     return {
-        'clip5':clip5, 
-        'clip3':clip3, 
-        'algn_ref_span':algn_ref_span, 
-        'algn_read_span':algn_read_span,
-        'read_len':read_len,
-        'matched_bp':matched_bp,
+        'chrom':chrom, 
+        'pos':pos, 
+        'strand':strand, 
+        'mapq':mapq, 
+        'is_mapped':is_mapped,
+        'cigar':cigar,
+        'dist_to_5':cigar['clip5'] if strand == '+' else cigar['clip3'],
     }
 
-# inline
-def get_supp_alignment(samcols):
+def parse_supp_algn(samcols):
     for col in samcols:                                              
         if not col.startswith('SA:Z:'):                                     
             continue
@@ -242,30 +215,49 @@ def get_supp_alignment(samcols):
             }
     return None
 
-# inline
-def get_algn_loc_mapq(samcols):                                         
-    chrom = samcols[2]                                             
-    strand = '+' if ((int(samcols[1]) & 0x10) == 0) else '-'
-    mapq = int(samcols[4])
+def parse_cigar(CIGAR):
+    matched_bp = 0
+    algn_ref_span = 0
+    algn_read_span = 0
+    read_len = 0
+    clip5 = 0
+    clip3 = 0
 
-    is_mapped = (int(samcols[1]) & 0x04) == 0                       
-    cigar = parse_cigar(samcols[5])
-    pos = 0
-    if is_mapped:
-        if strand == '+':
-            pos = int(samcols[3])
-        else:
-            pos = int(samcols[3]) + cigar['algn_ref_span']
+    if CIGAR != '*':
+        cur_num = 0
+        for char in CIGAR:
+            charval = ord(char)
+            if charval >= 48 and charval <= 57:
+                cur_num = cur_num * 10 + (charval - 48)
+            else:
+                if char == 'M': 
+                    matched_bp += cur_num
+                    algn_ref_span += cur_num
+                    algn_read_span += cur_num
+                    read_len += cur_num
+                elif char == 'I': 
+                    algn_read_span += cur_num
+                    read_len += cur_num
+                elif char == 'D': 
+                    algn_ref_span += cur_num
+                elif char == 'S':
+                    read_len += cur_num
+                    if matched_bp == 0:
+                        clip5 = cur_num
+                    else: 
+                        clip3 = cur_num
 
+                cur_num = 0
+                    
     return {
-        'chrom':chrom, 
-        'pos':pos, 
-        'strand':strand, 
-        'mapq':mapq, 
-        'is_mapped':is_mapped,
-        'cigar':cigar,
-        'dist_to_5':cigar['clip5'] if strand == '+' else cigar['clip3'],
+        'clip5':clip5, 
+        'clip3':clip3, 
+        'algn_ref_span':algn_ref_span, 
+        'algn_read_span':algn_read_span,
+        'read_len':read_len,
+        'matched_bp':matched_bp,
     }
+
     
 # inline in cython!
 def get_chimera_position(
@@ -335,24 +327,6 @@ def get_pair_order(chrm1, pos1, chrm2, pos2):
     else:
         return int(pos1 < pos2) * 2 - 1
 
-def open_bamsam(path, mode):
-    if mode not in ['r','w']:
-        raise Exception("mode can be either 'r' or 'w'")
-    if path.endswith('.bam'):
-        if mode =='w': 
-            t = pipes.Template()
-            t.append('samtools view -bS', '--')
-            f = t.open(path, 'w')
-        elif mode =='r': 
-            t = pipes.Template()
-            t.append('samtools view -h', '--')
-            f = t.open(path, 'r')
-        else:
-            raise Exception("Unknown mode : {}".format(mode))
-        return f
-    else:
-        return open(path, mode)
-
 def write_pair_sam(algn1, algn2, sams1, sams2, out_file=sys.stdout):
     # SAM is already tab-separated and
     # any printable character between ! and ~ may appear in the PHRED field! 
@@ -386,7 +360,6 @@ def save_sams(out_file, sams1, sams2):
         out_file.write(sam)
 
 
-
 def append_sams(line, sams1, sams2):
     _, flag, _ = line.split('\t',2)
     flag = int(flag)
@@ -402,6 +375,26 @@ def append_sams(line, sams1, sams2):
         else:
             sams2.append(line)
     return 
+
+
+def open_bamsam(path, mode):
+    if mode not in ['r','w']:
+        raise Exception("mode can be either 'r' or 'w'")
+    if path.endswith('.bam'):
+        if mode =='w': 
+            t = pipes.Template()
+            t.append('samtools view -bS', '--')
+            f = t.open(path, 'w')
+        elif mode =='r': 
+            t = pipes.Template()
+            t.append('samtools view -h', '--')
+            f = t.open(path, 'r')
+        else:
+            raise Exception("Unknown mode : {}".format(mode))
+        return f
+    else:
+        return open(path, mode)
+
 
 if __name__ == '__main__':
     main()
