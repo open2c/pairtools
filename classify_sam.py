@@ -71,16 +71,15 @@ def get_supp_alignment(samcols):
         else:
             pos = int(SAcols[1]) + cigar['algn_ref_span']
 
-        out = {
+        return {
             'chrom':chrom, 
             'pos':pos, 
             'strand':strand, 
             'mapq':mapq, 
-            'is_mapped':True
+            'is_mapped':True,
+            'cigar':cigar,
+            'dist_to_5':cigar['clip5'] if strand == b'+' else cigar['clip3'],
             }
-        out.update(cigar)
-        return out
-
     return None
 
 # inline
@@ -98,17 +97,15 @@ def get_algn_loc_mapq(samcols):
         else:
             pos = int(samcols[3]) + cigar['algn_ref_span']
 
-    out = {
+    return {
         'chrom':chrom, 
         'pos':pos, 
         'strand':strand, 
         'mapq':mapq, 
-        'is_mapped':is_mapped
+        'is_mapped':is_mapped,
+        'cigar':cigar,
+        'dist_to_5':cigar['clip5'] if strand == b'+' else cigar['clip3'],
     }
-
-    out.update(cigar)
-
-    return out
     
 # inline in cython!
 def get_chimera_position(
@@ -117,7 +114,7 @@ def get_chimera_position(
     sup_algn1, 
     sup_algn2, 
     min_mapq,
-    max_chimera_dist):
+    max_molecule_size):
 
     if (sup_algn1 is None) and (sup_algn2 is None):
         return repr_algn1, repr_algn2, False, True
@@ -133,8 +130,9 @@ def get_chimera_position(
     first_read_is_chimeric = (sup_algn2 is None)
     linear_algn = repr_algn2 if first_read_is_chimeric else repr_algn2
     repr_algn = repr_algn1 if first_read_is_chimeric else repr_algn2
-    chim5_algn = repr_algn if (repr_algn['clip5'] < sup_algn['clip5']) else sup_algn
-    chim3_algn = sup_algn  if (repr_algn['clip5'] < sup_algn['clip5']) else repr_algn
+
+    chim5_algn = repr_algn if (repr_algn['dist_to_5'] < sup_algn['dist_to_5']) else sup_algn
+    chim3_algn = sup_algn  if (repr_algn['dist_to_5'] < sup_algn['dist_to_5']) else repr_algn
 
     is_normal = True
     # in normal chimeras, the supplemental alignment must be on the same chromosome with the linear alignment
@@ -144,18 +142,21 @@ def get_chimera_position(
     
     # in normal chimeras, the supplemental alignment must be within
     # MAX_CHIMERA_DIST downstream of the linear alignment
-    is_normal &= not (
-        (linear_algn['strand']==b'+') and (
-            (chim3_algn['pos'] - linear_algn['pos'] > max_chimera_dist)
-            or (chim3_algn['pos'] - linear_algn['pos'] < 0)
+    unmapped_gap_width = (
+        (chim3_algn['pos'] - linear_algn['pos'] 
+        - linear_algn['cigar']['read_len'] + linear_algn['dist_to_5'])
+        if linear_algn['strand'] == b'+' 
+        else (
+        chim3_algn['pos'] - linear_algn['pos'] 
+        - chim3_algn['cigar']['read_len'] + chim3_algn['dist_to_5']
         )
     )
 
-    is_normal &= not (
-        (linear_algn['strand']==b'-') and (
-            (linear_algn['pos'] - chim3_algn['pos'] > max_chimera_dist)
-            or (linear_algn['pos'] - chim3_algn['pos'] < 0)
-        )
+    is_normal &= (unmapped_gap_width > 0)
+    is_normal &= (unmapped_gap_width
+                  + linear_algn['cigar']['read_len'] 
+                  + repr_algn['cigar']['read_len'] 
+                  < max_molecule_size
     )
 
     if is_normal:
@@ -232,13 +233,14 @@ def process_sams(
         save_sams(multimapped_file, sams1, sams2)
         return
 
-
     sup_algn1 = get_supp_alignment(sam1_repr_cols)
     sup_algn2 = get_supp_alignment(sam2_repr_cols)
 
+
     algn1_5, algn2_5, is_chimera, is_normal_chimera = get_chimera_position(
         algn1, algn2, sup_algn1, sup_algn2, 
-        MIN_MAPQ, MAX_CHIMERA_DIST)
+        MIN_MAPQ, MAX_MOLECULE_SIZE)
+    is_normal_chimera = is_normal_chimera or (len(sams1) > 2) or (len(sams2) >2)
 
     if is_chimera and (not is_normal_chimera):
         save_sams(abnormal_chimera_file, sams1, sams2)
@@ -286,11 +288,11 @@ if __name__ == '__main__':
     parser.add_argument("--multimapped", type=str, default='')
     parser.add_argument("--abnormal-chimera", type=str, default='')
     parser.add_argument("--min-mapq", type=int, default=10)
-    parser.add_argument("--max-chimera-dist", type=int, default=10)
+    parser.add_argument("--max-molecule-size", type=int, default=2000)
 
     args = parser.parse_args()
     MIN_MAPQ = args.min_mapq
-    MAX_CHIMERA_DIST = args.max_chimera_dist
+    MAX_MOLECULE_SIZE = args.max_molecule_size
     IN_STREAM = args.infile
 
     if not(args.out_basename) and not(

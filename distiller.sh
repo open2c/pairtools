@@ -12,7 +12,6 @@ OUTNAME=$4
         --singlesided >(samtools view -bS - > $OUTNAME.singlesided.bam) \
         --multimapped >(samtools view -bS - > $OUTNAME.mutimapped.bam) \
         --abnormal-chimera >(samtools view -bS - >$OUTNAME.abnormal_chimera.bam) 
-        
 } | {
 # lexicographic block-sort pairs together with sam entries
     sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n --field-separator=\v
