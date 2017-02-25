@@ -3,7 +3,166 @@ import fileinput
 import itertools                                                      
 import io
 
-# inline
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser('Splits .sam entries into different'
+    'read pair categories')
+    parser.add_argument('infile', nargs='?', 
+        type=argparse.FileType('r'), 
+        default=sys.stdin)
+    parser.add_argument("--out-basename", type=str, default='')
+    parser.add_argument("--out-extension", type=str, default='bam', choices=['bam','sam'])
+    parser.add_argument("--min-mapq", type=int, default=10)
+    parser.add_argument("--max-molecule-size", type=int, default=2000)
+    parser.add_argument("--header", type=str, default='')
+    parser.add_argument("--unmapped", type=str, default='')
+    parser.add_argument("--singlesided", type=str, default='')
+    parser.add_argument("--multimapped", type=str, default='')
+    parser.add_argument("--abnormal-chimera", type=str, default='')
+
+    args = parser.parse_args()
+    min_mapq = args.min_mapq
+    max_molecule_size = args.max_molecule_size
+    IN_STREAM = args.infile
+
+    if not(args.out_basename) and not(
+        args.header 
+        and args.unmapped 
+        and args.singlesided
+        and args.multimapped
+        and args.abnormal_chimera):
+        raise Exception(
+            'Please, provide either out_basename or individual '
+            'output paths.')
+
+    if (args.out_basename) and (
+        args.header 
+        or args.unmapped 
+        or args.singlesided
+        or args.multimapped
+        or args.abnormal_chimera):
+        raise Exception(
+            'Please, provide only either out_basename or individual '
+            'output paths.')
+
+    if args.out_basename:
+        header_file = open_bamsam(args.out_basename + '.header.' + args.out_extension, 'w')
+        unmapped_file  = open_bamsam(args.out_basename + '.unmapped.' + args.out_extension, 'w')
+        singlesided_file = open_bamsam(args.out_basename + '.singlesided.' + args.out_extension, 'w')
+        multimapped_file = open_bamsam(args.out_basename + '.multimapped.' + args.out_extension, 'w')
+        abnormal_chimera_file = open_bamsam(args.out_basename + '.abnormal_chimera.' + args.out_extension, 'w')
+    else:
+        header_file = open(args.header, 'w')
+        unmapped_file = open(args.unmapped, 'w')
+        singlesided_file = open(args.singlesided, 'w')
+        multimapped_file = open(args.multimapped, 'w')
+        abnormal_chimera_file = open(args.abnormal_chimera, 'w')
+
+    # The first few lines of a SAM file are header lines. These lines
+    # begin with @ and they must be sent to all output files.
+    last_line = IN_STREAM.readline()
+    while last_line.startswith('@'):
+        header_file.write(last_line)
+        unmapped_file.write(last_line)
+        singlesided_file.write(last_line)
+        multimapped_file.write(last_line)
+        abnormal_chimera_file.write(last_line)
+        last_line = IN_STREAM.readline()
+
+    header_file.flush()
+    header_file.close()
+    del(header_file)
+
+    prev_read_id = ''
+    sams1 = []
+    sams2 = []
+    while last_line:
+        read_id, _ = last_line.split('\t', 1)
+        if (read_id != prev_read_id) and (prev_read_id):
+            process_sams(
+                sams1=sams1, 
+                sams2=sams2,
+                min_mapq=min_mapq,
+                max_molecule_size=max_molecule_size,
+                unmapped_file=unmapped_file, 
+                singlesided_file=singlesided_file, 
+                multimapped_file=multimapped_file, 
+                abnormal_chimera_file=abnormal_chimera_file)
+            sams1.clear()
+            sams2.clear()
+
+        append_sams(last_line, sams1, sams2)
+        prev_read_id = read_id
+        last_line = IN_STREAM.readline()
+
+    # taking care of the last pair
+    process_sams(
+        sams1=sams1, 
+        sams2=sams2,
+        min_mapq=min_mapq,
+        max_molecule_size=max_molecule_size,
+        unmapped_file=unmapped_file, 
+        singlesided_file=singlesided_file, 
+        multimapped_file=multimapped_file, 
+        abnormal_chimera_file=abnormal_chimera_file)
+
+    unmapped_file.close()
+    singlesided_file.close()
+    multimapped_file.close()
+    abnormal_chimera_file.close()
+                                                                                   
+def process_sams(
+    sams1, 
+    sams2,
+    min_mapq,
+    max_molecule_size,
+    unmapped_file, 
+    singlesided_file, 
+    multimapped_file, 
+    abnormal_chimera_file,
+    ):
+
+    sam1_repr_cols = sams1[0].rstrip().split('\t')                         
+    sam2_repr_cols = sams2[0].rstrip().split('\t')                         
+
+    algn1 = get_algn_loc_mapq(sam1_repr_cols)
+    algn2 = get_algn_loc_mapq(sam2_repr_cols)
+
+    if (not algn1['is_mapped']) and (not algn2['is_mapped']):
+        save_sams(unmapped_file, sams1, sams2)
+        return
+
+    elif (not algn1['is_mapped']) or (not algn2['is_mapped']):
+        save_sams(singlesided_file, sams1, sams2)
+        return
+
+    elif (algn1['mapq'] < min_mapq) or (algn1['mapq'] < min_mapq):
+        save_sams(multimapped_file, sams1, sams2)
+        return
+
+    sup_algn1 = get_supp_alignment(sam1_repr_cols)
+    sup_algn2 = get_supp_alignment(sam2_repr_cols)
+
+    algn1_5, algn2_5, is_chimera, is_normal_chimera = get_chimera_position(
+        algn1, algn2, sup_algn1, sup_algn2, 
+        min_mapq, max_molecule_size)
+    is_normal_chimera = is_normal_chimera or (len(sams1) > 2) or (len(sams2) >2)
+
+    if is_chimera and (not is_normal_chimera):
+        save_sams(abnormal_chimera_file, sams1, sams2)
+        return
+
+    pair_order = get_pair_order(
+        algn1_5['chrom'], algn1_5['pos'], 
+        algn2_5['chrom'], algn2_5['pos'])
+
+    if pair_order >= 0:
+        write_pair_sam(algn1_5, algn2_5, sams1, sams2)
+    else:
+        write_pair_sam(algn2_5, algn1_5, sams2, sams1)
+    return
+
 
 ORD_M = ord('M')
 ORD_I = ord('I')
@@ -227,173 +386,22 @@ def save_sams(out_file, sams1, sams2):
         out_file.write(sam)
 
 
-def process_sams(
-    sams1, 
-    sams2,
-    unmapped_file, 
-    singlesided_file, 
-    multimapped_file, 
-    abnormal_chimera_file):
 
-    sam1_repr_cols = sams1[0].rstrip().split('\t')                         
-    sam2_repr_cols = sams2[0].rstrip().split('\t')                         
-
-    algn1 = get_algn_loc_mapq(sam1_repr_cols)
-    algn2 = get_algn_loc_mapq(sam2_repr_cols)
-
-    if (not algn1['is_mapped']) and (not algn2['is_mapped']):
-        save_sams(unmapped_file, sams1, sams2)
-        return
-
-    elif (not algn1['is_mapped']) or (not algn2['is_mapped']):
-        save_sams(singlesided_file, sams1, sams2)
-        return
-
-    elif (algn1['mapq'] < MIN_MAPQ) or (algn1['mapq'] < MIN_MAPQ):
-        save_sams(multimapped_file, sams1, sams2)
-        return
-
-    sup_algn1 = get_supp_alignment(sam1_repr_cols)
-    sup_algn2 = get_supp_alignment(sam2_repr_cols)
-
-    algn1_5, algn2_5, is_chimera, is_normal_chimera = get_chimera_position(
-        algn1, algn2, sup_algn1, sup_algn2, 
-        MIN_MAPQ, MAX_MOLECULE_SIZE)
-    is_normal_chimera = is_normal_chimera or (len(sams1) > 2) or (len(sams2) >2)
-
-    if is_chimera and (not is_normal_chimera):
-        save_sams(abnormal_chimera_file, sams1, sams2)
-        return
-
-    pair_order = get_pair_order(
-        algn1_5['chrom'], algn1_5['pos'], 
-        algn2_5['chrom'], algn2_5['pos'])
-
-    if pair_order >= 0:
-        write_pair_sam(algn1_5, algn2_5, sams1, sams2)
-    else:
-        write_pair_sam(algn2_5, algn1_5, sams2, sams1)
-    return
-
-
-def append_sams(line, sams1, sam2):
-    _, flag, _ = last_line.split('\t',2)
+def append_sams(line, sams1, sams2):
+    _, flag, _ = line.split('\t',2)
     flag = int(flag)
 
     if ((flag & 0x40) != 0):
         if ((flag & 0x800) == 0):
-            sams1.insert(0,last_line)
+            sams1.insert(0,line)
         else:
-            sams1.append(last_line)
+            sams1.append(line)
     else:
         if ((flag & 0x800) == 0):
-            sams2.insert(0,last_line)
+            sams2.insert(0,line)
         else:
-            sams2.append(last_line)
+            sams2.append(line)
     return 
 
 if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser('Splits .sam entries into different'
-    'read pair categories')
-    parser.add_argument('infile', nargs='?', 
-        type=argparse.FileType('r'), 
-        default=sys.stdin)
-    parser.add_argument("--out-basename", type=str, default='')
-    parser.add_argument("--out-extension", type=str, default='bam', choices=['bam','sam'])
-    parser.add_argument("--min-mapq", type=int, default=10)
-    parser.add_argument("--max-molecule-size", type=int, default=2000)
-    parser.add_argument("--header", type=str, default='')
-    parser.add_argument("--unmapped", type=str, default='')
-    parser.add_argument("--singlesided", type=str, default='')
-    parser.add_argument("--multimapped", type=str, default='')
-    parser.add_argument("--abnormal-chimera", type=str, default='')
-
-    args = parser.parse_args()
-    MIN_MAPQ = args.min_mapq
-    MAX_MOLECULE_SIZE = args.max_molecule_size
-    IN_STREAM = args.infile
-
-    if not(args.out_basename) and not(
-        args.header 
-        and args.unmapped 
-        and args.singlesided
-        and args.multimapped
-        and args.abnormal_chimera):
-        raise Exception(
-            'Please, provide either out_basename or individual '
-            'output paths.')
-
-    if (args.out_basename) and (
-        args.header 
-        or args.unmapped 
-        or args.singlesided
-        or args.multimapped
-        or args.abnormal_chimera):
-        raise Exception(
-            'Please, provide only either out_basename or individual '
-            'output paths.')
-
-    if args.out_basename:
-        header_file = open_bamsam(args.out_basename + '.header.' + args.out_extension, 'w')
-        unmapped_file  = open_bamsam(args.out_basename + '.unmapped.' + args.out_extension, 'w')
-        singlesided_file = open_bamsam(args.out_basename + '.singlesided.' + args.out_extension, 'w')
-        multimapped_file = open_bamsam(args.out_basename + '.multimapped.' + args.out_extension, 'w')
-        abnormal_chimera_file = open_bamsam(args.out_basename + '.abnormal_chimera.' + args.out_extension, 'w')
-    else:
-        header_file = open(args.header, 'w')
-        unmapped_file = open(args.unmapped, 'w')
-        singlesided_file = open(args.singlesided, 'w')
-        multimapped_file = open(args.multimapped, 'w')
-        abnormal_chimera_file = open(args.abnormal_chimera, 'w')
-
-    # The first few lines of a SAM file are header lines. These lines
-    # begin with @ and they must be sent to all output files.
-    last_line = IN_STREAM.readline()
-    while last_line.startswith('@'):
-        header_file.write(last_line)
-        unmapped_file.write(last_line)
-        singlesided_file.write(last_line)
-        multimapped_file.write(last_line)
-        abnormal_chimera_file.write(last_line)
-        last_line = IN_STREAM.readline()
-
-    header_file.flush()
-    header_file.close()
-    del(header_file)
-
-    prev_read_id = ''
-    sams1 = []
-    sams2 = []
-    while last_line:
-        read_id, _ = last_line.split('\t', 1)
-        if (read_id != prev_read_id) and (prev_read_id):
-            process_sams(
-                sams1, 
-                sams2,
-                unmapped_file, 
-                singlesided_file, 
-                multimapped_file, 
-                abnormal_chimera_file)
-            sams1.clear()
-            sams2.clear()
-
-        append_sams(last_line, sams1, sams2)
-        prev_read_id = read_id
-        last_line = IN_STREAM.readline()
-
-    # taking care of the last pair
-    process_sams(
-        sams1, 
-        sams2,
-        unmapped_file, 
-        singlesided_file, 
-        multimapped_file, 
-        abnormal_chimera_file)
-
-    unmapped_file.close()
-    singlesided_file.close()
-    multimapped_file.close()
-    abnormal_chimera_file.close()
-                                                                                   
+    main()
