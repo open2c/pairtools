@@ -1,4 +1,4 @@
-import sys, argparse
+import sys, argparse, pipes
 
 def open_bamsam(path, mode):
     if mode not in ['r','w']:
