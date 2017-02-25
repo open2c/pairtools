@@ -7,11 +7,7 @@ OUTNAME=$4
 # save unmapped/single-sided/multimapped/abnormal chimeras 
 # and output lines with flipped pairs and the two sam entries, separated by \v
     python classify_sam.py \
-        --header $OUTNAME.header.sam \
-        --unmapped >(samtools view -bS - > $OUTNAME.unmapped.bam) \
-        --singlesided >(samtools view -bS - > $OUTNAME.singlesided.bam) \
-        --multimapped >(samtools view -bS - > $OUTNAME.mutimapped.bam) \
-        --abnormal-chimera >(samtools view -bS - >$OUTNAME.abnormal_chimera.bam) 
+        --out-basename $OUTNAME 
 } | {
 # lexicographic block-sort pairs together with sam entries
     sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n --field-separator=\v
@@ -19,14 +15,14 @@ OUTNAME=$4
 # remove duplicates and split pairs and sams
     python dedup_pairsam.py \
         --out >(python split_pairsam.py \
-                --header $OUTNAME.header.sam \
+                --header $OUTNAME.header.bam \
                 --out-pairs $OUTNAME.dedup.pairs \
-                --out-sam >(samtools view -bS - > $OUTNAME.dedup.bam)
+                --out-sam $OUTNAME.dedup.bam
         ) \
         --dupfile >(python split_pairsam.py \
-                --header $OUTNAME.header.sam \
+                --header $OUTNAME.header.bam \
                 --out-pairs /dev/null \
-                --out-sam >(samtools view -bS - > $OUTNAME.dups.bam)
+                --out-sam $OUTNAME.dups.bam
         )
 }
 
