@@ -1,4 +1,4 @@
-import sys, os, subprocess
+import sys, os, subprocess, pipes
 import fileinput                                                      
 import itertools                                                      
 import io
@@ -19,9 +19,10 @@ def parse_cigar(CIGAR):
     clip5 = 0
     clip3 = 0
 
-    if CIGAR != b'*':
+    if CIGAR != '*':
         cur_num = 0
-        for charval in CIGAR:
+        for char in CIGAR:
+            charval = ord(char)
             if charval >= 48 and charval <= 57:
                 cur_num = cur_num * 10 + (charval - 48)
             else:
@@ -56,17 +57,17 @@ def parse_cigar(CIGAR):
 # inline
 def get_supp_alignment(samcols):
     for col in samcols:                                              
-        if not col.startswith(b'SA:Z:'):                                     
+        if not col.startswith('SA:Z:'):                                     
             continue
 
-        SAcols = col[5:].split(b',')
+        SAcols = col[5:].split(',')
         chrom = SAcols[0]
         strand = SAcols[2]
         mapq = int(SAcols[4])
 
         cigar = parse_cigar(SAcols[3])
 
-        if strand == b'+':
+        if strand == '+':
             pos = int(SAcols[1])
         else:
             pos = int(SAcols[1]) + cigar['algn_ref_span']
@@ -78,21 +79,21 @@ def get_supp_alignment(samcols):
             'mapq':mapq, 
             'is_mapped':True,
             'cigar':cigar,
-            'dist_to_5':cigar['clip5'] if strand == b'+' else cigar['clip3'],
+            'dist_to_5':cigar['clip5'] if strand == '+' else cigar['clip3'],
             }
     return None
 
 # inline
 def get_algn_loc_mapq(samcols):                                         
     chrom = samcols[2]                                             
-    strand = b'+' if ((int(samcols[1]) & 0x10) == 0) else b'-'
+    strand = '+' if ((int(samcols[1]) & 0x10) == 0) else '-'
     mapq = int(samcols[4])
 
     is_mapped = (int(samcols[1]) & 0x04) == 0                       
     cigar = parse_cigar(samcols[5])
     pos = 0
     if is_mapped:
-        if strand == b'+':
+        if strand == '+':
             pos = int(samcols[3])
         else:
             pos = int(samcols[3]) + cigar['algn_ref_span']
@@ -104,7 +105,7 @@ def get_algn_loc_mapq(samcols):
         'mapq':mapq, 
         'is_mapped':is_mapped,
         'cigar':cigar,
-        'dist_to_5':cigar['clip5'] if strand == b'+' else cigar['clip3'],
+        'dist_to_5':cigar['clip5'] if strand == '+' else cigar['clip3'],
     }
     
 # inline in cython!
@@ -145,7 +146,7 @@ def get_chimera_position(
     unmapped_gap_width = (
         (chim3_algn['pos'] - linear_algn['pos'] 
         - linear_algn['cigar']['read_len'] + linear_algn['dist_to_5'])
-        if linear_algn['strand'] == b'+' 
+        if linear_algn['strand'] == '+' 
         else (
         chim3_algn['pos'] - linear_algn['pos'] 
         - chim3_algn['cigar']['read_len'] + chim3_algn['dist_to_5']
@@ -175,36 +176,56 @@ def get_pair_order(chrm1, pos1, chrm2, pos2):
     else:
         return int(pos1 < pos2) * 2 - 1
 
-def write_pair_sam(algn1, algn2, sams1, sams2):
+def open_bamsam(path, mode):
+    if mode not in ['r','w']:
+        raise Exception("mode can be either 'r' or 'w'")
+    if path.endswith('.bam'):
+        if mode =='w': 
+            t = pipes.Template()
+            t.append('samtools view -bS', '--')
+            f = t.open(path, 'w')
+        elif mode =='r': 
+            t = pipes.Template()
+            t.append('samtools view -h', '--')
+            f = t.open(path, 'r')
+        else:
+            raise Exception("Unknown mode : {}".format(mode))
+        return f
+    else:
+        return open(path, mode)
+
+def write_pair_sam(algn1, algn2, sams1, sams2, out_file=sys.stdout):
     # SAM is already tab-separated and
     # any printable character between ! and ~ may appear in the PHRED field! 
     # (http://www.ascii-code.com/)
     # Thus, use the vertical tab character to separate fields!
 
-    sys.stdout.buffer.write(algn1['chrom'])
-    sys.stdout.buffer.write(b'\v')
-    sys.stdout.buffer.write(str(algn1['pos']).encode())
-    sys.stdout.buffer.write(b'\v')
-    sys.stdout.buffer.write(algn1['strand'])
-    sys.stdout.buffer.write(b'\v')
-    sys.stdout.buffer.write(algn2['chrom'])
-    sys.stdout.buffer.write(b'\v')
-    sys.stdout.buffer.write(str(algn2['pos']).encode())
-    sys.stdout.buffer.write(b'\v')
-    sys.stdout.buffer.write(algn2['strand'])
+    out_file.write(algn1['chrom'])
+    out_file.write('\v')
+    out_file.write(str(algn1['pos']))
+    out_file.write('\v')
+    out_file.write(algn1['strand'])
+    out_file.write('\v')
+    out_file.write(algn2['chrom'])
+    out_file.write('\v')
+    out_file.write(str(algn2['pos']))
+    out_file.write('\v')
+    out_file.write(algn2['strand'])
     for sam in sams1:
-        sys.stdout.buffer.write(b'\v')
-        sys.stdout.buffer.write(sam[:-1])
+        out_file.write('\v')
+        out_file.write(sam[:-1])
     for sam in sams2:
-        sys.stdout.buffer.write(b'\v')
-        sys.stdout.buffer.write(sam[:-1])
-    sys.stdout.buffer.write(b'\n')
+        out_file.write('\v')
+        out_file.write(sam[:-1])
+    out_file.write('\n')
+
 
 def save_sams(out_file, sams1, sams2):
     for sam in sams1:
         out_file.write(sam)
     for sam in sams2:
         out_file.write(sam)
+
 
 def process_sams(
     sams1, 
@@ -214,12 +235,11 @@ def process_sams(
     multimapped_file, 
     abnormal_chimera_file):
 
-    sam1_repr_cols = sams1[0].rstrip().split(b'\t')                         
-    sam2_repr_cols = sams2[0].rstrip().split(b'\t')                         
+    sam1_repr_cols = sams1[0].rstrip().split('\t')                         
+    sam2_repr_cols = sams2[0].rstrip().split('\t')                         
 
     algn1 = get_algn_loc_mapq(sam1_repr_cols)
     algn2 = get_algn_loc_mapq(sam2_repr_cols)
-
 
     if (not algn1['is_mapped']) and (not algn2['is_mapped']):
         save_sams(unmapped_file, sams1, sams2)
@@ -235,7 +255,6 @@ def process_sams(
 
     sup_algn1 = get_supp_alignment(sam1_repr_cols)
     sup_algn2 = get_supp_alignment(sam2_repr_cols)
-
 
     algn1_5, algn2_5, is_chimera, is_normal_chimera = get_chimera_position(
         algn1, algn2, sup_algn1, sup_algn2, 
@@ -257,8 +276,8 @@ def process_sams(
     return
 
 
-def append_sam(line, sams1, sam2):
-    _, flag, _ = last_line.split(b'\t',2)
+def append_sams(line, sams1, sam2):
+    _, flag, _ = last_line.split('\t',2)
     flag = int(flag)
 
     if ((flag & 0x40) != 0):
@@ -279,16 +298,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Splits .sam entries into different'
     'read pair categories')
     parser.add_argument('infile', nargs='?', 
-        type=argparse.FileType('rb'), 
-        default=sys.stdin.buffer)
+        type=argparse.FileType('r'), 
+        default=sys.stdin)
     parser.add_argument("--out-basename", type=str, default='')
+    parser.add_argument("--out-extension", type=str, default='bam', choices=['bam','sam'])
+    parser.add_argument("--min-mapq", type=int, default=10)
+    parser.add_argument("--max-molecule-size", type=int, default=2000)
     parser.add_argument("--header", type=str, default='')
     parser.add_argument("--unmapped", type=str, default='')
     parser.add_argument("--singlesided", type=str, default='')
     parser.add_argument("--multimapped", type=str, default='')
     parser.add_argument("--abnormal-chimera", type=str, default='')
-    parser.add_argument("--min-mapq", type=int, default=10)
-    parser.add_argument("--max-molecule-size", type=int, default=2000)
 
     args = parser.parse_args()
     MIN_MAPQ = args.min_mapq
@@ -316,22 +336,22 @@ if __name__ == '__main__':
             'output paths.')
 
     if args.out_basename:
-        header_file = open(args.out_basename + '.header.sam', 'wb')
-        unmapped_file  = open(args.out_basename + '.unmapped.sam', 'wb')
-        singlesided_file = open(args.out_basename + '.singlesided.sam', 'wb')
-        multimapped_file = open(args.out_basename + '.multimapped.sam', 'wb')
-        abnormal_chimera_file = open(args.out_basename + '.abnormal_chimera.sam', 'wb')
+        header_file = open_bamsam(args.out_basename + '.header.' + args.out_extension, 'w')
+        unmapped_file  = open_bamsam(args.out_basename + '.unmapped.' + args.out_extension, 'w')
+        singlesided_file = open_bamsam(args.out_basename + '.singlesided.' + args.out_extension, 'w')
+        multimapped_file = open_bamsam(args.out_basename + '.multimapped.' + args.out_extension, 'w')
+        abnormal_chimera_file = open_bamsam(args.out_basename + '.abnormal_chimera.' + args.out_extension, 'w')
     else:
-        header_file = open(args.header, 'wb')
-        unmapped_file = open(args.unmapped, 'wb')
-        singlesided_file = open(args.singlesided, 'wb')
-        multimapped_file = open(args.multimapped, 'wb')
-        abnormal_chimera_file = open(args.abnormal_chimera, 'wb')
+        header_file = open(args.header, 'w')
+        unmapped_file = open(args.unmapped, 'w')
+        singlesided_file = open(args.singlesided, 'w')
+        multimapped_file = open(args.multimapped, 'w')
+        abnormal_chimera_file = open(args.abnormal_chimera, 'w')
 
     # The first few lines of a SAM file are header lines. These lines
     # begin with @ and they must be sent to all output files.
     last_line = IN_STREAM.readline()
-    while last_line.startswith(b'@'):
+    while last_line.startswith('@'):
         header_file.write(last_line)
         unmapped_file.write(last_line)
         singlesided_file.write(last_line)
@@ -343,11 +363,11 @@ if __name__ == '__main__':
     header_file.close()
     del(header_file)
 
-    prev_read_id = b''
+    prev_read_id = ''
     sams1 = []
     sams2 = []
     while last_line:
-        read_id, _ = last_line.split(b'\t', 1)
+        read_id, _ = last_line.split('\t', 1)
         if (read_id != prev_read_id) and (prev_read_id):
             process_sams(
                 sams1, 
@@ -359,7 +379,7 @@ if __name__ == '__main__':
             sams1.clear()
             sams2.clear()
 
-        append_sam(last_line, sams1, sams2)
+        append_sams(last_line, sams1, sams2)
         prev_read_id = read_id
         last_line = IN_STREAM.readline()
 
