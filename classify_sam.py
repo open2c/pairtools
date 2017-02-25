@@ -317,10 +317,10 @@ if __name__ == '__main__':
 
     if not(args.out_basename) and not(
         args.header 
-        or args.unmapped 
-        or args.singlesided
-        or args.multimapped
-        or args.abnormal_chimera):
+        and args.unmapped 
+        and args.singlesided
+        and args.multimapped
+        and args.abnormal_chimera):
         raise Exception(
             'Please, provide either out_basename or individual '
             'output paths.')
