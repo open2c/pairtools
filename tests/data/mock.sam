@@ -1,0 +1,22 @@
+@header line 1
+@header line 2
+readid01	65	chr1	10	60	50M	chr1	200	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,200,+
+readid01	128	chr1	200	60	50M	chr1	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,200,+
+readid02	97	chr1	10	60	50M	chr1	200	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,250,-
+readid02	144	chr1	200	60	50M	chr1	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,250,-
+readid03	65	chr1	10	60	1S49M	chr1	200	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,11,+,chr1,200,+
+readid03	128	chr1	200	60	50M	chr1	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,11,+,chr1,200,+
+readid04	65	chr1	10	60	49M1S	chr1	200	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,200,+
+readid04	128	chr1	200	60	50M	chr1	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,200,+
+readid05	97	chr1	10	60	50M	chr1	200	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,250,-
+readid05	144	chr1	200	60	1S49M	chr1	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,250,-
+readid06	97	chr1	10	60	50M	chr1	200	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,249,-
+readid06	144	chr1	200	60	49M1S	chr1	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,249,-
+readid07	97	chr1	10	60	50M	chr1	200	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,249,-
+readid07	144	chr1	200	60	1S48M1S	chr1	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:mapped,chr1,10,+,chr1,249,-
+readid08	105	chr1	10	60	50M	=	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:singlesided,chr1,10,+,*,0,-
+readid08	149	chr1	10	0	*	=	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:singlesided,chr1,10,+,*,0,-
+readid09	85	chr1	10	0	*	=	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:singlesided,*,0,-,chr1,10,+
+readid09	169	chr1	10	60	50M	=	10	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:singlesided,*,0,-,chr1,10,+
+readid10	77	*	0	0	*	*	0	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:unmapped,*,0,-,*,0,-
+readid10	141	*	0	0	*	*	0	0	SEQ	PHRED	FLAG1	FLAG2	SIMULATED:unmapped,*,0,-,*,0,-
