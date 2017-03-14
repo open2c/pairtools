@@ -1,4 +1,4 @@
-import sys, os, subprocess, pipes
+import sys, os, subprocess, pipes, pipes
 import fileinput
 import itertools
 import io
@@ -8,9 +8,18 @@ def main():
 
     parser = argparse.ArgumentParser('Splits .sam entries into different'
     'read pair categories')
-    parser.add_argument('infile', nargs='?',
+    parser.add_argument(
+        'infile',
+        nargs='?',
         type=argparse.FileType('r'),
         default=sys.stdin)
+    parser.add_argument(
+        "-o", "--output", 
+        type=str,
+        help='Path to the output pairsam file. '
+            'If ends with .gz, the output is gzipped. '
+            'If not provided, the output is printed into stdout.',
+        default=None)
     parser.add_argument("--min-mapq", type=int, default=10)
     parser.add_argument("--max-molecule-size", type=int, default=2000)
 
@@ -18,7 +27,16 @@ def main():
     min_mapq = args.min_mapq
     max_molecule_size = args.max_molecule_size
     IN_STREAM = args.infile
-    OUT_STREAM = sys.stdout
+
+    if args.output is None:
+        OUT_STREAM = sys.stdout
+    else:
+        if args.output.endswith('.gz'):
+            t = pipes.Template()
+            t.append('gzip -c', '--')
+            OUT_STREAM  = t.open(args.output, 'w')
+        else:
+            OUT_STREAM = open(args.output, mode='w')
 
     # The first few lines of a SAM file are header lines. These lines
     # begin with @ and they must be sent to all output files.
@@ -39,6 +57,7 @@ def main():
                 sams2=sams2,
                 min_mapq=min_mapq,
                 max_molecule_size=max_molecule_size,
+                out_file=OUT_STREAM,
             )
             sams1.clear()
             sams2.clear()
@@ -53,7 +72,12 @@ def main():
         sams2=sams2,
         min_mapq=min_mapq,
         max_molecule_size=max_molecule_size,
+        out_file=OUT_STREAM,
     )
+
+
+    if hasattr(OUT_STREAM, 'close'):
+        OUT_STREAM.close()
 
 
 def append_sams(line, sams1, sams2):
@@ -78,6 +102,7 @@ def process_sams(
     sams2,
     min_mapq,
     max_molecule_size,
+    out_file,
     ):
     '''
     Possible pair types:
@@ -187,9 +212,9 @@ def process_sams(
 
 
     if flip_pair:
-        write_pair_sam(algn2, algn1, sams2, sams1, pair_type=pair_type)
+        write_pair_sam(algn2, algn1, sams2, sams1, out_file, pair_type=pair_type)
     else:
-        write_pair_sam(algn1, algn2, sams1, sams2, pair_type=pair_type)
+        write_pair_sam(algn1, algn2, sams1, sams2, out_file, pair_type=pair_type)
     return
 
 
@@ -393,7 +418,7 @@ def get_pair_order(chrm1, pos1, chrm2, pos2):
         return int(pos1 < pos2) * 2 - 1
 
 
-def write_pair_sam(algn1, algn2, sams1, sams2, out_file=sys.stdout, pair_type=''):
+def write_pair_sam(algn1, algn2, sams1, sams2, out_file, pair_type=''):
     # SAM is already tab-separated and
     # any printable character between ! and ~ may appear in the PHRED field!
     # (http://www.ascii-code.com/)
