@@ -6,8 +6,8 @@ import io
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser('Splits .sam entries into different'
-    'read pair categories')
+    parser = argparse.ArgumentParser(
+        'Splits .sam entries into different read pair categories')
     parser.add_argument(
         'infile',
         nargs='?',
@@ -24,8 +24,8 @@ def main():
     parser.add_argument("--max-molecule-size", type=int, default=2000)
 
     args = parser.parse_args()
-    min_mapq = args.min_mapq
-    max_molecule_size = args.max_molecule_size
+    MIN_MAPQ = args.min_mapq
+    MAX_MOLECULE_SIZE = args.max_molecule_size
     IN_STREAM = args.infile
 
     if args.output is None:
@@ -55,8 +55,8 @@ def main():
             process_sams(
                 sams1=sams1,
                 sams2=sams2,
-                min_mapq=min_mapq,
-                max_molecule_size=max_molecule_size,
+                min_mapq=MIN_MAPQ,
+                max_molecule_size=MAX_MOLECULE_SIZE,
                 out_file=OUT_STREAM,
             )
             sams1.clear()
@@ -70,11 +70,10 @@ def main():
     process_sams(
         sams1=sams1,
         sams2=sams2,
-        min_mapq=min_mapq,
-        max_molecule_size=max_molecule_size,
+        min_mapq=MIN_MAPQ,
+        max_molecule_size=MAX_MOLECULE_SIZE,
         out_file=OUT_STREAM,
     )
-
 
     if hasattr(OUT_STREAM, 'close'):
         OUT_STREAM.close()
@@ -193,8 +192,8 @@ def process_sams(
                     algn1['chrom'], algn1['pos'],
                     algn2['chrom'], algn2['pos']) < 0
             else:
-                flip_pair = is_chimeric_2
                 pair_type='CL'
+                flip_pair = is_chimeric_2
                 # cannot rescue the chimeric alignment, mask position/chromosome
                 if not (algn1['is_linear']):
                     algn1['chrom'] = '!'
@@ -205,10 +204,10 @@ def process_sams(
                     algn2['pos'] = 0
                     algn2['strand'] = '-'
     else:
+        pair_type='LL'
         flip_pair = get_pair_order(
             algn1['chrom'], algn1['pos'],
             algn2['chrom'], algn2['pos']) < 0
-        pair_type='LL'
 
 
     if flip_pair:
@@ -345,14 +344,14 @@ def rescue_chimeric_alignment(
             - linear_algn['pos']
             + chim3_algn['dist_to_5']
             + linear_algn['dist_to_5']
-            )
+        )
     else:
         molecule_size= (
             linear_algn['pos']
             - chim3_algn['pos'] 
             + chim3_algn['dist_to_5']
             + linear_algn['dist_to_5']
-            )
+        )
 
     can_rescue &= (molecule_size <= max_molecule_size)
 
