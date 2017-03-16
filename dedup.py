@@ -110,3 +110,8 @@ while True:
             if(len(lines) != 0):                
                 raise ValueError("{0} lines left in the buffer, should be none; something went terribly wrong".format(len(lines)))
             break 
+
+if hasattr(outstream, 'close'):
+    outstream.close()
+if otherfile:
+    dupfile.close()
