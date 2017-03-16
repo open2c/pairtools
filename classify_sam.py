@@ -369,9 +369,9 @@ def write_pairsam(
     out_file.write(algn2['strand'])
     out_file.write('\v')
     if drop_readid:
-        out_file.write(read_id)
-    else:
         out_file.write('.')
+    else:
+        out_file.write(read_id)
     out_file.write('\v')
     out_file.write(pair_type)
     if not drop_sam:
