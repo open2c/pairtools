@@ -4,8 +4,9 @@ FASTQ2=$3
 OUTNAME=$4
 
 ~/programming/bwa/bwa mem -SP $INDEX $FASTQ1 $FASTQ2 | {
-# save unmapped/single-sided/multimapped/abnormal chimeras 
-# and output lines with flipped pairs and the two sam entries, separated by \v
+# classify Hi-C molecules as unmapped/single-sided/multimapped/chimeric/etc
+# and output one line per read, containing flipped pairs, type of a Hi-C molecule
+# and the corresponding sam entries, all separated by \v
     python classify_sam.py 
 } | {
 # lexicographic block-sort pairs together with sam entries
