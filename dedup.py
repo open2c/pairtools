@@ -14,6 +14,8 @@ parser.add_argument("--mindist", type=int, default = 3,  help = 'Reads less than
 parser.add_argument("--sep", type=str, default=r"\v", help=r"Separator (\t, \v, etc. characters are supported, pass them in quotes) ")
 parser.add_argument("--out", type=str, default="", help="File to dump duplicates, default stdout")
 parser.add_argument("--dupfile", type=str, default="", help="File to dump duplicates, if desired. By default they are discarded")
+parser.add_argument("--comment-char", type=str, default="#", help="The first character of comment lines")
+parser.add_argument("--send-comments-to", type=str, default="both", choices=['dups', 'dedup', 'both', 'none'], help="Which of the outputs should receive comment lines")
 
 parser.add_argument("--c1", type=int, default = 0,  help = 'Chrom 1 column; default 0')
 parser.add_argument("--c2", type=int, default = 3,  help = 'Chrom 2 column; default 3')
@@ -28,6 +30,9 @@ sep = ast.literal_eval('"""' + args.sep + '"""')
 
 METHOD = args.METHOD
 MINDIST = args.mindist
+COMMENT_CHAR = args.comment_char
+SEND_COMMENTS_TO_DEDUP = args.send_comments_to in ['both', 'dedup']
+SEND_COMMENTS_TO_DUPS = args.send_comments_to in ['both', 'dups']
 
 c1ind = args.c1
 c2ind = args.c2
@@ -74,8 +79,12 @@ strandDict = {}
 while True: 
     line = sys.stdin.readline()    
     stripline = line.strip()
-    if stripline.startswith("#"):
-        outstream.write(line)
+    if stripline.startswith(COMMENT_CHAR):
+        if SEND_COMMENTS_TO_DEDUP:
+            outstream.write(line)
+        if SEND_COMMENTS_TO_DUPS:
+            if otherfile:
+                dupfile.write(line)
         continue
     
     if line:
