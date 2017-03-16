@@ -346,7 +346,9 @@ def push(line, sams1, sams2):
     return
 
 
-def write_pairsam(algn1, algn2, sams1, sams2, out_file, pair_type=''):
+def write_pairsam(
+        algn1, algn2, read_id, pair_type, sams1, sams2, out_file, 
+        drop_readid, drop_sam):
     """
     SAM is already tab-separated and
     any printable character between ! and ~ may appear in the PHRED field!
@@ -354,8 +356,6 @@ def write_pairsam(algn1, algn2, sams1, sams2, out_file, pair_type=''):
     Thus, use the vertical tab character to separate fields!
 
     """
-    out_file.write(pair_type)
-    out_file.write('\v')
     out_file.write(algn1['chrom'])
     out_file.write('\v')
     out_file.write(str(algn1['pos']))
@@ -367,20 +367,28 @@ def write_pairsam(algn1, algn2, sams1, sams2, out_file, pair_type=''):
     out_file.write(str(algn2['pos']))
     out_file.write('\v')
     out_file.write(algn2['strand'])
-    for sam in sams1:
-        out_file.write('\v')
-        out_file.write(sam[:-1])
-        out_file.write('\tYt:Z:')
-        out_file.write(pair_type)
-    for sam in sams2:
-        out_file.write('\v')
-        out_file.write(sam[:-1])
-        out_file.write('\tYt:Z:')
-        out_file.write(pair_type)
+    out_file.write('\v')
+    if drop_readid:
+        out_file.write(read_id)
+    else:
+        out_file.write('.')
+    out_file.write('\v')
+    out_file.write(pair_type)
+    if not drop_sam:
+        for sam in sams1:
+            out_file.write('\v')
+            out_file.write(sam[:-1])
+            out_file.write('\tYt:Z:')
+            out_file.write(pair_type)
+        for sam in sams2:
+            out_file.write('\v')
+            out_file.write(sam[:-1])
+            out_file.write('\tYt:Z:')
+            out_file.write(pair_type)
     out_file.write('\n')
 
 
-def main(in_stream, out_stream, min_mapq, max_molecule_size):
+def main(in_stream, out_stream, min_mapq, max_molecule_size, drop_readid, drop_sam):
     """
 
     """
@@ -405,11 +413,23 @@ def main(in_stream, out_stream, min_mapq, max_molecule_size):
                 max_molecule_size
             )
             if flip_pair:
-                write_pairsam(pair_type, algn2, algn1, sams2, sams1,
-                              out_stream)
+                write_pairsam(
+                    algn2, algn1, 
+                    prev_read_id, 
+                    pair_type,
+                    sams2, sams1,
+                    out_stream, 
+                    drop_readid,
+                    drop_sam)
             else:
-                write_pairsam(pair_type, algn1, algn2, sams1, sams2,
-                              out_stream)
+                write_pairsam(
+                    algn1, algn2,
+                    prev_read_id, 
+                    pair_type,
+                    sams1, sams2,
+                    out_stream,
+                    drop_readid,
+                    drop_sam)
             sams1.clear()
             sams2.clear()
         push(last_line, sams1, sams2)
@@ -424,9 +444,23 @@ def main(in_stream, out_stream, min_mapq, max_molecule_size):
         max_molecule_size
     )
     if flip_pair:
-        write_pairsam(pair_type, algn2, algn1, sams2, sams1, out_stream)
+        write_pairsam(
+            algn2, algn1, 
+            '.' if drop_readid else prev_read_id, 
+            pair_type,
+            sams2, sams1,
+            out_stream,
+            drop_readid,
+            drop_sam)
     else:
-        write_pairsam(pair_type, algn1, algn2, sams1, sams2, out_stream)
+        write_pairsam(
+            algn1, algn2,
+            '.' if drop_readid else prev_read_id, 
+            pair_type,
+            sams1, sams2, 
+            out_stream,
+            drop_readid,
+            drop_sam)
 
     if hasattr(out_stream, 'close'):
         out_stream.close()
@@ -449,10 +483,14 @@ if __name__ == '__main__':
         default=None)
     parser.add_argument("--min-mapq", type=int, default=10)
     parser.add_argument("--max-molecule-size", type=int, default=2000)
+    parser.add_argument("--drop-readid", action='store_true')
+    parser.add_argument("--drop-sam", action='store_true')
     args = vars(parser.parse_args())
 
     min_mapq = args['min_mapq']
     max_molecule_size = args['max_molecule_size']
+    drop_readid = args['drop_readid']
+    drop_sam = args['drop_sam']
     in_stream = args['infile']
     if args['output'] is None:
         out_stream = sys.stdout
@@ -464,4 +502,4 @@ if __name__ == '__main__':
         else:
             out_stream = open(args['output'], mode='w')
 
-    main(in_stream, out_stream, min_mapq, max_molecule_size)
+    main(in_stream, out_stream, min_mapq, max_molecule_size, drop_readid, drop_sam)

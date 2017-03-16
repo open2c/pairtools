@@ -20,9 +20,9 @@ for line in INSTREAM.readlines():
         continue
     else:
         cols = line[:-1].split('\v')
-        cols[0] = 'DD'
+        cols[7] = 'DD'
         
-        for i in range(7, len(cols)):
+        for i in range(8, len(cols)):
             sam = cols[i]
             samcols = sam.split('\t')
             samcols[1] = str(int(samcols[1]) | 1024)
