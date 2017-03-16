@@ -13,6 +13,6 @@ bwa mem -SP "$INDEX" "$FASTQ1" "$FASTQ2" | {
     bash sort_pairsam.sh
 } | {
 # remove duplicates and split pairs and sams
-    bash dedup_split_pairsam.sh "$OUTPREFIX"
+    bash dedup_split_sorted_pairsam.sh "$OUTPREFIX"
 }
 
