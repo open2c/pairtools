@@ -21,18 +21,18 @@ bwa mem -SP "$INDEX" "$FASTQ1" "$FASTQ2" | {
     bash pairsam_sort.sh
 } | {
 # remove duplicates and split pairs and sams
-    cat - | \
-        bash pairsam_divertunmapped.sh \
+    cat - \
+        | bash pairsam_divertunmapped.sh \
             >( python pairsam_split.py \
                 --out-pairs ${UNMAPPED_PAIRS_PATH} \
-                --out-sam ${UNMAPPED_SAM_PATH} ) | \
-        python dedup.py  \
+                --out-sam ${UNMAPPED_SAM_PATH} ) \
+        | python dedup.py  \
             --out \
                 >( python pairsam_split.py \
                     --out-pairs ${NODUPS_PAIRS_PATH} \
                     --out-sam ${NODUPS_SAM_PATH} )\
             --dupfile \
-                >( python pairsam_tagdups.py | \
+                >( python pairsam_markasdup.py | \
                     python pairsam_split.py \
                      --out-pairs ${DUPS_PAIRS_PATH} \
                      --out-sam ${DUPS_SAM_PATH} )
