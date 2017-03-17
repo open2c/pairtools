@@ -12,28 +12,31 @@ DUPS_PAIRS_PATH=${OUTPREFIX}.dups.pairs.gz
 
 
 bwa mem -SP "$INDEX" "$FASTQ1" "$FASTQ2" | {
-# classify Hi-C molecules as unmapped/single-sided/multimapped/chimeric/etc
-# and output one line per read, containing flipped pairs, type of a Hi-C molecule
-# and the corresponding sam entries, all separated by \v
+    # Classify Hi-C molecules as unmapped/single-sided/multimapped/chimeric/etc
+    # and output one line per read, containing the following, separated by \\v:
+    #  * triu-flipped pairs
+    #  * type of a Hi-C molecule
+    #  * corresponding sam entries
     python classify_reads.py 
 } | {
-# lexicographic block-sort pairs together with sam entries
+    # Block-sort pairs together with SAM entries
     bash pairsam_sort.sh
 } | {
-# remove duplicates and split pairs and sams
-    cat - \
-        | bash pairsam_divertunmapped.sh \
+    # Set unmapped and ambiguous reads aside
+    bash pairsam_divertunmapped.sh \
+        >( python pairsam_split.py \
+            --out-pairs ${UNMAPPED_PAIRS_PATH} \
+            --out-sam ${UNMAPPED_SAM_PATH} ) \
+} | {
+    # Remove duplicates
+    python dedup_pairs.py \
+        --out \
             >( python pairsam_split.py \
-                --out-pairs ${UNMAPPED_PAIRS_PATH} \
-                --out-sam ${UNMAPPED_SAM_PATH} ) \
-        | python dedup_pairs.py  \
-            --out \
-                >( python pairsam_split.py \
-                    --out-pairs ${NODUPS_PAIRS_PATH} \
-                    --out-sam ${NODUPS_SAM_PATH} )\
-            --dupfile \
-                >( python pairsam_markasdup.py | \
-                    python pairsam_split.py \
-                     --out-pairs ${DUPS_PAIRS_PATH} \
-                     --out-sam ${DUPS_SAM_PATH} )
+                --out-pairs ${NODUPS_PAIRS_PATH} \
+                --out-sam ${NODUPS_SAM_PATH} ) \
+        --dupfile \
+            >( python pairsam_markasdup.py \
+                | python pairsam_split.py \
+                    --out-pairs ${DUPS_PAIRS_PATH} \
+                    --out-sam ${DUPS_SAM_PATH} )
 }
