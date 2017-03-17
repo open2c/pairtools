@@ -7,7 +7,7 @@ import ast
 
 import numpy as np
 import pyximport; pyximport.install()
-from dedup import OnlineDuplicateDetector
+from _dedup import OnlineDuplicateDetector
 
 
 # you don't need to load more than 10k lines at a time b/c you get out of the 
@@ -183,12 +183,12 @@ def streaming_dedup(method, mindist, comment_char, send_comments_to_dedup,
             s2.append(fetchadd(words[s2ind], strandDict))
 
         if (not line) or (len(c1) == MAX_LEN):
-            res = dd.push(ar(c1,8), 
-                          ar(c2,8), 
-                          ar(p1,32), 
+            res = dd.push(ar(c1, 8), 
+                          ar(c2, 8), 
+                          ar(p1, 32), 
                           ar(p2, 32), 
                           ar(s1, 8), 
-                          ar(s2,8))
+                          ar(s2, 8))
             if not line:
                 res = np.concatenate([res, dd.finish()])
 
