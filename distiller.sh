@@ -26,7 +26,7 @@ bwa mem -SP "$INDEX" "$FASTQ1" "$FASTQ2" | {
             >( python pairsam_split.py \
                 --out-pairs ${UNMAPPED_PAIRS_PATH} \
                 --out-sam ${UNMAPPED_SAM_PATH} ) \
-        | python dedup.py  \
+        | python dedup_pairs.py  \
             --out \
                 >( python pairsam_split.py \
                     --out-pairs ${NODUPS_PAIRS_PATH} \
