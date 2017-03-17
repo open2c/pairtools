@@ -1,3 +1,4 @@
+#!/bin/bash
 AWK_SPLIT_UNMAPPED_SCRIPT='
     BEGIN { FS="\v" } 
     {

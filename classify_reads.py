@@ -10,6 +10,59 @@ import os
 import io
 
 
+def main():
+    parser = argparse.ArgumentParser(
+        'Splits .sam entries into different read pair categories')
+    parser.add_argument(
+        'infile',
+        nargs='?',
+        type=argparse.FileType('r'),
+        default=sys.stdin)
+    parser.add_argument(
+        "-o", "--output",
+        type=str,
+        default=None,
+        help='Path to the output pairsam file. '
+             'If ends with .gz, the output is gzipped. '
+             'If not provided, the output is printed into stdout.')
+    parser.add_argument(
+        "--min-mapq", 
+        type=int, 
+        default=10)
+    parser.add_argument(
+        "--max-molecule-size", 
+        type=int, 
+        default=2000)
+    parser.add_argument(
+        "--drop-readid", 
+        action='store_true')
+    parser.add_argument(
+        "--drop-sam", 
+        action='store_true')
+    args = vars(parser.parse_args())
+
+    min_mapq = args['min_mapq']
+    max_molecule_size = args['max_molecule_size']
+    drop_readid = args['drop_readid']
+    drop_sam = args['drop_sam']
+    in_stream = args['infile']
+    if args['output'] is None:
+        out_stream = sys.stdout
+    else:
+        if args['output'].endswith('.gz'):
+            t = pipes.Template()
+            t.append('gzip -c', '--')
+            out_stream = t.open(args['output'], 'w')
+        else:
+            out_stream = open(args['output'], mode='w')
+
+    streaming_classify(in_stream, out_stream, min_mapq, max_molecule_size,
+                       drop_readid, drop_sam)
+
+    if hasattr(out_stream, 'close'):
+        out_stream.close()
+
+
 def parse_cigar(cigar):
     matched_bp = 0
     algn_ref_span = 0
@@ -122,7 +175,7 @@ def parse_supp(samcols, min_mapq):
             'is_linear': None,
             'cigar': cigar,
             'dist_to_5': cigar['clip5'] if strand == '+' else cigar['clip3'],
-            })
+        })
 
     return supp_algns
 
@@ -326,7 +379,7 @@ def classify(sams1, sams2, min_mapq, max_molecule_size):
     return pair_type, algn1, algn2, flip_pair
 
 
-def push(line, sams1, sams2):
+def push_sam(line, sams1, sams2):
     """
 
     """
@@ -388,7 +441,8 @@ def write_pairsam(
     out_file.write('\n')
 
 
-def main(in_stream, out_stream, min_mapq, max_molecule_size, drop_readid, drop_sam):
+def streaming_classify(in_stream, out_stream, min_mapq, max_molecule_size, 
+                       drop_readid, drop_sam):
     """
 
     """
@@ -405,13 +459,13 @@ def main(in_stream, out_stream, min_mapq, max_molecule_size, drop_readid, drop_s
     sams2 = []
     while last_line:
         read_id, _ = last_line.split('\t', 1)
-        if (read_id != prev_read_id) and (prev_read_id):
+
+        if (read_id != prev_read_id) and prev_read_id:    
             pair_type, algn1, algn2, flip_pair = classify(
                 sams1,
                 sams2,
                 min_mapq,
-                max_molecule_size
-            )
+                max_molecule_size)
             if flip_pair:
                 write_pairsam(
                     algn2, algn1, 
@@ -430,9 +484,11 @@ def main(in_stream, out_stream, min_mapq, max_molecule_size, drop_readid, drop_s
                     out_stream,
                     drop_readid,
                     drop_sam)
+            
             sams1.clear()
             sams2.clear()
-        push(last_line, sams1, sams2)
+
+        push_sam(last_line, sams1, sams2)
         prev_read_id = read_id
         last_line = in_stream.readline()
 
@@ -441,8 +497,7 @@ def main(in_stream, out_stream, min_mapq, max_molecule_size, drop_readid, drop_s
         sams1,
         sams2,
         min_mapq,
-        max_molecule_size
-    )
+        max_molecule_size)
     if flip_pair:
         write_pairsam(
             algn2, algn1, 
@@ -462,44 +517,6 @@ def main(in_stream, out_stream, min_mapq, max_molecule_size, drop_readid, drop_s
             drop_readid,
             drop_sam)
 
-    if hasattr(out_stream, 'close'):
-        out_stream.close()
-
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        'Splits .sam entries into different read pair categories')
-    parser.add_argument(
-        'infile',
-        nargs='?',
-        type=argparse.FileType('r'),
-        default=sys.stdin)
-    parser.add_argument(
-        "-o", "--output",
-        type=str,
-        help=('Path to the output pairsam file. '
-              'If ends with .gz, the output is gzipped. '
-              'If not provided, the output is printed into stdout.'),
-        default=None)
-    parser.add_argument("--min-mapq", type=int, default=10)
-    parser.add_argument("--max-molecule-size", type=int, default=2000)
-    parser.add_argument("--drop-readid", action='store_true')
-    parser.add_argument("--drop-sam", action='store_true')
-    args = vars(parser.parse_args())
-
-    min_mapq = args['min_mapq']
-    max_molecule_size = args['max_molecule_size']
-    drop_readid = args['drop_readid']
-    drop_sam = args['drop_sam']
-    in_stream = args['infile']
-    if args['output'] is None:
-        out_stream = sys.stdout
-    else:
-        if args['output'].endswith('.gz'):
-            t = pipes.Template()
-            t.append('gzip -c', '--')
-            out_stream = t.open(args['output'], 'w')
-        else:
-            out_stream = open(args['output'], mode='w')
-
-    main(in_stream, out_stream, min_mapq, max_molecule_size, drop_readid, drop_sam)
+    main()
