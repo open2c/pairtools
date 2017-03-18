@@ -15,17 +15,23 @@ def main():
         '--input',
         type=str, 
         default="",
-        help='input file. By default, the input is read from stdin.')
+        help='input file.'
+            ' If the path ends with .gz, the input is gzip-decompressed.'
+            ' By default, the input is read from stdin.')
     parser.add_argument(
         "--output", 
         type=str, 
         default="", 
-        help="output file. By default, the output is printed into stdout.")
+        help='output file.'
+            ' If the path ends with .gz, the output is bgzip-compressed.'
+            ' By default, the output is printed into stdout.')
     parser.add_argument(
         "--output-rest", 
         type=str, 
         default="", 
-        help="output file for pairs of other types. By default, such pairs are dropped."
+        help='output file for pairs of other types. '
+            ' If the path ends with .gz, the output is bgzip-compressed.'
+            ' By default, such pairs are dropped.'
         )
     
     args = vars(parser.parse_args())
