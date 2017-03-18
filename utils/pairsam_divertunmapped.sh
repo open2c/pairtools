@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 AWK_SPLIT_UNMAPPED_SCRIPT='
     BEGIN { FS="\v" } 
     {

@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -o errexit
+set -o nounset
+set -o pipefail
 INDEX=$1
 FASTQ1=$2
 FASTQ2=$3
@@ -11,13 +14,13 @@ DUPS_SAM_PATH=${OUTPREFIX}.dups.bam
 DUPS_PAIRS_PATH=${OUTPREFIX}.dups.pairs.gz
 
 
-bwa mem -SP "$INDEX" "$FASTQ1" "$FASTQ2" | {
+bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     # Classify Hi-C molecules as unmapped/single-sided/multimapped/chimeric/etc
     # and output one line per read, containing the following, separated by \\v:
     #  * triu-flipped pairs
     #  * type of a Hi-C molecule
     #  * corresponding sam entries
-    python classify_reads.py 
+    python sam_to_pairsam.py 
 } | {
     # Block-sort pairs together with SAM entries
     bash pairsam_sort.sh
@@ -29,7 +32,7 @@ bwa mem -SP "$INDEX" "$FASTQ1" "$FASTQ2" | {
             --out-sam ${UNMAPPED_SAM_PATH} ) \
 } | {
     # Remove duplicates
-    python dedup_pairs.py \
+    python pairs_dedup.py \
         --out \
             >( python pairsam_split.py \
                 --out-pairs ${NODUPS_PAIRS_PATH} \

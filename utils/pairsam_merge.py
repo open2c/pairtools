@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys, subprocess
 
 def open_bgzip(path, mode):
