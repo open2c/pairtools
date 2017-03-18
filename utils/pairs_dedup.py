@@ -8,6 +8,7 @@ import ast
 import numpy as np
 import pyximport; pyximport.install()
 from _dedup import OnlineDuplicateDetector
+from _distiller_common import open_bgzip
 
 
 # you don't need to load more than 10k lines at a time b/c you get out of the 
@@ -38,16 +39,27 @@ def main():
         help=r"Separator (\t, \v, etc. characters are "
               "supported, pass them in quotes) ")
     parser.add_argument(
-        "--out", 
+        '--input',
         type=str, 
-        default="", 
-        help="File to dump duplicates, default stdout")
+        default="",
+        help='input sorted pairs or pairsam file.'
+            ' If the path ends with .gz, the input is gzip-decompressed.'
+            ' By default, the input is read from stdin.')
     parser.add_argument(
-        "--dupfile",
+        "--output", 
         type=str, 
         default="", 
-        help="File to dump duplicates, if desired. "
-             "By default they are discarded")
+        help='output file for pairs after duplicate removal.'
+            ' If the path ends with .gz, the output is bgzip-compressed.'
+            ' By default, the output is printed into stdout.')
+    parser.add_argument(
+        "--output-dups",
+        type=str, 
+        default="", 
+        help='output file for duplicates. '
+            ' If the path ends with .gz, the output is bgzip-compressed.'
+            ' By default, duplicates are dropped.'
+            )
     parser.add_argument(
         "--comment-char", 
         type=str, 
@@ -104,27 +116,23 @@ def main():
     s1ind = args['s1']
     s2ind = args['s2']
 
-    outfile = args['out']
-    if outfile:
-        outstream = open(outfile,'w')
-    else:
-        outstream = sys.stdout
+    instream = (open_bgzip(args['input'], mode='r') 
+                if args['input'] else sys.stdin)
+    outstream = (open_bgzip(args['output'], mode='w') 
+                 if args['output'] else sys.stdout)
+    outstream_dups = (open_bgzip(args['output_dups'], mode='w') 
+                      if args['output_dups'] else None)
 
-    otherfile = args['dupfile']
-    if otherfile:
-        dupfile = open(otherfile,'w')
-
-    instream = sys.stdin
-
-    streaming_dedup(method, mindist, comment_char, send_comments_to_dedup, 
+    streaming_dedup(method, mindist, sep, comment_char, send_comments_to_dedup, 
           send_comments_to_dup, c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
-          instream, outstream, dupfile)
+          instream, outstream, outstream_dups)
 
+    if hasattr(instream, 'close'):
+        instream.close()
     if hasattr(outstream, 'close'):
         outstream.close()
-
-    if otherfile:
-        dupfile.close()
+    if outstream_dups:
+        outstream_dups.close()
 
 
 def fetchadd(key, mydict):
@@ -138,9 +146,9 @@ def ar(mylist, val):
     return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
     
 
-def streaming_dedup(method, mindist, comment_char, send_comments_to_dedup, 
+def streaming_dedup(method, mindist, sep, comment_char, send_comments_to_dedup, 
           send_comments_to_dup, c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
-          instream, outstream, dupfile):
+          instream, outstream, outstream_dups):
 
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
 
@@ -159,8 +167,8 @@ def streaming_dedup(method, mindist, comment_char, send_comments_to_dedup,
             if send_comments_to_dedup:
                 outstream.write(line)
             if send_comments_to_dup:
-                if otherfile:
-                    dupfile.write(line)
+                if outstream_dups:
+                    outstream_dups.write(line)
             continue
         
         if line:
@@ -196,8 +204,8 @@ def streaming_dedup(method, mindist, comment_char, send_comments_to_dedup,
                 if not remove:
                     outstream.write(newline)  
                 else:
-                    if otherfile:
-                        dupfile.write(newline)
+                    if outstream_dups:
+                        outstream_dups.write(newline)
                     
             c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []
             lines = lines[len(res):]

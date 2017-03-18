@@ -10,15 +10,18 @@ def main():
     parser = argparse.ArgumentParser(
         'Splits a .pairsam file into pairs and sam entries')
     parser.add_argument(
-        'infile', nargs='?', 
-        type=argparse.FileType('r'), 
-        default=sys.stdin)
+        '--input',
+        type=str, 
+        default="",
+        help='input pairsam file.'
+            ' If the path ends with .gz, the input is gzip-decompressed.'
+            ' By default, the input is read from stdin.')
     parser.add_argument(
-        "--out-pairs", 
+        "--output-pairs", 
         type=str, 
         required=True)
     parser.add_argument(
-        "--out-sam", 
+        "--output-sam", 
         type=str, 
         required=True)
     parser.add_argument(
@@ -28,15 +31,15 @@ def main():
         help="The first character of comment lines")
     args = vars(parser.parse_args())
 
+    instream = (open_bgzip(args['input'], mode='r') 
+                if args['input'] else sys.stdin)
+
     # Output streams
-    if args['out_pairs'] is None:
-        pairs_file = sys.stdout
-    else:
-        pairs_file = open_bgzip(args['out_pairs'], mode='w')
-    sam_file = open_sam_or_bam(args['out_sam'], 'w')
+    pairs_file = open_bgzip(args['output_pairs'], mode='w') 
+    sam_file = open_sam_or_bam(args['output_sam'], 'w')
 
     # Input pairsam
-    instream = args['infile']
+    instream = args['input']
     comment_char = args['comment_char']
 
     # Split

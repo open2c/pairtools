@@ -269,7 +269,7 @@ cdef class OnlineDuplicateDetector(object):
         self.s2 = np.concatenate([self.s2, s2])
         self.rm = np.concatenate([self.rm, np.zeros(len(c1), dtype=np.int8)])
         self.N = self.N + len(c1)        
-        return self.run(finish=False)
+        return self._run(finish=False)
             
     def finish(self):
-        return self.run(finish=True)
+        return self._run(finish=True)

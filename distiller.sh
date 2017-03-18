@@ -32,18 +32,18 @@ bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     # Set unmapped and ambiguous reads aside
     python ${UTILS_DIR}/pairsam_select_pair_type.py CX LL \
         --output-rest >( ${UTILS_DIR}/python pairsam_split.py \
-            --out-pairs ${UNMAPPED_PAIRS_PATH} \
-            --out-sam ${UNMAPPED_SAM_PATH} ) \
+            --output-pairs ${UNMAPPED_PAIRS_PATH} \
+            --output-sam ${UNMAPPED_SAM_PATH} ) \
 } | {
     # Remove duplicates
     python ${UTILS_DIR}/pairs_dedup.py \
-        --out \
+        --output \
             >( python ${UTILS_DIR}/pairsam_split.py \
-                --out-pairs ${NODUPS_PAIRS_PATH} \
-                --out-sam ${NODUPS_SAM_PATH} ) \
-        --dupfile \
+                --output-pairs ${NODUPS_PAIRS_PATH} \
+                --output-sam ${NODUPS_SAM_PATH} ) \
+        --output-dups \
             >( python ${UTILS_DIR}/pairsam_markasdup.py \
                 | python ${UTILS_DIR}/pairsam_split.py \
-                    --out-pairs ${DUPS_PAIRS_PATH} \
-                    --out-sam ${DUPS_SAM_PATH} )
+                    --output-pairs ${DUPS_PAIRS_PATH} \
+                    --output-sam ${DUPS_SAM_PATH} )
 }
