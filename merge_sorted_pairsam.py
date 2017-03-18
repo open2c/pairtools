@@ -65,9 +65,9 @@ for line in other_headers:
 command = r'''/bin/bash -c "sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n -k 8,8 --field-separator=$'\v' --merge'''
 for path in sys.argv[1:]:
     if path.endswith('.gz'):
-        command += r' <(zcat {} | bash {}/skip_pairsam_header.sh)'.format(path, sys.path[0])
+        command += r' <(zcat {} | sed -n -e "/^[^#]/,$p")'.format(path)
     else:
-        command += r' <(bash {}/skip_pairsam_header.sh {})'.format(sys.path[0], path)
+        command += r' <(sed -n -e "/^[^#]/,$p" {})'.format(path)
 command += r'"'
 subprocess.call(command, shell=True)
 

@@ -1,3 +1,4 @@
+#!/bin/bash
 PREFIX=$1
 
 DIR="$(dirname "${BASH_SOURCE[0]}")"
