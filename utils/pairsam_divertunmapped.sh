@@ -8,4 +8,4 @@ AWK_SPLIT_UNMAPPED_SCRIPT='
     }
 '
 
-cat - | awk -v unmappedpath="$1" "$AWK_SPLIT_UNMAPPED_SCRIPT" 
+awk -v unmappedpath="$1" "$AWK_SPLIT_UNMAPPED_SCRIPT" 
