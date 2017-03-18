@@ -3,7 +3,7 @@
 import argparse
 import pipes
 import sys
-from _distiller_common import open_bam_or_sam, open_bgzip
+from _distiller_common import open_sam_or_bam, open_bgzip
 
 
 def main():
@@ -39,7 +39,6 @@ def main():
     sam_file = open_sam_or_bam(args['output_sam'], 'w')
 
     # Input pairsam
-    instream = args['input']
     comment_char = args['comment_char']
 
     # Split
