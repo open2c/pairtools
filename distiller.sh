@@ -21,6 +21,7 @@ bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     # Classify Hi-C molecules as unmapped/single-sided/multimapped/chimeric/etc
     # and output one line per read, containing the following, separated by \\v:
     #  * triu-flipped pairs
+    #  * read id
     #  * type of a Hi-C molecule
     #  * corresponding sam entries
     python ${UTILS_DIR}/sam_to_pairsam.py 
@@ -29,11 +30,10 @@ bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     bash ${UTILS_DIR}/pairsam_sort.sh
 } | {
     # Set unmapped and ambiguous reads aside
-    python ${UTILS_DIR}/pairsam_select_pair_type.py --output-rest \
-        >( ${UTILS_DIR}/python pairsam_split.py \
+    python ${UTILS_DIR}/pairsam_select_pair_type.py CX LL \
+        --output-rest >( ${UTILS_DIR}/python pairsam_split.py \
             --out-pairs ${UNMAPPED_PAIRS_PATH} \
             --out-sam ${UNMAPPED_SAM_PATH} ) \
-        CX LL
 } | {
     # Remove duplicates
     python ${UTILS_DIR}/pairs_dedup.py \

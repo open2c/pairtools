@@ -38,9 +38,9 @@ def main():
     
     instream = (open_bgzip(args['input'], mode='r') 
                 if args['input'] else sys.stdin)
-    outstream = (open_bgzip(args['outstream'], mode='w') 
+    outstream = (open_bgzip(args['output'], mode='w') 
                  if args['output'] else sys.stdout)
-    outstream_rest = (open_bgzip(args['outstream_rest'], mode='w') 
+    outstream_rest = (open_bgzip(args['output_rest'], mode='w') 
                       if args['output_rest'] else None)
 
     pair_types = args['pair_types']
