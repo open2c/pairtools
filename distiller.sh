@@ -29,10 +29,11 @@ bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     bash ${UTILS_DIR}/pairsam_sort.sh
 } | {
     # Set unmapped and ambiguous reads aside
-    bash ${UTILS_DIR}/pairsam_divertunmapped.sh \
+    python ${UTILS_DIR}/pairsam_separate_pair_type.py -r \
         >( ${UTILS_DIR}/python pairsam_split.py \
             --out-pairs ${UNMAPPED_PAIRS_PATH} \
             --out-sam ${UNMAPPED_SAM_PATH} ) \
+        CX LL
 } | {
     # Remove duplicates
     python ${UTILS_DIR}/pairs_dedup.py \
