@@ -52,5 +52,12 @@ def main():
             elif outstream_rest:
                 outstream_rest.write(line)
 
+    if hasattr(instream, 'close'):
+        instream.close()
+    if hasattr(outstream, 'close'):
+        outstream.close()
+    if outstream_rest:
+        outstream_rest.close()
+
 if __name__ == '__main__':
     main()
