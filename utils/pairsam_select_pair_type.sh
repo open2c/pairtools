@@ -3,7 +3,7 @@
 INPUT='-'
 OUTPUT='-'
 OUTPUT_REST='-'
-USAGE_LINE='Usage: pairsam_skip_header [-i input_file] [-o output_file] [-r output_rest_file] pair_type
+USAGE_LINE='Usage: pairsam_select_pair_type [-i input_file] [-o output_file] [-r output_rest_file] pair_type
 
 where:
     -i  input file. By default, the input is read from stdin.
