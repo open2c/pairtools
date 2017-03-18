@@ -15,7 +15,7 @@ def main():
         '--input',
         type=str, 
         default="",
-        help='input file.'
+        help='input pairsam file.'
             ' If the path ends with .gz, the input is gzip-decompressed.'
             ' By default, the input is read from stdin.')
     parser.add_argument(
