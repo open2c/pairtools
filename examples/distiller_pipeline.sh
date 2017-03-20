@@ -30,7 +30,7 @@ bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     bash ${UTILS_DIR}/pairsam_sort.sh
 } | {
     # Set unmapped and ambiguous reads aside
-    python ${UTILS_DIR}/pairsam_select_pair_type.py CX LL \
+    python ${UTILS_DIR}/pairsam_select.py pair_type CX,LL \
         --output-rest >( python ${UTILS_DIR}/pairsam_split.py \
             --output-pairs ${UNMAPPED_PAIRS_PATH} \
             --output-sam ${UNMAPPED_SAM_PATH} ) 
