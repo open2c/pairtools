@@ -1,4 +1,24 @@
 #!/usr/bin/env bash
+if [ $# -le 3 ] ; then
+    echo "Usage: bash distiller_pipeline BWA_INDEX FASTQ_1 FASTQ_2 OUTPUT_PREFIX"
+    echo ""
+    echo "A example of a bash pipeline to align the sequencing data from a "
+    echo "single Hi-C experiment."
+    echo ""
+    echo "positional arguments:"
+    echo ""
+    echo "BWA_INDEX       The path to a bwa index of the reference genome."
+    echo "FASTQ_1         The path to a fastq file with the sequences of "
+    echo "                the first side of Hi-C molecules."
+    echo "FASTQ_2         The path to a fastq file with the sequences of "
+    echo "                the second side of Hi-C molecules."
+    echo "OUTPUT_PREFIX   The prefix to the paths of produced outputs. "
+    echo ""
+    echo ""
+
+    exit 0
+fi
+
 set -o errexit
 set -o nounset
 set -o pipefail
