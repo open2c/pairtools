@@ -14,7 +14,7 @@ NODUPS_PAIRS_PATH=${OUTPREFIX}.nodups.pairs.gz
 DUPS_SAM_PATH=${OUTPREFIX}.dups.bam
 DUPS_PAIRS_PATH=${OUTPREFIX}.dups.pairs.gz
 
-DISTILLER_DIR="$(dirname "${BASH_SOURCE[0]}")"
+DISTILLER_DIR="$(dirname ${BASH_SOURCE[0]})"
 UTILS_DIR=${DISTILLER_DIR}/utils
 
 bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
@@ -31,9 +31,9 @@ bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
 } | {
     # Set unmapped and ambiguous reads aside
     python ${UTILS_DIR}/pairsam_select_pair_type.py CX LL \
-        --output-rest >( ${UTILS_DIR}/python pairsam_split.py \
+        --output-rest >( python ${UTILS_DIR}/pairsam_split.py \
             --output-pairs ${UNMAPPED_PAIRS_PATH} \
-            --output-sam ${UNMAPPED_SAM_PATH} ) \
+            --output-sam ${UNMAPPED_SAM_PATH} ) 
 } | {
     # Remove duplicates
     python ${UTILS_DIR}/pairs_dedup.py \
@@ -47,3 +47,4 @@ bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
                     --output-pairs ${DUPS_PAIRS_PATH} \
                     --output-sam ${DUPS_SAM_PATH} )
 }
+
