@@ -28,15 +28,34 @@ Requirements:
 
 ## usage
 
-### pipeline
-
-
-
 ### tools
 
 - sam_to_pairsam: read .sam files produced by bwa and form Hi-C pairs
-    - 
-    - form pairsam output with
+    - Form Hi-C pairs by reporting the outer-most mapped positions and the strand
+    on the either side of each molecule.
+    - report unmapped/multimapped (ambiguous alignments)/chimeric alignments as
+    chromosome "!", position 0, strand "-".
+    - find and rescue chrimeric alignments produced by singly-ligated Hi-C 
+    molecules with a ligation junction sequenced through on one of the sides.
+    - flip the sides of Hi-C molecules such that the first side has a lower 
+    sorting index than the second side.
+    - form hybrid pairsam output with all data for a Hi-C molecule (outer-most
+    mapped positions on the either side, read ID, pair type, .sam entries for 
+    each alignment) printed on a single line
+    - print the .sam header as #-comment lines at the start of the file
+
+- pairsam_sort: sort pairsam files (the lexicographic order for chromosomes, 
+    the numeric order for the positions, the lexicographic order for pair types)
+
+- pairsam_merge: merge sorted pairsam files. 
+    - Simple merge sort for pairsam entries.
+    - Combine the #-comment sections from the beginning of each file. Report the
+    sam header @SQ lines first, then other sam header lines, then non-sam
+    comments.
+    - Check that each pairsam file was mapped to the same reference genome index 
+    (by checking the identity of the @SQ sam header lines)
+
+### pipeline
 
 ## data conventions
 
@@ -61,13 +80,13 @@ Requirements:
 | +      | +               | +                               | +      | +               | +                               | DD       | duplicate         | 2***         |
 
 \* - chimeric reads may represent Hi-C molecules formed via multiple ligation
-events and thus cannot be interpreted as unambigous pair
+events and thus cannot be interpreted as unambigous pairs.
 
 ** - some chimeric reads correspond to valid Hi-C molecules formed via a single
 ligation event, with the ligation junction sequenced through on one side. 
 Following the procedure introduced in
 [Juicer](https://github.com/theaidenlab/juicer), distiller rescues such 
-molecules, reports their 5' mapped positions and tags them as "CX" pair type.
+molecules, reports their outer-most mapped positions and tags them as "CX" pair type.
 Such molecules can and should be used in downstream analysis.
 
 *** - distiller detects molecules that could be formed via PCR duplication and
