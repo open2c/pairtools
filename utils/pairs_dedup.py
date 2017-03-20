@@ -109,7 +109,7 @@ def main():
 
     sep = ast.literal_eval('"""' + args['sep'] + '"""')
     method = args['METHOD']
-    max_mismatch = args['max-mismatch']
+    max_mismatch = args['max_mismatch']
     comment_char = args['comment_char']
     send_comments_to_dedup = args['send_comments_to'] in ['both', 'dedup']
     send_comments_to_dup = args['send_comments_to'] in ['both', 'dups']
