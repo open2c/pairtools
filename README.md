@@ -37,8 +37,8 @@ Requirements:
     chromosome "!", position 0, strand "-".
     - find and rescue chrimeric alignments produced by singly-ligated Hi-C 
     molecules with a ligation junction sequenced through on one of the sides.
-    - flip the sides of Hi-C molecules such that the first side has a lower 
-    sorting index than the second side.
+    - perform upper-triangular flipping on the sides of Hi-C molecules 
+    such that the first side has a lower sorting index than the second side.
     - form hybrid pairsam output with all data for a Hi-C molecule (outer-most
     mapped positions on the either side, read ID, pair type, .sam entries for 
     each alignment) printed on a single line
@@ -54,6 +54,18 @@ Requirements:
     comments.
     - Check that each pairsam file was mapped to the same reference genome index 
     (by checking the identity of the @SQ sam header lines)
+
+- pairsam_select: select pairsam entries with specific field values
+    - Select pairsam entries with specific pair types, chromosomes or
+    read IDs (allow matching to a wildcard/regexp/list).
+    - Optionally output the non-matching entries into a separate file.
+
+- pairsam_dedup: remove PCR duplicates from a sorted triu-flipped pairsam file.
+    - remove PCR duplicates by finding pairs of entries with both sides mapped
+    to similar genomic locations (+/- N bp).
+    - NOTE: in order to remove all PCR duplicates, the input must contain \*all\* 
+    LL/CX read pairs from a single experiment.
+    - Optionally output the PCR duplicate entries into a separate file.
 
 ### pipeline
 
