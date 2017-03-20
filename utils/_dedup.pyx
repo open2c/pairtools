@@ -32,22 +32,23 @@ def mark_duplicates(
         #np.ndarray[np.int32_t, ndim=1] p2, 
         #np.ndarray[np.int8_t, ndim=1] s1,
         #np.ndarray[np.int8_t, ndim=1] s2,
-        int offset=3, 
+        int max_mismatch=3, 
         method = "sum"):
     """
-    Mark duplicates, allowing for some tolerance in distance. You can use it 
-    to filter single-cell data as wel by setting offset to 500bp or even
-    larger. It works as fast as we could make it. 
+    Mark duplicates, allowing for some mismatch on the both sides of the molecule.
+    You can use it to filter single-cell data as well by setting max_mismatch to
+    500bp or even larger. It works as fast as we could make it. 
 
     This methods scans through a list of reads. It then flags duplicates,
-    which are defined as reads starting within offset from each other. 
+    which are defined as molecules, with both ends located within `max_mismatch`
+    bp from each other. 
     
-    There are two ways of identifying duplicates: 
-    "sum": two reads are duplicates if a sum of distance between their starts,
-        and distance between their ends, is more or equal than "offset"
-           
-    "max": two reads are duplicates if at least one distance is more-or-equal
-        than "offset"
+    There are two ways define duplicates: 
+    "max": two reads are duplicates if the mismatch of the genomic locations
+    of both ends is less-or-equal "max_mismatch"
+
+    "sum": two reads are duplicates if the sum of the mismatches of the either
+    ends of the molecule is less-or-equal "max_mismatch"
 
     Other methods could be added below by editing the code 
     
@@ -62,15 +63,15 @@ def mark_duplicates(
     s1, s2 : int8 (or bool) arrays
         strands
     
-    offset : int
+    max_mismatch : int
 
     method : "sum" or "max"
-        use sum of distances, or max of the two
+        use the sum of mismatches, or the max of the two
     
     Returns
     -------
     mask : int8 array
-        Mask of elements, where 1 denotes reads that needs to be removed
+        A binary mask, where 1 denotes that a read is a duplicate.
 
     Notes
     -----
@@ -111,17 +112,17 @@ def mark_duplicates(
             continue
 
         # if we jumped too far, continue
-        if (c1[high] != c1[low]) or (p1[high] - p1[low] >= offset):
+        if (c1[high] != c1[low]) or (p1[high] - p1[low] > max_mismatch):
             low += 1
             high = low + 1  # restart high
             continue
 
         if methodid == 0: 
             extraCondition = (max(abs(p1[low] - p1[high]), 
-                                  abs(p2[low] - p2[high])) < offset)
+                                  abs(p2[low] - p2[high])) <= max_mismatch)
         elif methodid == 1:
             extraCondition = (abs(p1[low] - p1[high]) + 
-                              abs(p2[low] - p2[high]) < offset)
+                              abs(p2[low] - p2[high]) <= max_mismatch)
         else:
             raise ValueError(
                 "Unknown method id, this should not happen. "
@@ -149,10 +150,10 @@ cdef class OnlineDuplicateDetector(object):
     cdef int low
     cdef int high
     cdef int N 
-    cdef int offset
+    cdef int max_mismatch
     cdef int returnData 
     
-    def __init__(self, method, offset, returnData=False):
+    def __init__(self, method, max_mismatch, returnData=False):
         if returnData == False:
             self.returnData = 0
         else:
@@ -171,7 +172,7 @@ cdef class OnlineDuplicateDetector(object):
             self.methodid = 1 
         else:
             raise ValueError('method should be "sum" or "max"')
-        self.offset = int(offset) 
+        self.max_mismatch = int(max_mismatch) 
         self.low = 0 
         self.high = 1 
 
@@ -229,7 +230,7 @@ cdef class OnlineDuplicateDetector(object):
 
             # if we jumped too far, continue
             if ((self.c1[self.high] != self.c1[self.low]) or 
-                (self.p1[self.high] - self.p1[self.low] >= self.offset)):
+                (self.p1[self.high] - self.p1[self.low] > self.max_mismatch)):
                 self.low += 1
                 self.high = self.low + 1  # restart high
                 continue
@@ -237,12 +238,12 @@ cdef class OnlineDuplicateDetector(object):
             if self.methodid == 0: 
                 extraCondition = max(
                     abs(self.p1[self.low] - self.p1[self.high]), 
-                    abs(self.p2[self.low] - self.p2[self.high])) < self.offset
+                    abs(self.p2[self.low] - self.p2[self.high])) <= self.max_mismatch
             elif self.methodid == 1:
-                # sum of distances < offset
+                # sum of distances <= max_mismatch
                 extraCondition = (
                     abs(self.p1[self.low] - self.p1[self.high]) + 
-                    abs(self.p2[self.low] - self.p2[self.high]) < self.offset 
+                    abs(self.p2[self.low] - self.p2[self.high]) <= self.max_mismatch 
                 )
             else:
                 raise ValueError(

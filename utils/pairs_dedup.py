@@ -17,32 +17,30 @@ MAX_LEN = 10000
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        'Remove PCR duplicates from an upper-triangular flipped sorted '
+        'pairs/pairsam file. Allow for a +/-N bp mismatch at each side of '
+        'duplicated molecules.' )
+    parser.add_argument(
+        "--max-mismatch",
+        type=int, 
+        default=3,
+        help='Pairs with both sides mapped within this distance (bp) from each '
+             'other are considered duplicates.')
     parser.add_argument(
         '--sum',
         dest='METHOD', 
         action='store_const',
         const="sum", 
         default="max",  
-        help='use sum of distances between two sides of the read '
-             '(default: use max distance)')
-    parser.add_argument(
-        "--mindist",
-        type=int, 
-        default=3,
-        help='Reads less than this distance (in bp) away are '
-             'considered duplicates.')
-    parser.add_argument(
-        "--sep",
-        type=str, 
-        default=r"\v", 
-        help=r"Separator (\t, \v, etc. characters are "
-              "supported, pass them in quotes) ")
+        help='define the mismatch as the sum of the mismatches of the genomic '
+            'locations of the both sides of the two compared molecules '
+            '(default: use max of the two mismatches)')
     parser.add_argument(
         '--input',
         type=str, 
         default="",
-        help='input sorted pairs or pairsam file.'
+        help='input triu-flipped sorted pairs or pairsam file.'
             ' If the path ends with .gz, the input is gzip-decompressed.'
             ' By default, the input is read from stdin.')
     parser.add_argument(
@@ -60,6 +58,12 @@ def main():
             ' If the path ends with .gz, the output is bgzip-compressed.'
             ' By default, duplicates are dropped.'
             )
+    parser.add_argument(
+        "--sep",
+        type=str, 
+        default=r"\v", 
+        help=r"Separator (\t, \v, etc. characters are "
+              "supported, pass them in quotes) ")
     parser.add_argument(
         "--comment-char", 
         type=str, 
@@ -105,7 +109,7 @@ def main():
 
     sep = ast.literal_eval('"""' + args['sep'] + '"""')
     method = args['METHOD']
-    mindist = args['mindist']
+    max_mismatch = args['max-mismatch']
     comment_char = args['comment_char']
     send_comments_to_dedup = args['send_comments_to'] in ['both', 'dedup']
     send_comments_to_dup = args['send_comments_to'] in ['both', 'dups']
@@ -123,7 +127,7 @@ def main():
     outstream_dups = (open_bgzip(args['output_dups'], mode='w') 
                       if args['output_dups'] else None)
 
-    streaming_dedup(method, mindist, sep, comment_char, send_comments_to_dedup, 
+    streaming_dedup(method, max_mismatch, sep, comment_char, send_comments_to_dedup, 
           send_comments_to_dup, c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
           instream, outstream, outstream_dups)
 
@@ -146,13 +150,13 @@ def ar(mylist, val):
     return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
     
 
-def streaming_dedup(method, mindist, sep, comment_char, send_comments_to_dedup, 
+def streaming_dedup(method, max_mismatch, sep, comment_char, send_comments_to_dedup, 
           send_comments_to_dup, c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
           instream, outstream, outstream_dups):
 
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
 
-    dd = OnlineDuplicateDetector(method, mindist, returnData=False)
+    dd = OnlineDuplicateDetector(method, max_mismatch, returnData=False)
 
     c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []
     lines = []
