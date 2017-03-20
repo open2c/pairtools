@@ -22,10 +22,13 @@ fi
 set -o errexit
 set -o nounset
 set -o pipefail
+
 INDEX=$1
 FASTQ1=$2
 FASTQ2=$3
 OUTPREFIX=$4
+
+N_THREADS=8
 
 UNMAPPED_SAM_PATH=${OUTPREFIX}.unmapped.bam
 UNMAPPED_PAIRS_PATH=${OUTPREFIX}.unmapped.pairs.gz
@@ -37,7 +40,7 @@ DUPS_PAIRS_PATH=${OUTPREFIX}.dups.pairs.gz
 DISTILLER_DIR="$(dirname ${BASH_SOURCE[0]})"
 UTILS_DIR=${DISTILLER_DIR}/utils
 
-bwa mem -SP "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
+bwa mem -SP -t "${N_THREADS}" "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     # Classify Hi-C molecules as unmapped/single-sided/multimapped/chimeric/etc
     # and output one line per read, containing the following, separated by \\v:
     #  * triu-flipped pairs
