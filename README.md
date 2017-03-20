@@ -34,6 +34,7 @@ Requirements:
 
 ### tools
 
+#### sam_to_pairsam
 
 ## data conventions
 
@@ -42,7 +43,7 @@ Requirements:
 ### pair types
 
 
-| read1  |                 |                                 | read2  |                 |                                 | symbol   | Pair type         | Sidedness |
+| read1  |                 |                                 | read2  |                 |                                 | Code     | Pair type         | Sidedness |
 |--------|-----------------|---------------------------------|--------|-----------------|---------------------------------|----------|-------------------|-----------|
 | Mapped | Uniquely mapped | Linear (non-chimeric) alignment | Mapped | Uniquely mapped | Linear (non-chimeric) alignment |          |                   |           |
 | -      |                 |                                 | -      |                 |                                 | NN       | null              | 0         |
