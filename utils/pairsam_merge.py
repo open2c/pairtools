@@ -6,7 +6,7 @@ from _distiller_common import open_bgzip
 
 def main():
     parser = argparse.ArgumentParser(
-        'Merge multiple sorted pairsam files. '
+        description='Merge multiple sorted pairsam files. '
         'The @SQ lines of the header must be identical; the sorting order of '
         'these lines is taken from the first file in the list. '
         'The other header lines are copied into the output header.'

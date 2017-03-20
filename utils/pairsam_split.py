@@ -8,7 +8,7 @@ from _distiller_common import open_sam_or_bam, open_bgzip
 
 def main():
     parser = argparse.ArgumentParser(
-        'Splits a .pairsam file into pairs and sam entries')
+        description='Splits a .pairsam file into pairs and sam entries')
     parser.add_argument(
         '--input',
         type=str, 

@@ -7,7 +7,7 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(
-        'Tags every line of a pairsam with a duplicate tag'
+        description='Tags every line of a pairsam with a duplicate tag'
     )
     parser.add_argument(
         'infile', nargs='?', 

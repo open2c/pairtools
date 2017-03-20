@@ -4,7 +4,7 @@ from _distiller_common import open_bgzip
 
 def main():
     parser = argparse.ArgumentParser(
-      'Read a pairsam file and print only the pairs of a certain type(s).'
+        description=Read'Read a pairsam file and print only the pairs of a certain type(s).'
     )
     parser.add_argument(
         'pair_types', 

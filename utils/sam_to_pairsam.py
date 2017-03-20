@@ -12,7 +12,7 @@ import io
 
 def main():
     parser = argparse.ArgumentParser(
-        'Splits .sam entries into different read pair categories')
+        description='Splits .sam entries into different read pair categories')
     parser.add_argument(
         'infile',
         nargs='?',
