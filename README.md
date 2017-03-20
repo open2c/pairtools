@@ -8,6 +8,7 @@ distiller provides tools to perform the following operations:
 - filter mapped sequences for valid Hi-C pairs
 - remove PCR duplicates 
 - tag .sam entries with the Hi-C specific information
+- produce sorted lists of pairs in a form convenient for downstream analyses
 
 distiller provides a simple bash pipeline.
 
