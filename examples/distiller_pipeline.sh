@@ -12,7 +12,7 @@ if [ $# -le 3 ] ; then
     echo "                the first side of Hi-C molecules."
     echo "FASTQ_2         The path to a fastq file with the sequences of "
     echo "                the second side of Hi-C molecules."
-    echo "OUTPUT_PREFIX   The prefix to the paths of produced outputs. "
+    echo "OUTPUT_PREFIX   The prefix to the paths of generated outputs. "
     echo ""
     echo ""
 
