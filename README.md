@@ -60,7 +60,7 @@ Requirements:
 | +      | +               | +                               | +      | +               | +                               | LL       | linear-linear     | 2         |
 | +      | +               | +                               | +      | +               | +                               | DD       | duplicate         | 2***         |
 
-* - chimeric reads may represent Hi-C molecules formed via multiple ligation
+\* - chimeric reads may represent Hi-C molecules formed via multiple ligation
 events and thus cannot be interpreted as unambigous pair
 
 ** - some chimeric reads correspond to valid Hi-C molecules formed via a single
