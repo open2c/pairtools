@@ -74,7 +74,7 @@ def main():
         type=str, 
         default="both", 
         choices=['dups', 'dedup', 'both', 'none'], 
-        help="Which of the outputs should receive comment lines")
+        help="Which of the outputs should receive header and comment lines")
     parser.add_argument(
         "--c1", 
         type=int, 
