@@ -3,7 +3,9 @@ import sys
 import glob
 import subprocess
 import argparse
-from _distiller_common import open_bgzip
+from _distiller_common import open_bgzip, DISTILLER_VERSION, \
+    append_pg_to_sam_header, get_header
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -26,8 +28,16 @@ def main():
     paths = sum([glob.glob(mask) for mask in args['infile']], [])
     merged_header = form_merged_header(paths)
 
+    merged_header = append_pg_to_sam_header(
+        merged_header,
+        {'ID': 'pairsam_merge',
+         'PN': 'pairsam_merge',
+         'VN': DISTILLER_VERSION,
+         'CL': ' '.join(sys.argv)
+         })
+
     for line in merged_header:
-        print(line, flush=True)
+        print(line, end='', flush=True)
 
     command = r'''/bin/bash -c 'sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n -k 8,8 --field-separator=$'\''\v'\'' --merge'''
     for path in paths:
@@ -76,28 +86,32 @@ def form_merged_header(paths):
                 for j in range(len(split_line)):
                     if (split_line[j].startswith('ID:') 
                         or split_line[j].startswith('PP:')):
-                        split_line[j] = split_line[j] + '-' + str(i)
+                        split_line[j] = split_line[j] + '-' + str(i+1)
                 PQ_header.append('\t'.join(split_line))
 
-    other_sam_headers = [
-        set(line for line in header 
+    other_sam_headers = sum([
+        list(set(line for line in header 
             if line.startswith('#@') 
                 and (not line.startswith('#@HD'))
+                and (not line.startswith('#@SQ'))
                 and (not line.startswith('#@PG'))
-                and (not line.startswith('#@PG'))
-            )
-        for header in headers]
-    other_headers = [
-        set(line for line in header 
+            ))
+        for header in headers], 
+        [])
+    other_headers = sum([
+        list(set(line for line in header 
             if line.startswith('#') 
                 and (not line.startswith('#@'))
-            )
-        for header in headers]
+            ))
+        for header in headers], 
+        [])
 
     out_header = [line for line in headers[0] if line.startswith('#@SQ')]
     out_header += PQ_header
     out_header += other_sam_headers
     out_header += other_headers
+
+    out_header = [l.strip() for l in out_header if l.strip()]
 
     return out_header
 
