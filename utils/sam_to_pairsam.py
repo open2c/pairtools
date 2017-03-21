@@ -464,7 +464,10 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
     prev_read_id = ''
     sams1 = []
     sams2 = []
-    for line in body_stream:
+    line = ''
+    while line is not None:
+        line = next(body_stream, None)
+
         read_id = line.split('\t', 1)[0] if line else None
 
         if not(line) or ((read_id != prev_read_id) and prev_read_id):
@@ -495,34 +498,9 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
             sams1.clear()
             sams2.clear()
 
-        push_sam(line, sams1, sams2)
-        prev_read_id = read_id
-
-    else: # run one more time at the end
-        pair_type, algn1, algn2, flip_pair = classify(
-            sams1,
-            sams2,
-            min_mapq,
-            max_molecule_size)
-        if flip_pair:
-            write_pairsam(
-                algn2, algn1, 
-                prev_read_id, 
-                pair_type,
-                sams2, sams1,
-                outstream, 
-                drop_readid,
-                drop_sam)
-        else:
-            write_pairsam(
-                algn1, algn2,
-                prev_read_id, 
-                pair_type,
-                sams1, sams2,
-                outstream,
-                drop_readid,
-                drop_sam)
-
+        if line is not None:
+            push_sam(line, sams1, sams2)
+            prev_read_id = read_id
 
 if __name__ == '__main__':
     main()
