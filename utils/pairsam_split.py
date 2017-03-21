@@ -46,8 +46,8 @@ def main():
         if line.startswith(comment_char):
             if line.startswith(comment_char+'@'):
                 sam_file.write(line[len(comment_char):])
-            else:
-                pairs_file.write(line)
+
+            pairs_file.write(line)
             continue
 
         cols = line[:-1].split('\v')
