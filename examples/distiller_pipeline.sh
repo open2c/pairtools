@@ -50,7 +50,7 @@ bwa mem -SP -t "${N_THREADS}" "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     python ${UTILS_DIR}/sam_to_pairsam.py 
 } | {
     # Block-sort pairs together with SAM entries
-    bash ${UTILS_DIR}/pairsam_sort.sh
+    python ${UTILS_DIR}/pairsam_sort.py
 } | {
     # Set unmapped and ambiguous reads aside
     python ${UTILS_DIR}/pairsam_select.py pair_type CX,LL \
