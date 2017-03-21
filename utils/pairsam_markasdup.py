@@ -27,11 +27,6 @@ def main():
             ' If the path ends with .gz, the output is bgzip-compressed.'
             ' By default, the output is printed into stdout.')
 
-    parser.add_argument(
-        "--comment-char", 
-        type=str, 
-        default="#",
-        help="The first character of comment lines")
     args = vars(parser.parse_args())
     
     instream = (open_bgzip(args['input'], mode='r') 
@@ -39,8 +34,6 @@ def main():
     outstream = (open_bgzip(args['output'], mode='w') 
                  if args['output'] else sys.stdout)
  
-    comment_char = args['comment_char']
-
     header, pairsam_body_stream = get_header(instream)
     header = append_pg_to_sam_header(
         header,
@@ -69,6 +62,11 @@ def main():
 
         outstream.write('\v'.join(cols))
         outstream.write('\n')
+
+    if hasattr(instream, 'close'):
+        instream.close()
+    if hasattr(outstream, 'close'):
+        outstream.close()
 
 
 if __name__ == '__main__':
