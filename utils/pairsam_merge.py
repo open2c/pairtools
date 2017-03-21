@@ -1,29 +1,36 @@
 #!/usr/bin/env python
 import sys
+import glob
 import subprocess
 import argparse
 from _distiller_common import open_bgzip
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Merge multiple sorted pairsam files. '
-        'The @SQ lines of the header must be identical; the sorting order of '
-        'these lines is taken from the first file in the list. '
-        'The other header lines are copied into the output header.'
+        description="""Merge multiple sorted pairsam files. 
+        The @SQ records of the SAM header must be identical; the sorting order of 
+        these lines is taken from the first file in the list. 
+        The ID fields of the @PG records of the SAM header are modified with a
+        numeric suffix to produce unique records.
+        The other unique SAM and non-SAM header lines are copied into the output header.
+        """
     )
     parser.add_argument(
-        'infiles', nargs='+', 
+        'infile', 
+        nargs='+', 
         type=str,
+        help='a file to merge or a group of files specified by a wildcard',
         default=sys.stdin)
 
     args = vars(parser.parse_args())
-    merged_header = form_merged_header(args['infiles'])
+    paths = sum([glob.glob(mask) for mask in args['infile']], [])
+    merged_header = form_merged_header(paths)
 
     for line in merged_header:
         print(line, flush=True)
 
     command = r'''/bin/bash -c 'sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n -k 8,8 --field-separator=$'\''\v'\'' --merge'''
-    for path in sys.argv[1:]:
+    for path in paths:
         if path.endswith('.gz'):
             command += r''' <(zcat {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path)
         else:
@@ -46,6 +53,11 @@ def form_merged_header(paths):
         f.close()
         headers.append(header)
 
+    # HD headers contain information that becomes invalid after processing
+    # with distiller. Do not print into the output.
+    HD_headers = [set(line for line in header if line.startswith('#@HD'))
+                  for header in headers]
+
     SQ_headers = [set(line for line in header if line.startswith('#@SQ'))
                   for header in headers]
     common_sq_header = set.intersection(*SQ_headers)
@@ -56,24 +68,36 @@ def form_merged_header(paths):
         raise Exception('The SQ (sequence) lines of the sam headers are not identical')
 
     # First select unique header lines that start with #@.
-    other_header = []
-    for header in headers:
+    PQ_header = []
+    for i, header in enumerate(headers):
         for line in header:
-            line = line.strip()
-            if line.startswith('#@') and not line.startswith('#@SQ'):
-                if line not in other_header:
-                    other_header.append(line)
+            if line.startswith('#@PG'):
+                split_line = line.split('\t')
+                for j in range(len(split_line)):
+                    if (split_line[j].startswith('ID:') 
+                        or split_line[j].startswith('PP:')):
+                        split_line[j] = split_line[j] + '-' + str(i)
+                PQ_header.append('\t'.join(split_line))
 
-    # Then select the rest of the unique header lines.
-    for header in headers:
-        for line in header:
-            line = line.strip()
-            if line.startswith('#') and not line.startswith('#@'):
-                if line not in other_header:
-                    other_header.append(line)
-     
+    other_sam_headers = [
+        set(line for line in header 
+            if line.startswith('#@') 
+                and (not line.startswith('#@HD'))
+                and (not line.startswith('#@PG'))
+                and (not line.startswith('#@PG'))
+            )
+        for header in headers]
+    other_headers = [
+        set(line for line in header 
+            if line.startswith('#') 
+                and (not line.startswith('#@'))
+            )
+        for header in headers]
+
     out_header = [line for line in headers[0] if line.startswith('#@SQ')]
-    out_header += other_header
+    out_header += PQ_header
+    out_header += other_sam_headers
+    out_header += other_headers
 
     return out_header
 
