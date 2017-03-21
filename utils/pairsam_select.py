@@ -1,6 +1,7 @@
 import sys
 import argparse
-from _distiller_common import open_bgzip
+from _distiller_common import open_bgzip, DISTILLER_VERSION, \
+    append_pg_to_sam_header, get_header
 
 def main():
     parser = argparse.ArgumentParser(
@@ -95,18 +96,25 @@ def main():
     else:
         raise Exception('An unknown matching method: {}'.format(args['match_method']))
 
-    for line in instream.readlines():
-        if line.startswith('#'):
+    header, pairsam_body_stream = get_header(instream)
+    header = append_pg_to_sam_header(
+        header,
+        {'ID': 'pairsam_select',
+         'PN': 'pairsam_select',
+         'VN': DISTILLER_VERSION,
+         'CL': ' '.join(sys.argv)
+         })
 
+    outstream.writelines(header)
+    if outstream_rest:
+        outstream.writelines(header)
+
+    for line in pairsam_body_stream:
+        cols = line.split('\v')
+        if do_match(cols[colidx]):
             outstream.write(line)
-            if outstream_rest:
-                outstream_rest.write(line)
-        else:
-            cols = line.split('\v')
-            if do_match(cols[colidx]):
-                outstream.write(line)
-            elif outstream_rest:
-                outstream_rest.write(line)
+        elif outstream_rest:
+            outstream_rest.write(line)
 
     if hasattr(instream, 'close'):
         instream.close()
