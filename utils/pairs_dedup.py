@@ -8,7 +8,8 @@ import ast
 import numpy as np
 import pyximport; pyximport.install()
 from _dedup import OnlineDuplicateDetector
-from _distiller_common import open_bgzip
+from _distiller_common import open_bgzip, DISTILLER_VERSION, \
+    append_pg_to_sam_header, get_header
 
 
 # you don't need to load more than 10k lines at a time b/c you get out of the 
@@ -70,7 +71,7 @@ def main():
         default="#", 
         help="The first character of comment lines")
     parser.add_argument(
-        "--send-comments-to", 
+        "--send-header-to", 
         type=str, 
         default="both", 
         choices=['dups', 'dedup', 'both', 'none'], 
@@ -111,8 +112,8 @@ def main():
     method = args['METHOD']
     max_mismatch = args['max_mismatch']
     comment_char = args['comment_char']
-    send_comments_to_dedup = args['send_comments_to'] in ['both', 'dedup']
-    send_comments_to_dup = args['send_comments_to'] in ['both', 'dups']
+    send_header_to_dedup = args['send_header_to'] in ['both', 'dedup']
+    send_header_to_dup = args['send_header_to'] in ['both', 'dups']
     c1ind = args['c1']
     c2ind = args['c2']
     p1ind = args['p1']
@@ -127,9 +128,24 @@ def main():
     outstream_dups = (open_bgzip(args['output_dups'], mode='w') 
                       if args['output_dups'] else None)
 
-    streaming_dedup(method, max_mismatch, sep, comment_char, send_comments_to_dedup, 
-          send_comments_to_dup, c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
-          instream, outstream, outstream_dups)
+    header, pairsam_body_stream = get_header(instream)
+    header = append_pg_to_sam_header(
+        header,
+        {'ID': 'pairs_dedup',
+         'PN': 'pairs_dedup',
+         'VN': DISTILLER_VERSION,
+         'CL': ' '.join(sys.argv)
+         })
+
+    if send_header_to_dedup:
+        outstream.writelines(header)
+    if send_header_to_dup:
+        outstream_dups.writelines(header)
+
+    streaming_dedup(
+        method, max_mismatch, sep, 
+        c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
+        pairsam_body_stream, outstream, outstream_dups)
 
     if hasattr(instream, 'close'):
         instream.close()
@@ -150,9 +166,10 @@ def ar(mylist, val):
     return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
     
 
-def streaming_dedup(method, max_mismatch, sep, comment_char, send_comments_to_dedup, 
-          send_comments_to_dup, c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
-          instream, outstream, outstream_dups):
+def streaming_dedup(
+        method, max_mismatch, sep,
+        c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
+        instream, outstream, outstream_dups):
 
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
 
@@ -164,17 +181,9 @@ def streaming_dedup(method, max_mismatch, sep, comment_char, send_comments_to_de
     strandDict = {}
 
     while True: 
-        line = instream.readline()    
-        stripline = line.strip()
+        line = next(instream, None)
+        stripline = line.strip() if line else None
 
-        if stripline.startswith(comment_char):
-            if send_comments_to_dedup:
-                outstream.write(line)
-            if send_comments_to_dup:
-                if outstream_dups:
-                    outstream_dups.write(line)
-            continue
-        
         if line:
             if not stripline: 
                 warnings.warn("Empty line detected not at the end of the file")
