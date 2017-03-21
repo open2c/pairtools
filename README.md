@@ -26,6 +26,7 @@ Requirements:
 - python 3.x
 - bgzip
 - Cython
+- numpy
 - bwa
 
 ## usage
