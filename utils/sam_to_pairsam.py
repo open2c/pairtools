@@ -9,22 +9,28 @@ import sys
 import os
 import io
 
+from _distiller_common import open_bgzip, DISTILLER_VERSION, \
+    append_pg_to_sam_header, get_header
+
+
 
 def main():
     parser = argparse.ArgumentParser(
         description='Splits .sam entries into different read pair categories')
     parser.add_argument(
-        'infile',
-        nargs='?',
-        type=argparse.FileType('r'),
-        default=sys.stdin)
+        '--input',
+        type=str, 
+        default="",
+        help='input sam file.'
+            ' If the path ends with .bam, the input is decompressed from bam.'
+            ' By default, the input is read from stdin.')
     parser.add_argument(
-        "-o", "--output",
-        type=str,
-        default=None,
-        help='Path to the output pairsam file. '
-             'If ends with .gz, the output is gzipped. '
-             'If not provided, the output is printed into stdout.')
+        "--output", 
+        type=str, 
+        default="", 
+        help='output file.'
+            ' If the path ends with .gz, the output is bgzip-compressed.'
+            ' By default, the output is printed into stdout.')
     parser.add_argument(
         "--min-mapq", 
         type=int, 
@@ -45,22 +51,18 @@ def main():
     max_molecule_size = args['max_molecule_size']
     drop_readid = args['drop_readid']
     drop_sam = args['drop_sam']
-    in_stream = args['infile']
-    if args['output'] is None:
-        out_stream = sys.stdout
-    else:
-        if args['output'].endswith('.gz'):
-            t = pipes.Template()
-            t.append('gzip -c', '--')
-            out_stream = t.open(args['output'], 'w')
-        else:
-            out_stream = open(args['output'], mode='w')
+    instream = (open_bgzip(args['input'], mode='r') 
+                if args['input'] else sys.stdin)
+    outstream = (open_bgzip(args['output'], mode='w') 
+                 if args['output'] else sys.stdout)
 
-    streaming_classify(in_stream, out_stream, min_mapq, max_molecule_size,
+    streaming_classify(instream, outstream, min_mapq, max_molecule_size,
                        drop_readid, drop_sam)
 
-    if hasattr(out_stream, 'close'):
-        out_stream.close()
+    if hasattr(instream, 'close'):
+        instream.close()
+    if hasattr(outstream, 'close'):
+        outstream.close()
 
 
 def parse_cigar(cigar):
@@ -441,26 +443,31 @@ def write_pairsam(
     out_file.write('\n')
 
 
-def streaming_classify(in_stream, out_stream, min_mapq, max_molecule_size, 
+def streaming_classify(instream, outstream, min_mapq, max_molecule_size, 
                        drop_readid, drop_sam):
     """
 
     """
-    # The first few lines of a SAM file are header lines. These lines
-    # begin with @ and they must be sent to all output files.
-    last_line = in_stream.readline()
-    while last_line.startswith('@'):
-        out_stream.write('#')
-        out_stream.write(last_line)
-        last_line = in_stream.readline()
+
+    header, body_stream = get_header(instream, comment_char='')
+    header = append_pg_to_sam_header(
+        header,
+        {'ID': 'sam_to_pairsam',
+         'PN': 'sam_to_pairsam',
+         'VN': DISTILLER_VERSION,
+         'CL': ' '.join(sys.argv)
+         },
+        comment_char='',
+        )
+    outstream.writelines(('#'+l for l in header))
 
     prev_read_id = ''
     sams1 = []
     sams2 = []
-    while last_line:
-        read_id, _ = last_line.split('\t', 1)
+    for line in body_stream:
+        read_id = line.split('\t', 1)[0] if line else None
 
-        if (read_id != prev_read_id) and prev_read_id:    
+        if not(line) or ((read_id != prev_read_id) and prev_read_id):
             pair_type, algn1, algn2, flip_pair = classify(
                 sams1,
                 sams2,
@@ -472,7 +479,7 @@ def streaming_classify(in_stream, out_stream, min_mapq, max_molecule_size,
                     prev_read_id, 
                     pair_type,
                     sams2, sams1,
-                    out_stream, 
+                    outstream, 
                     drop_readid,
                     drop_sam)
             else:
@@ -481,41 +488,40 @@ def streaming_classify(in_stream, out_stream, min_mapq, max_molecule_size,
                     prev_read_id, 
                     pair_type,
                     sams1, sams2,
-                    out_stream,
+                    outstream,
                     drop_readid,
                     drop_sam)
             
             sams1.clear()
             sams2.clear()
 
-        push_sam(last_line, sams1, sams2)
+        push_sam(line, sams1, sams2)
         prev_read_id = read_id
-        last_line = in_stream.readline()
 
-    # taking care of the last pair
-    pair_type, algn1, algn2, flip_pair = classify(
-        sams1,
-        sams2,
-        min_mapq,
-        max_molecule_size)
-    if flip_pair:
-        write_pairsam(
-            algn2, algn1, 
-            '.' if drop_readid else prev_read_id, 
-            pair_type,
-            sams2, sams1,
-            out_stream,
-            drop_readid,
-            drop_sam)
-    else:
-        write_pairsam(
-            algn1, algn2,
-            '.' if drop_readid else prev_read_id, 
-            pair_type,
-            sams1, sams2, 
-            out_stream,
-            drop_readid,
-            drop_sam)
+    else: # run one more time at the end
+        pair_type, algn1, algn2, flip_pair = classify(
+            sams1,
+            sams2,
+            min_mapq,
+            max_molecule_size)
+        if flip_pair:
+            write_pairsam(
+                algn2, algn1, 
+                prev_read_id, 
+                pair_type,
+                sams2, sams1,
+                outstream, 
+                drop_readid,
+                drop_sam)
+        else:
+            write_pairsam(
+                algn1, algn2,
+                prev_read_id, 
+                pair_type,
+                sams1, sams2,
+                outstream,
+                drop_readid,
+                drop_sam)
 
 
 if __name__ == '__main__':
