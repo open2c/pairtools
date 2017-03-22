@@ -131,7 +131,7 @@ Null/ambiguous/chimeric alignments are stored as chrom='!', pos=0, strand='-'.
 Notes of the motivation behind some of the technical decisions in the definition
 of pairsam:
 - while the information in columns 1-8 may appear redundant to sam alignments in
-the columns 9+, extracting this information is non-trivial and thus is better be
+the columns 9+, extracting this information is non-trivial and thus is better 
 done only once with results stored.
 - storing sam entries together with pairs drastically speeds up and simplifies 
 several operations like filtering and tagging of unmapped/ambiguous/duplicated 
@@ -153,12 +153,12 @@ distiller uses a simple two-character notation to define all possible pair types
 by the quality of alignment. For each pair, its type can be defined unambigously
 using the table below. To use this table, indentify which side has an alignment 
 of a "poorer" quality (unmapped < multimapped < chimeric alignment < linear alignment)
-and which side has a "better" alignment and find a corresponding row in the table.
+and which side has a "better" alignment and find the corresponding row in the table.
 
 
 
 
-| the poorer alignment  |                 |                                 | the better alignment  |                 |                                 | Code     | Pair type         | Sidedness |
+| more poorly aligned side  |                 |                                 | better aligned side  |                 |                                 | Code     | Pair type         | Sidedness |
 |--------|-----------------|---------------------------------|--------|-----------------|---------------------------------|----------|-------------------|-----------|
 | Mapped | Uniquely mapped | Linear (non-chimeric) alignment | Mapped | Uniquely mapped | Linear (non-chimeric) alignment |          |                   |           |
 | -      |                 |                                 | -      |                 |                                 | NN       | null              | 0         |
@@ -173,16 +173,16 @@ and which side has a "better" alignment and find a corresponding row in the tabl
 | +      | +               | +                               | +      | +               | +                               | LL       | linear-linear     | 2         |
 | +      | +               | +                               | +      | +               | +                               | DD       | duplicate         | 2***         |
 
-\* - chimeric reads may represent Hi-C molecules formed via multiple ligation
+\*  chimeric reads may represent Hi-C molecules formed via multiple ligation
 events and thus cannot be interpreted as unambigous pairs.
 
-** - some chimeric reads correspond to valid Hi-C molecules formed via a single
+**  some chimeric reads correspond to valid Hi-C molecules formed via a single
 ligation event, with the ligation junction sequenced through on one side. 
 Following the procedure introduced in
 [Juicer](https://github.com/theaidenlab/juicer), distiller rescues such 
 molecules, reports their outer-most mapped positions and tags them as "CX" pair type.
 Such molecules can and should be used in downstream analysis.
 
-*** - distiller detects molecules that could be formed via PCR duplication and
+***  distiller detects molecules that could be formed via PCR duplication and
 tags them as "DD" pair type. These pairs should be excluded from downstream 
 analyses.
