@@ -1,7 +1,9 @@
 import sys
 import argparse
-from _distiller_common import open_bgzip, DISTILLER_VERSION, \
-    append_pg_to_sam_header, get_header
+
+import _distiller_common
+
+UTIL_NAME = 'pairsam_select'
 
 def main():
     parser = argparse.ArgumentParser(
@@ -63,18 +65,18 @@ def main():
     
     args = vars(parser.parse_args())
     
-    instream = (open_bgzip(args['input'], mode='r') 
+    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
                 if args['input'] else sys.stdin)
-    outstream = (open_bgzip(args['output'], mode='w') 
+    outstream = (_distiller_common.open_bgzip(args['output'], mode='w') 
                  if args['output'] else sys.stdout)
-    outstream_rest = (open_bgzip(args['output_rest'], mode='w') 
+    outstream_rest = (_distiller_common.open_bgzip(args['output_rest'], mode='w') 
                       if args['output_rest'] else None)
 
     colidx = {
-        'chrom1':0,
-        'chrom1':3,
-        'read_id':6,
-        'pair_type':7,
+        'chrom1':_distiller_common.COL_C1,
+        'chrom2':_distiller_common.COL_C2,
+        'read_id':_distiller_common.COL_READID,
+        'pair_type':_distiller_common.COL_PTYPE,
         }[args['field'][0]]
 
     val = args['value'][0]
@@ -96,12 +98,12 @@ def main():
     else:
         raise Exception('An unknown matching method: {}'.format(args['match_method']))
 
-    header, pairsam_body_stream = get_header(instream)
-    header = append_pg_to_sam_header(
+    header, pairsam_body_stream = _distiller_common.get_header(instream)
+    header = _distiller_common.append_pg_to_sam_header(
         header,
-        {'ID': 'pairsam_select',
-         'PN': 'pairsam_select',
-         'VN': DISTILLER_VERSION,
+        {'ID': UTIL_NAME,
+         'PN': UTIL_NAME,
+         'VN': _distiller_common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 

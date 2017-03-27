@@ -3,9 +3,10 @@ import sys
 import glob
 import subprocess
 import argparse
-from _distiller_common import open_bgzip, DISTILLER_VERSION, \
-    append_pg_to_sam_header, get_header
 
+import _distiller_common
+
+UTIL_NAME = 'pairsam_merge'
 
 def main():
     parser = argparse.ArgumentParser(
@@ -28,18 +29,27 @@ def main():
     paths = sum([glob.glob(mask) for mask in args['infile']], [])
     merged_header = form_merged_header(paths)
 
-    merged_header = append_pg_to_sam_header(
+    merged_header = _distiller_common.append_pg_to_sam_header(
         merged_header,
-        {'ID': 'pairsam_merge',
-         'PN': 'pairsam_merge',
-         'VN': DISTILLER_VERSION,
+        {'ID': UTIL_NAME,
+         'PN': UTIL_NAME,
+         'VN': _distiller_common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 
     for line in merged_header:
         print(line, end='', flush=True)
 
-    command = r'''/bin/bash -c 'sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n -k 8,8 --field-separator=$'\''\v'\'' --merge'''
+    command = r'''
+        /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
+        --merge --field-separator=$'\''\v'\'' 
+        '''.replace('\n',' ').format(
+                _distiller_common.COL_C1+1, 
+                _distiller_common.COL_C2+1, 
+                _distiller_common.COL_P1+1, 
+                _distiller_common.COL_P2+1,
+                _distiller_common.COL_P2+1,
+                )
     for path in paths:
         if path.endswith('.gz'):
             command += r''' <(zcat {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path)
@@ -53,7 +63,7 @@ def form_merged_header(paths):
     headers = []
     for path in paths:
         header = []
-        f = open_bgzip(path, mode='r')
+        f = _distiller_common.open_bgzip(path, mode='r')
         for line in f.readlines():
             if line and not line.isspace():
                 if line.strip().startswith('#'):

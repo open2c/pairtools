@@ -411,22 +411,22 @@ def write_pairsam(
     Thus, use the vertical tab character to separate fields!
 
     """
-    out_file.write(algn1['chrom'])
-    out_file.write('\v')
-    out_file.write(str(algn1['pos']))
-    out_file.write('\v')
-    out_file.write(algn1['strand'])
-    out_file.write('\v')
-    out_file.write(algn2['chrom'])
-    out_file.write('\v')
-    out_file.write(str(algn2['pos']))
-    out_file.write('\v')
-    out_file.write(algn2['strand'])
-    out_file.write('\v')
     if drop_readid:
         out_file.write('.')
     else:
         out_file.write(read_id)
+    out_file.write('\v')
+    out_file.write(algn1['chrom'])
+    out_file.write('\v')
+    out_file.write(algn2['chrom'])
+    out_file.write('\v')
+    out_file.write(str(algn1['pos']))
+    out_file.write('\v')
+    out_file.write(str(algn2['pos']))
+    out_file.write('\v')
+    out_file.write(algn1['strand'])
+    out_file.write('\v')
+    out_file.write(algn2['strand'])
     out_file.write('\v')
     out_file.write(pair_type)
     if not drop_sam:

@@ -5,8 +5,9 @@ import sys
 import argparse
 import subprocess
 
-from _distiller_common import open_bgzip, DISTILLER_VERSION, \
-    append_pg_to_sam_header, get_header
+import _distiller_common
+
+UTIL_NAME = 'pairsam_sort'
 
 def main():
     parser = argparse.ArgumentParser(
@@ -33,17 +34,17 @@ def main():
 
     args = vars(parser.parse_args())
     
-    instream = (open_bgzip(args['input'], mode='r') 
+    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
                 if args['input'] else sys.stdin)
-    outstream = (open_bgzip(args['output'], mode='w') 
+    outstream = (_distiller_common.open_bgzip(args['output'], mode='w') 
                  if args['output'] else sys.stdout)
 
-    header, pairsam_body_stream = get_header(instream)
-    header = append_pg_to_sam_header(
+    header, pairsam_body_stream = _distiller_common.get_header(instream)
+    header = _distiller_common.append_pg_to_sam_header(
         header,
-        {'ID': 'pairsam_sort',
-         'PN': 'pairsam_sort',
-         'VN': DISTILLER_VERSION,
+        {'ID': UTIL_NAME,
+         'PN': UTIL_NAME,
+         'VN': _distiller_common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 
@@ -53,9 +54,15 @@ def main():
         outstream.close()
 
     command = r'''
-        /bin/bash -c 'sort -k 1,1 -k 4,4 -k 2,2n -k 5,5n -k 8,8 
+        /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
         --field-separator=$'\''\v'\'' 
-        '''.replace('\n','')
+        '''.replace('\n',' ').format(
+                _distiller_common.COL_C1+1, 
+                _distiller_common.COL_C2+1, 
+                _distiller_common.COL_P1+1, 
+                _distiller_common.COL_P2+1,
+                _distiller_common.COL_P2+1,
+                )
     if args['output'].endswith('.gz'):
         command += '| bgzip -c'
     if args['output']:

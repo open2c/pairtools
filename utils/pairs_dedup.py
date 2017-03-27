@@ -8,8 +8,10 @@ import ast
 import numpy as np
 import pyximport; pyximport.install()
 from _dedup import OnlineDuplicateDetector
-from _distiller_common import open_bgzip, DISTILLER_VERSION, \
-    append_pg_to_sam_header, get_header
+
+import _distiller_common
+
+UTIL_NAME = 'pairs_dedup'
 
 
 # you don't need to load more than 10k lines at a time b/c you get out of the 
@@ -79,33 +81,33 @@ def main():
     parser.add_argument(
         "--c1", 
         type=int, 
-        default=0,  
-        help='Chrom 1 column; default 0')
+        default=_distiller_common.COL_C1,  
+        help='Chrom 1 column; default {}'.format(_distiller_common.COL_C1))
     parser.add_argument(
         "--c2", 
         type=int, 
-        default=3,  
-        help='Chrom 2 column; default 3')
+        default=_distiller_common.COL_C2,  
+        help='Chrom 2 column; default {}'.format(_distiller_common.COL_C2))
     parser.add_argument(
         "--p1", 
         type=int, 
-        default=1,  
-        help='Position 1 column; default 1')
+        default=_distiller_common.COL_P1,  
+        help='Position 1 column; default {}'.format(_distiller_common.COL_P1))
     parser.add_argument(
         "--p2", 
         type=int, 
-        default=4,  
-        help='Position 2 column; default 4')
+        default=_distiller_common.COL_P2,  
+        help='Position 2 column; default {}'.format(_distiller_common.COL_P2))
     parser.add_argument(
         "--s1", 
         type=int, 
-        default=2,  
-        help='Strand 1 column; default 2')
+        default=_distiller_common.COL_S1,  
+        help='Strand 1 column; default {}'.format(_distiller_common.COL_S1))
     parser.add_argument(
         "--s2", 
         type=int, 
-        default=5,  
-        help='Strand 2 column; default 5')
+        default=_distiller_common.COL_S2,  
+        help='Strand 2 column; default {}'.format(_distiller_common.COL_S2))
     args = vars(parser.parse_args())
 
     sep = ast.literal_eval('"""' + args['sep'] + '"""')
@@ -121,19 +123,19 @@ def main():
     s1ind = args['s1']
     s2ind = args['s2']
 
-    instream = (open_bgzip(args['input'], mode='r') 
+    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
                 if args['input'] else sys.stdin)
-    outstream = (open_bgzip(args['output'], mode='w') 
+    outstream = (_distiller_common.open_bgzip(args['output'], mode='w') 
                  if args['output'] else sys.stdout)
-    outstream_dups = (open_bgzip(args['output_dups'], mode='w') 
+    outstream_dups = (_distiller_common.open_bgzip(args['output_dups'], mode='w') 
                       if args['output_dups'] else None)
 
-    header, pairsam_body_stream = get_header(instream)
-    header = append_pg_to_sam_header(
+    header, pairsam_body_stream = _distiller_common.get_header(instream)
+    header = _distiller_common.append_pg_to_sam_header(
         header,
-        {'ID': 'pairs_dedup',
-         'PN': 'pairs_dedup',
-         'VN': DISTILLER_VERSION,
+        {'ID': UTIL_NAME,
+         'PN': UTIL_NAME,
+         'VN': _distiller_common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 

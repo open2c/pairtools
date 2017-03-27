@@ -3,8 +3,8 @@
 import argparse
 import pipes
 import sys
-from _distiller_common import open_sam_or_bam, open_bgzip
 
+import _distiller_common
 
 def main():
     parser = argparse.ArgumentParser(
@@ -31,12 +31,12 @@ def main():
         help="The first character of comment lines")
     args = vars(parser.parse_args())
 
-    instream = (open_bgzip(args['input'], mode='r') 
+    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
                 if args['input'] else sys.stdin)
 
     # Output streams
-    pairs_file = open_bgzip(args['output_pairs'], mode='w') 
-    sam_file = open_sam_or_bam(args['output_sam'], 'w')
+    pairs_file = _distiller_common.open_bgzip(args['output_pairs'], mode='w') 
+    sam_file = _distiller_common.open_sam_or_bam(args['output_sam'], 'w')
 
     # Input pairsam
     comment_char = args['comment_char']
@@ -51,10 +51,10 @@ def main():
             continue
 
         cols = line[:-1].split('\v')
-        pairs_file.write('\t'.join(cols[:8]))
+        pairs_file.write('\t'.join(cols[:_distiller_common.COL_SAM]))
         pairs_file.write('\n')
         
-        for col in cols[8:]:
+        for col in cols[_distiller_common.COL_SAM:]:
             sam_file.write(col)
             sam_file.write('\n')
 

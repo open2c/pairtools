@@ -4,8 +4,10 @@ import argparse
 import pipes
 import sys
 
-from _distiller_common import open_bgzip, DISTILLER_VERSION, \
-    append_pg_to_sam_header, get_header
+import _distiller_common
+
+UTIL_NAME = 'pairsam_markasdup'
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -29,17 +31,17 @@ def main():
 
     args = vars(parser.parse_args())
     
-    instream = (open_bgzip(args['input'], mode='r') 
+    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
                 if args['input'] else sys.stdin)
-    outstream = (open_bgzip(args['output'], mode='w') 
+    outstream = (_distiller_common.open_bgzip(args['output'], mode='w') 
                  if args['output'] else sys.stdout)
  
-    header, pairsam_body_stream = get_header(instream)
-    header = append_pg_to_sam_header(
+    header, pairsam_body_stream = _distiller_common.get_header(instream)
+    header = _distiller_common.append_pg_to_sam_header(
         header,
-        {'ID': 'pairsam_markasdup',
-         'PN': 'pairsam_markasdup',
-         'VN': DISTILLER_VERSION,
+        {'ID': UTIL_NAME,
+         'PN': UTIL_NAME,
+         'VN': _distiller_common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 
@@ -47,9 +49,9 @@ def main():
 
     for line in pairsam_body_stream:
         cols = line[:-1].split('\v')
-        cols[7] = 'DD'
+        cols[_distiller_common.COL_PTYPE] = 'DD'
         
-        for i in range(8, len(cols)):
+        for i in range(_distiller_common.COL_SAM, len(cols)):
             sam = cols[i]
             samcols = sam.split('\t')
             samcols[1] = str(int(samcols[1]) | 1024)
