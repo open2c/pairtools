@@ -429,17 +429,27 @@ def write_pairsam(
     out_file.write(algn2['strand'])
     out_file.write('\v')
     out_file.write(pair_type)
-    if not drop_sam:
-        for sam in sams1:
-            out_file.write('\v')
+    out_file.write('\v')
+    if drop_sam:
+        out_file.write('.')
+    else:
+        for i, sam in enumerate(sams1):
             out_file.write(sam[:-1])
             out_file.write('\tYt:Z:')
             out_file.write(pair_type)
-        for sam in sams2:
-            out_file.write('\v')
+            if i < len(sams1) -1:
+                out_file.write(_distiller_common.SAM_ENTRY_SEP)
+    out_file.write('\v')
+    if drop_sam:
+        out_file.write('.')
+    else:
+        for i, sam in enumerate(sams2):
             out_file.write(sam[:-1])
             out_file.write('\tYt:Z:')
             out_file.write(pair_type)
+            if i < len(sams2) -1:
+                out_file.write(_distiller_common.SAM_ENTRY_SEP)
+    out_file.write('\v')
     out_file.write('\n')
 
 
@@ -449,8 +459,8 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
 
     """
 
-    header, body_stream = get_header(instream, comment_char='')
-    header = append_pg_to_sam_header(
+    header, body_stream = _distiller_common.get_header(instream, comment_char='')
+    header = _distiller_common.append_pg_to_sam_header(
         header,
         {'ID': 'sam_to_pairsam',
          'PN': 'sam_to_pairsam',

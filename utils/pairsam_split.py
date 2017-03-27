@@ -51,12 +51,14 @@ def main():
             continue
 
         cols = line[:-1].split('\v')
-        pairs_file.write('\t'.join(cols[:_distiller_common.COL_SAM]))
+        pairs_file.write('\t'.join(cols[:_distiller_common.COL_SAM1]))
         pairs_file.write('\n')
         
-        for col in cols[_distiller_common.COL_SAM:]:
-            sam_file.write(col)
-            sam_file.write('\n')
+        for col in (cols[_distiller_common.COL_SAM1],
+                    cols[_distiller_common.COL_SAM2]):
+            for sam_entry in col.split(_distiller_common.SAM_ENTRY_SEP):
+                sam_file.write(sam_entry)
+                sam_file.write('\n')
 
     if hasattr(pairs_file, 'close'):
         pairs_file.close()

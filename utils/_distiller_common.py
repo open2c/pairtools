@@ -12,7 +12,10 @@ COL_P2 = 4
 COL_S1 = 5
 COL_S2 = 6
 COL_PTYPE = 7
-COL_SAM = 8
+COL_SAM1 = 8
+COL_SAM2 = 9
+
+SAM_ENTRY_SEP = '\tNEXT_SAM\t'
 
 def open_sam_or_bam(path, mode):
     '''Opens a file as a bam file is `path` ends with .bam, otherwise 
