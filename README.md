@@ -105,15 +105,16 @@ a "\v" character (a vertical tab):
 
 | index | name      | description |
 |-------|-----------|-------------|
-| 1     | chrom1    | the chromosome of the alignment on side 1 |
-| 2     | pos1      | the 1-based genomic position of the outer-most (5') mapped bp on side 1 |
-| 3     | strand1   | the strand of the alignment on side 1 |
-| 4     | chrom2    | the chromosome of the alignment on side 2 |
+| 1     | read_id   | the ID of the read as defined in fastq files |
+| 2     | chrom1    | the chromosome of the alignment on side 1 |
+| 3     | chrom2    | the chromosome of the alignment on side 2 |
+| 4     | pos1      | the 1-based genomic position of the outer-most (5') mapped bp on side 1 |
 | 5     | pos2      | the 1-based genomic position of the outer-most (5') mapped bp on side 2 |
-| 6     | strand2   | the strand of the alignment on side 2 |
-| 7     | read_id   | the ID of the read as defined in fastq files |
+| 6     | strand1   | the strand of the alignment on side 1 |
+| 7     | strand2   | the strand of the alignment on side 2 |
 | 8     | pair_type | the type of a Hi-C pair |
-| 9+    | sam | a variable number of sam alignments, one alignment per column |
+| 9     | sam1      | the sam alignment(s) on side 1; separate supplemental alignments by NEXT_SAM|
+| 10    | sam2      | the sam alignment(s) on side 2; separate supplemental alignments by NEXT_SAM|
 
 *The sides 1 and 2 as defined in pairsam file do not correspond to side1 and
 side2 in sequencing data!* Instead, side1 is defined as the side with the
