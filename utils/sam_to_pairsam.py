@@ -9,9 +9,7 @@ import sys
 import os
 import io
 
-from _distiller_common import open_bgzip, DISTILLER_VERSION, \
-    append_pg_to_sam_header, get_header
-
+import _distiller_common
 
 
 def main():
@@ -51,9 +49,9 @@ def main():
     max_molecule_size = args['max_molecule_size']
     drop_readid = args['drop_readid']
     drop_sam = args['drop_sam']
-    instream = (open_bgzip(args['input'], mode='r') 
+    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
                 if args['input'] else sys.stdin)
-    outstream = (open_bgzip(args['output'], mode='w') 
+    outstream = (_distiller_common.open_bgzip(args['output'], mode='w') 
                  if args['output'] else sys.stdout)
 
     streaming_classify(instream, outstream, min_mapq, max_molecule_size,
@@ -464,7 +462,7 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
         header,
         {'ID': 'sam_to_pairsam',
          'PN': 'sam_to_pairsam',
-         'VN': DISTILLER_VERSION,
+         'VN': _distiller_common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          },
         comment_char='',

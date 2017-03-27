@@ -61,7 +61,7 @@ def main():
                 _distiller_common.COL_C2+1, 
                 _distiller_common.COL_P1+1, 
                 _distiller_common.COL_P2+1,
-                _distiller_common.COL_P2+1,
+                _distiller_common.COL_PTYPE+1,
                 )
     if args['output'].endswith('.gz'):
         command += '| bgzip -c'
