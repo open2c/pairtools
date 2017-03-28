@@ -1,15 +1,130 @@
 # -*- coding: utf-8 -*-
 import sys
 import numpy as np
-import classify_reads
+sys.path.append('../utils')
+import sam_to_pairsam
 
 from nose.tools import assert_raises
 
 def test_python_version():
     assert (sys.version_info[0] == 3), 'Use Python 3!'
 
-def test_tests():
-    assert (classify_reads.parse_cigar(b'50M') == (0,0,50,50))
+def test_parse_cigar():
+    assert (sam_to_pairsam.parse_cigar('*') == 
+        {'read_len': 0, 
+         'matched_bp': 0, 
+         'algn_ref_span': 0, 
+         'algn_read_span': 0, 
+         'clip5': 0, 
+         'clip3': 0})
 
-def test_tests():
-    assert (classify_reads.parse_cigar(b'50M') == (0,0,50,50))
+    assert (sam_to_pairsam.parse_cigar('50M') == 
+        {'read_len': 50, 
+         'matched_bp': 50, 
+         'algn_ref_span': 50, 
+         'algn_read_span': 50, 
+         'clip5': 0, 
+         'clip3': 0})
+
+    assert (sam_to_pairsam.parse_cigar('40M10S') == 
+        {'read_len': 50, 
+         'matched_bp': 40, 
+         'algn_ref_span': 40, 
+         'algn_read_span': 40, 
+         'clip5': 0, 
+         'clip3': 10})
+
+    assert (sam_to_pairsam.parse_cigar('10S40M') == 
+        {'read_len': 50, 
+         'matched_bp': 40, 
+         'algn_ref_span': 40, 
+         'algn_read_span': 40, 
+         'clip5': 10, 
+         'clip3': 0})
+
+    assert (sam_to_pairsam.parse_cigar('10S30M10S') == 
+        {'read_len': 50, 
+         'matched_bp': 30, 
+         'algn_ref_span': 30, 
+         'algn_read_span': 30, 
+         'clip5': 10, 
+         'clip3': 10})
+
+    assert (sam_to_pairsam.parse_cigar('30M10I10M') == 
+        {'read_len': 50, 
+         'matched_bp': 40, 
+         'algn_ref_span': 40, 
+         'algn_read_span': 50, 
+         'clip5': 0, 
+         'clip3': 0})
+
+    assert (sam_to_pairsam.parse_cigar('30M10D10M10S') == 
+        {'read_len': 50, 
+         'matched_bp': 40, 
+         'algn_ref_span': 50, 
+         'algn_read_span': 40, 
+         'clip5': 0, 
+         'clip3': 10})
+
+
+def test_parse_algn():
+    min_mapq = 50
+
+    sam='SRR1658570.5\t65\tchr12\t24316205\t60\t90M11S\t'
+    '=\t46893391\t22577187\t.\t.\t'
+    'NM:i:1\tMD:Z:36A53\tAS:i:85\tXS:i:19'
+    samcols = sam.split('\t')
+    parsed_algn = sam_to_pairsam.parse_algn(samcols, min_mapq)
+    assert parsed_algn == {'chrom': 'chr12', 
+         'pos': 24316205, 
+         'strand': '+', 
+         'dist_to_5': 0, 
+        'mapq': 60, 
+         'is_unique': True, 
+         'is_mapped': True, 
+         'is_linear': True, 
+         'cigar': {'algn_ref_span': 90, 
+                   'algn_read_span': 90,
+                   'matched_bp': 90, 
+                   'clip3': 11, 
+                   'clip5': 0, 
+                   'read_len': 101}}
+
+    sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
+          '\tFLAG1\tFLAG2\tSIMULATED:readid01,chr1,chr1,10,200,+,+,LL')
+    samcols = sam.split('\t')
+    parsed_algn = sam_to_pairsam.parse_algn(samcols, min_mapq)
+    assert parsed_algn == {'chrom': 'chr1', 
+         'pos': 10, 
+         'strand': '+', 
+         'dist_to_5': 0, 
+         'mapq': 60, 
+         'is_unique': True, 
+         'is_mapped': True, 
+         'is_linear': True, 
+         'cigar': {'algn_ref_span': 50, 
+                   'algn_read_span': 50,
+                   'matched_bp': 50, 
+                   'clip3': 0,
+                   'clip5': 0, 
+                   'read_len': 50}}
+
+
+    sam = ('readid10\t77\t*\t0\t0\t*\t*\t0\t0\tSEQ\tPHRED'
+           '\tFLAG1\tFLAG2\tSIMULATED:readid10,!,!,0,0,-,-,NN')
+    samcols = sam.split('\t')
+    parsed_algn = sam_to_pairsam.parse_algn(samcols, min_mapq)
+    assert parsed_algn == {'chrom': '!', 
+         'pos': 0, 
+         'strand': '-', 
+         'dist_to_5': 0, 
+         'mapq': 0, 
+         'is_unique': False, 
+         'is_mapped': False, 
+         'is_linear': True, 
+         'cigar': {'algn_ref_span': 0, 
+                   'algn_read_span': 0,
+                   'matched_bp': 0, 
+                   'clip3': 0,
+                   'clip5': 0, 
+                   'read_len': 0}}
