@@ -50,10 +50,8 @@ def merge(infile,output):
          })
 
     outstream.writelines(merged_header)
+    outstream.flush()
  
-    if hasattr(outstream, 'close'):
-        outstream.close()
-
     command = r'''
         /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
         --merge --field-separator=$'\''\v'\'' 
@@ -62,19 +60,15 @@ def merge(infile,output):
                 _distiller_common.COL_C2+1, 
                 _distiller_common.COL_P1+1, 
                 _distiller_common.COL_P2+1,
-                _distiller_common.COL_P2+1,
+                _distiller_common.COL_PTYPE+1,
                 )
     for path in paths:
         if path.endswith('.gz'):
             command += r''' <(zcat {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path)
         else:
             command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(path)
-    if output.endswith('.gz'):
-        command += '| bgzip -c'
-    if output:
-        command += ' >> ' + output
     command += "'"
-    subprocess.call(command, shell=True)
+    subprocess.call(command, shell=True, stdout=outstream)
 
 
 def form_merged_header(paths):
