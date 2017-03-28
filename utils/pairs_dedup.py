@@ -41,8 +41,7 @@ MAX_LEN = 10000
     default="", 
     help='output file for duplicates. '
         ' If the path ends with .gz, the output is bgzip-compressed.'
-        ' By default, duplicates are dropped.'
-        )
+        ' By default, duplicates are dropped.')
 @click.option(
     "--max-mismatch",
     type=int, 
@@ -55,8 +54,7 @@ MAX_LEN = 10000
     default="max",  
     help='define the mismatch as either the max or the sum of the mismatches of'
         'the genomic locations of the both sides of the two compared molecules',
-    show_default=True,
-        )
+    show_default=True,)
 @click.option(
     "--sep",
     type=str, 
