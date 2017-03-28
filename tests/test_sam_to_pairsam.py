@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 import numpy as np
 sys.path.append('../utils')
 import sam_to_pairsam
 
 from nose.tools import assert_raises
+
+import click
+from click.testing import CliRunner
+
+testdir = os.path.dirname(os.path.realpath(__file__))
 
 def test_python_version():
     assert (sys.version_info[0] == 3), 'Use Python 3!'
@@ -128,3 +134,31 @@ def test_parse_algn():
                    'clip3': 0,
                    'clip5': 0, 
                    'read_len': 0}}
+
+def test_mock_sam():
+    runner = CliRunner()
+    mock_sam_path = os.path.join(testdir, 'data', 'mock.sam')
+    result = runner.invoke(
+            cli=sam_to_pairsam.sam_to_pairsam, 
+            args=['--input', mock_sam_path])
+
+    # check if the header got transferred correctly
+    sam_header = [l.strip() for l in open(mock_sam_path, 'r') if l.startswith('@')]
+    pairsam_header = [l.strip() for l in result.output.split('\n') if l.startswith('#')] 
+    for l in sam_header:
+        assert any([l in l2 for l2 in pairsam_header])
+
+    # check that the pairs got assigned properly
+    print(result.output)
+    for l in result.output.split('\n'):
+        if l.startswith('#') or not l:
+            continue
+
+        assigned_pair = l.split('\v')[1:8]
+        simulated_pair = l.split('SIMULATED:',1)[1].split('\t',1)[0].split(',')
+        print(assigned_pair)
+        print(simulated_pair)
+        print()
+
+        assert assigned_pair == simulated_pair
+
