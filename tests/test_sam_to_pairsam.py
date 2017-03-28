@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-sys.path.append('../utils')
-import sam_to_pairsam
 
 from nose.tools import assert_raises
 
 import subprocess
 
 testdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(testdir, '..', 'utils'))
+
+import sam_to_pairsam
 
 def test_python_version():
     assert (sys.version_info[0] == 3), 'Use Python 3!'
