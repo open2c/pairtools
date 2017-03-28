@@ -21,9 +21,9 @@ install:
   - conda info -a
 
   # Create test environment and install deps
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION coreutils setuptools pip cython numpy nose mock bwa pbgzip
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION coreutils setuptools pip cython numpy nose bwa pbgzip
   - source activate test-environment
   - pip install click
 
 script:
-  nosetests
+  cd utils && nosetests
