@@ -51,7 +51,7 @@ MAX_LEN = 10000
          'other are considered duplicates.')
 @click.option(
     '--method',
-    type=click.Choice(['sum', 'max']),
+    type=click.Choice(['max', 'sum']),
     default="max",  
     help='define the mismatch as either the max or the sum of the mismatches of'
         'the genomic locations of the both sides of the two compared molecules',
