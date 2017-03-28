@@ -1,6 +1,7 @@
 # distiller
 
 [![Build Status](https://travis-ci.org/mirnylab/distiller.svg?branch=master)](https://travis-ci.org/mirnylab/distiller)
+[![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## map Hi-C reads with distiller
 
