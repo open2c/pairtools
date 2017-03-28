@@ -25,9 +25,10 @@ In the nearest future, distiller will become pip/conda-installable.
 Requirements:
 - python 3.x
 - bgzip
+- bwa
 - Cython
 - numpy
-- bwa
+- click
 
 ## usage
 

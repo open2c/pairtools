@@ -1,51 +1,53 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse
-import pipes
 import sys
+import pipes
+import click
 
 import _distiller_common
 
-def main():
-    parser = argparse.ArgumentParser(
-        description='Splits a .pairsam file into pairs and sam entries')
-    parser.add_argument(
-        '--input',
-        type=str, 
-        default="",
-        help='input pairsam file.'
-            ' If the path ends with .gz, the input is gzip-decompressed.'
-            ' By default, the input is read from stdin.')
-    parser.add_argument(
-        "--output-pairs", 
-        type=str, 
-        required=True)
-    parser.add_argument(
-        "--output-sam", 
-        type=str, 
-        required=True)
-    parser.add_argument(
-        "--comment-char", 
-        type=str, 
-        default="#", 
-        help="The first character of comment lines")
-    args = vars(parser.parse_args())
+@click.command()
+@click.option(
+    '--input',
+    type=str, 
+    default="",
+    help='input pairsam file.'
+        ' If the path ends with .gz, the input is gzip-decompressed.'
+        ' By default, the input is read from stdin.')
+@click.argument(
+    "output_pairs", 
+    metavar='OUTPUT_PAIRS', 
+    type=str, 
+    )
+@click.argument(
+    "output_sam", 
+    metavar='OUTPUT_SAM', 
+    type=str, 
+    )
 
-    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
-                if args['input'] else sys.stdin)
+def split(input, output_pairs, output_sam):
+    '''Splits a .pairsam file into pairs and sam entries
+
+    OUTPUT_PAIRS : output pairs file. If the path ends with .gz, the output is 
+    bgzip-compressed.
+
+    OUTPUT_SAM : output pairs file. If the path ends with .bam, the output is
+    compressed into a bam file.
+
+    '''
+    instream = (_distiller_common.open_bgzip(input, mode='r') 
+                if input else sys.stdin)
 
     # Output streams
-    pairs_file = _distiller_common.open_bgzip(args['output_pairs'], mode='w') 
-    sam_file = _distiller_common.open_sam_or_bam(args['output_sam'], 'w')
+    pairs_file = _distiller_common.open_bgzip(output_pairs, mode='w') 
+    sam_file = _distiller_common.open_sam_or_bam(output_sam, 'w')
 
-    # Input pairsam
-    comment_char = args['comment_char']
 
     # Split
     for line in instream.readlines():
-        if line.startswith(comment_char):
-            if line.startswith(comment_char+'@'):
-                sam_file.write(line[len(comment_char):])
+        if line.startswith('#'):
+            if line.startswith('#'+'@'):
+                sam_file.write(line[len('#'):])
 
             pairs_file.write(line)
             continue
@@ -68,4 +70,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    split()

@@ -2,31 +2,43 @@
 import sys
 import glob
 import subprocess
-import argparse
+import click
 
 import _distiller_common
 
 UTIL_NAME = 'pairsam_merge'
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="""Merge multiple sorted pairsam files. 
-        The @SQ records of the SAM header must be identical; the sorting order of 
-        these lines is taken from the first file in the list. 
-        The ID fields of the @PG records of the SAM header are modified with a
-        numeric suffix to produce unique records.
-        The other unique SAM and non-SAM header lines are copied into the output header.
-        """
+@click.command()
+@click.argument(
+    'infile', 
+    metavar='INFILE',
+    nargs=-1, 
+    type=str,
     )
-    parser.add_argument(
-        'infile', 
-        nargs='+', 
-        type=str,
-        help='a file to merge or a group of files specified by a wildcard',
-        default=sys.stdin)
+@click.option(
+    "--output", 
+    type=str, 
+    default="", 
+    help='output file.'
+        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' By default, the output is printed into stdout.')
 
-    args = vars(parser.parse_args())
-    paths = sum([glob.glob(mask) for mask in args['infile']], [])
+def merge(infile,output):
+    """Merge multiple sorted pairsam files. 
+    The @SQ records of the SAM header must be identical; the sorting order of 
+    these lines is taken from the first file in the list. 
+    The ID fields of the @PG records of the SAM header are modified with a
+    numeric suffix to produce unique records.
+    The other unique SAM and non-SAM header lines are copied into the output header.
+
+    INFILE : a file to merge or a group of files specified by a wildcard
+    
+    """
+
+    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+                 if output else sys.stdout)
+
+    paths = sum([glob.glob(mask) for mask in infile], [])
     merged_header = form_merged_header(paths)
 
     merged_header = _distiller_common.append_pg_to_sam_header(
@@ -37,8 +49,10 @@ def main():
          'CL': ' '.join(sys.argv)
          })
 
-    for line in merged_header:
-        print(line, end='', flush=True)
+    outstream.writelines(merged_header)
+ 
+    if hasattr(outstream, 'close'):
+        outstream.close()
 
     command = r'''
         /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
@@ -55,6 +69,10 @@ def main():
             command += r''' <(zcat {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path)
         else:
             command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(path)
+    if output.endswith('.gz'):
+        command += '| bgzip -c'
+    if output:
+        command += ' >> ' + output
     command += "'"
     subprocess.call(command, shell=True)
 
@@ -126,4 +144,4 @@ def form_merged_header(paths):
     return out_header
 
 if __name__ == '__main__':
-    main()
+    merge()

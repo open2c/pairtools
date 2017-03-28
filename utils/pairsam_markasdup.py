@@ -1,40 +1,36 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import argparse
-import pipes
 import sys
+import pipes
+import click
 
 import _distiller_common
 
 UTIL_NAME = 'pairsam_markasdup'
 
+@click.command()
+@click.option(
+    '--input',
+    type=str, 
+    default="",
+    help='input pairsam file.'
+        ' If the path ends with .gz, the input is gzip-decompressed.'
+        ' By default, the input is read from stdin.')
 
-def main():
-    parser = argparse.ArgumentParser(
-        description='Tags every line of a pairsam with a duplicate tag'
-    )
-    parser.add_argument(
-        '--input',
-        type=str, 
-        default="",
-        help='input pairsam file.'
-            ' If the path ends with .gz, the input is gzip-decompressed.'
-            ' By default, the input is read from stdin.')
+@click.option(
+    "--output", 
+    type=str, 
+    default="", 
+    help='output pairsam file.'
+        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' By default, the output is printed into stdout.')
 
-    parser.add_argument(
-        "--output", 
-        type=str, 
-        default="", 
-        help='output pairsam file.'
-            ' If the path ends with .gz, the output is bgzip-compressed.'
-            ' By default, the output is printed into stdout.')
-
-    args = vars(parser.parse_args())
-    
-    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
-                if args['input'] else sys.stdin)
-    outstream = (_distiller_common.open_bgzip(args['output'], mode='w') 
-                 if args['output'] else sys.stdout)
+def markasdup(input, output):
+    '''Tags every line of a pairsam with a duplicate tag'''
+    instream = (_distiller_common.open_bgzip(input, mode='r') 
+                if input else sys.stdin)
+    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+                 if output else sys.stdout)
  
     header, pairsam_body_stream = _distiller_common.get_header(instream)
     header = _distiller_common.append_pg_to_sam_header(
@@ -81,4 +77,4 @@ def mark_sam_as_dup(sam):
 
 
 if __name__ == '__main__':
-    main()
+    markasdup()

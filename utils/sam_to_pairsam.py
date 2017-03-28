@@ -3,7 +3,7 @@
 import subprocess
 import fileinput
 import itertools
-import argparse
+import click
 import pipes
 import sys
 import os
@@ -11,48 +11,51 @@ import io
 
 import _distiller_common
 
+UTIL_NAME = 'pairsam_markasdup'
 
-def main():
-    parser = argparse.ArgumentParser(
-        description='Splits .sam entries into different read pair categories')
-    parser.add_argument(
-        '--input',
-        type=str, 
-        default="",
-        help='input sam file.'
-            ' If the path ends with .bam, the input is decompressed from bam.'
-            ' By default, the input is read from stdin.')
-    parser.add_argument(
-        "--output", 
-        type=str, 
-        default="", 
-        help='output file.'
-            ' If the path ends with .gz, the output is bgzip-compressed.'
-            ' By default, the output is printed into stdout.')
-    parser.add_argument(
-        "--min-mapq", 
-        type=int, 
-        default=10)
-    parser.add_argument(
-        "--max-molecule-size", 
-        type=int, 
-        default=2000)
-    parser.add_argument(
-        "--drop-readid", 
-        action='store_true')
-    parser.add_argument(
-        "--drop-sam", 
-        action='store_true')
-    args = vars(parser.parse_args())
+@click.command()
+@click.option(
+    '--input',
+    type=str, 
+    default="",
+    help='input sam file.'
+        ' If the path ends with .bam, the input is decompressed from bam.'
+        ' By default, the input is read from stdin.')
+@click.option(
+    "--output", 
+    type=str, 
+    default="", 
+    help='output file.'
+        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' By default, the output is printed into stdout.')
+@click.option(
+    "--min-mapq", 
+    type=int, 
+    default=10,
+    help='The minimal MAPQ score of a mapped read')
+@click.option(
+    "--max-molecule-size", 
+    type=int, 
+    default=2000,
+    help='The maximal size of a ligated Hi-C molecule; used in chimera rescue.')
+@click.option(
+    "--drop-readid", 
+    is_flag=True,
+    help='If specified, do not add read ids to the output')
+@click.option(
+    "--drop-sam", 
+    is_flag=True,
+    help='If specified, do not add sams to the output')
 
-    min_mapq = args['min_mapq']
-    max_molecule_size = args['max_molecule_size']
-    drop_readid = args['drop_readid']
-    drop_sam = args['drop_sam']
-    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
-                if args['input'] else sys.stdin)
-    outstream = (_distiller_common.open_bgzip(args['output'], mode='w') 
-                 if args['output'] else sys.stdout)
+def sam_to_pairsam(
+    input, output, min_mapq, max_molecule_size, 
+    drop_readid, drop_sam):
+    '''Splits .sam entries into different read pair categories'''
+
+    instream = (_distiller_common.open_bgzip(input, mode='r') 
+                if input else sys.stdin)
+    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+                 if output else sys.stdout)
 
     streaming_classify(instream, outstream, min_mapq, max_molecule_size,
                        drop_readid, drop_sam)
@@ -460,8 +463,8 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
     header, body_stream = _distiller_common.get_header(instream, comment_char='')
     header = _distiller_common.append_pg_to_sam_header(
         header,
-        {'ID': 'sam_to_pairsam',
-         'PN': 'sam_to_pairsam',
+        {'ID': UTIL_NAME,
+         'PN': UTIL_NAME,
          'VN': _distiller_common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          },
@@ -511,4 +514,4 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
             prev_read_id = read_id
 
 if __name__ == '__main__':
-    main()
+    sam_to_pairsam()

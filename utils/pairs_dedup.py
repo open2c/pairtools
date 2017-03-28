@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8  -*-
-import argparse
-import warnings
 import sys
 import ast 
+import warnings
+
+import click
 
 import numpy as np
 import pyximport; pyximport.install()
@@ -19,116 +20,108 @@ UTIL_NAME = 'pairs_dedup'
 MAX_LEN = 10000 
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        'Remove PCR duplicates from an upper-triangular flipped sorted '
-        'pairs/pairsam file. Allow for a +/-N bp mismatch at each side of '
-        'duplicated molecules.' )
-    parser.add_argument(
-        "--max-mismatch",
-        type=int, 
-        default=3,
-        help='Pairs with both sides mapped within this distance (bp) from each '
-             'other are considered duplicates.')
-    parser.add_argument(
-        '--sum',
-        dest='METHOD', 
-        action='store_const',
-        const="sum", 
-        default="max",  
-        help='define the mismatch as the sum of the mismatches of the genomic '
-            'locations of the both sides of the two compared molecules '
-            '(default: use max of the two mismatches)')
-    parser.add_argument(
-        '--input',
-        type=str, 
-        default="",
-        help='input triu-flipped sorted pairs or pairsam file.'
-            ' If the path ends with .gz, the input is gzip-decompressed.'
-            ' By default, the input is read from stdin.')
-    parser.add_argument(
-        "--output", 
-        type=str, 
-        default="", 
-        help='output file for pairs after duplicate removal.'
-            ' If the path ends with .gz, the output is bgzip-compressed.'
-            ' By default, the output is printed into stdout.')
-    parser.add_argument(
-        "--output-dups",
-        type=str, 
-        default="", 
-        help='output file for duplicates. '
-            ' If the path ends with .gz, the output is bgzip-compressed.'
-            ' By default, duplicates are dropped.'
-            )
-    parser.add_argument(
-        "--sep",
-        type=str, 
-        default=r"\v", 
-        help=r"Separator (\t, \v, etc. characters are "
-              "supported, pass them in quotes) ")
-    parser.add_argument(
-        "--comment-char", 
-        type=str, 
-        default="#", 
-        help="The first character of comment lines")
-    parser.add_argument(
-        "--send-header-to", 
-        type=str, 
-        default="both", 
-        choices=['dups', 'dedup', 'both', 'none'], 
-        help="Which of the outputs should receive header and comment lines")
-    parser.add_argument(
-        "--c1", 
-        type=int, 
-        default=_distiller_common.COL_C1,  
-        help='Chrom 1 column; default {}'.format(_distiller_common.COL_C1))
-    parser.add_argument(
-        "--c2", 
-        type=int, 
-        default=_distiller_common.COL_C2,  
-        help='Chrom 2 column; default {}'.format(_distiller_common.COL_C2))
-    parser.add_argument(
-        "--p1", 
-        type=int, 
-        default=_distiller_common.COL_P1,  
-        help='Position 1 column; default {}'.format(_distiller_common.COL_P1))
-    parser.add_argument(
-        "--p2", 
-        type=int, 
-        default=_distiller_common.COL_P2,  
-        help='Position 2 column; default {}'.format(_distiller_common.COL_P2))
-    parser.add_argument(
-        "--s1", 
-        type=int, 
-        default=_distiller_common.COL_S1,  
-        help='Strand 1 column; default {}'.format(_distiller_common.COL_S1))
-    parser.add_argument(
-        "--s2", 
-        type=int, 
-        default=_distiller_common.COL_S2,  
-        help='Strand 2 column; default {}'.format(_distiller_common.COL_S2))
-    args = vars(parser.parse_args())
+@click.command()
+@click.option(
+    '--input',
+    type=str, 
+    default="",
+    help='input triu-flipped sorted pairs or pairsam file.'
+        ' If the path ends with .gz, the input is gzip-decompressed.'
+        ' By default, the input is read from stdin.')
+@click.option(
+    "--output", 
+    type=str, 
+    default="", 
+    help='output file for pairs after duplicate removal.'
+        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' By default, the output is printed into stdout.')
+@click.option(
+    "--output-dups",
+    type=str, 
+    default="", 
+    help='output file for duplicates. '
+        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' By default, duplicates are dropped.'
+        )
+@click.option(
+    "--max-mismatch",
+    type=int, 
+    default=3,
+    help='Pairs with both sides mapped within this distance (bp) from each '
+         'other are considered duplicates.')
+@click.option(
+    '--method',
+    type=click.Choice(['sum', 'max']),
+    default="max",  
+    help='define the mismatch as either the max or the sum of the mismatches of'
+        'the genomic locations of the both sides of the two compared molecules',
+    show_default=True,
+        )
+@click.option(
+    "--sep",
+    type=str, 
+    default=r"\v", 
+    help=r"Separator (\t, \v, etc. characters are "
+          "supported, pass them in quotes) ")
+@click.option(
+    "--comment-char", 
+    type=str, 
+    default="#", 
+    help="The first character of comment lines")
+@click.option(
+    "--send-header-to", 
+    type=click.Choice(['dups', 'dedup', 'both', 'none']),
+    default="both", 
+    help="Which of the outputs should receive header and comment lines")
+@click.option(
+    "--c1", 
+    type=int, 
+    default=_distiller_common.COL_C1,  
+    help='Chrom 1 column; default {}'.format(_distiller_common.COL_C1))
+@click.option(
+    "--c2", 
+    type=int, 
+    default=_distiller_common.COL_C2,  
+    help='Chrom 2 column; default {}'.format(_distiller_common.COL_C2))
+@click.option(
+    "--p1", 
+    type=int, 
+    default=_distiller_common.COL_P1,  
+    help='Position 1 column; default {}'.format(_distiller_common.COL_P1))
+@click.option(
+    "--p2", 
+    type=int, 
+    default=_distiller_common.COL_P2,  
+    help='Position 2 column; default {}'.format(_distiller_common.COL_P2))
+@click.option(
+    "--s1", 
+    type=int, 
+    default=_distiller_common.COL_S1,  
+    help='Strand 1 column; default {}'.format(_distiller_common.COL_S1))
+@click.option(
+    "--s2", 
+    type=int, 
+    default=_distiller_common.COL_S2,  
+    help='Strand 2 column; default {}'.format(_distiller_common.COL_S2))
 
-    sep = ast.literal_eval('"""' + args['sep'] + '"""')
-    method = args['METHOD']
-    max_mismatch = args['max_mismatch']
-    comment_char = args['comment_char']
-    send_header_to_dedup = args['send_header_to'] in ['both', 'dedup']
-    send_header_to_dup = args['send_header_to'] in ['both', 'dups']
-    c1ind = args['c1']
-    c2ind = args['c2']
-    p1ind = args['p1']
-    p2ind = args['p2']
-    s1ind = args['s1']
-    s2ind = args['s2']
+def dedup(input, output, output_dups, max_mismatch, method, 
+    sep, comment_char, send_header_to,
+    c1, c2, p1, p2, s1, s2
+    ):
+    '''Remove PCR duplicates from an upper-triangular flipped sorted 
+    pairs/pairsam file. Allow for a +/-N bp mismatch at each side of 
+    duplicated molecules.'''
 
-    instream = (_distiller_common.open_bgzip(args['input'], mode='r') 
-                if args['input'] else sys.stdin)
-    outstream = (_distiller_common.open_bgzip(args['output'], mode='w') 
-                 if args['output'] else sys.stdout)
-    outstream_dups = (_distiller_common.open_bgzip(args['output_dups'], mode='w') 
-                      if args['output_dups'] else None)
+    sep = ast.literal_eval('"""' + sep + '"""')
+    send_header_to_dedup = send_header_to in ['both', 'dedup']
+    send_header_to_dup = send_header_to in ['both', 'dups']
+
+    instream = (_distiller_common.open_bgzip(input, mode='r') 
+                if input else sys.stdin)
+    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+                 if output else sys.stdout)
+    outstream_dups = (_distiller_common.open_bgzip(output_dups, mode='w') 
+                      if output_dups else None)
 
     header, pairsam_body_stream = _distiller_common.get_header(instream)
     header = _distiller_common.append_pg_to_sam_header(
@@ -141,12 +134,12 @@ def main():
 
     if send_header_to_dedup:
         outstream.writelines(header)
-    if send_header_to_dup:
+    if send_header_to_dup and outstream_dups:
         outstream_dups.writelines(header)
 
     streaming_dedup(
         method, max_mismatch, sep, 
-        c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
+        c1, c2, p1, p2, s1, s2,
         pairsam_body_stream, outstream, outstream_dups)
 
     if hasattr(instream, 'close'):
@@ -234,4 +227,4 @@ def streaming_dedup(
 
 
 if __name__ == '__main__':
-    main()
+    dedup()
