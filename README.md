@@ -1,5 +1,7 @@
 # distiller
 
+[![Build Status](https://travis-ci.org/mirnylab/distiller.svg?branch=master)](https://travis-ci.org/mirnylab/distiller)
+
 ## map Hi-C reads with distiller
 
 distiller is a simple and fast command-line framework to process sequencing
