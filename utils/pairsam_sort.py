@@ -48,9 +48,7 @@ def sort(input, output):
          })
 
     outstream.writelines(header)
- 
-    if hasattr(outstream, 'close'):
-        outstream.close()
+    outstream.flush()
 
     command = r'''
         /bin/bash -c 'sort 
@@ -62,18 +60,17 @@ def sort(input, output):
                 _distiller_common.COL_P1+1, 
                 _distiller_common.COL_P2+1,
                 _distiller_common.COL_PTYPE+1,
-                )
-    if output.endswith('.gz'):
-        command += '| bgzip -c'
-    if output:
-        command += ' >> ' + output
+        )
     command += "'"
 
-    with subprocess.Popen(command, stdin=subprocess.PIPE, bufsize=-1, shell=True) as process:
+    with subprocess.Popen(
+            command, stdin=subprocess.PIPE, bufsize=-1, shell=True,
+            stdout=outstream) as process:
         stdin_wrapper = io.TextIOWrapper(process.stdin, 'utf-8')
         for line in pairsam_body_stream:
             stdin_wrapper.write(line)
         stdin_wrapper.flush()
+        process.communicate()
 
     if hasattr(instream, 'close'):
         instream.close()
