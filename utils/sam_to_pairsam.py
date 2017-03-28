@@ -303,7 +303,10 @@ def classify(sams1, sams2, min_mapq, max_molecule_size):
     if is_null_1 or is_null_2:
         if is_null_1 and is_null_2:
             pair_type = 'NN'
-        elif is_multi_1 or is_multi_2:
+        elif (
+            ((not is_null_1) and is_multi_1) 
+            or ((not is_null_2) and is_multi_2) 
+            ):
             flip_pair = is_null_2
             pair_type = 'NM'
         elif is_chimeric_1 or is_chimeric_2:
