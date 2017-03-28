@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-import numpy as np
 sys.path.append('../utils')
 import sam_to_pairsam
 
 from nose.tools import assert_raises
 
-import click
-from click.testing import CliRunner
+import subprocess
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -135,22 +133,24 @@ def test_parse_algn():
                    'clip5': 0, 
                    'read_len': 0}}
 
+
 def test_mock_sam():
-    runner = CliRunner()
     mock_sam_path = os.path.join(testdir, 'data', 'mock.sam')
-    result = runner.invoke(
-            cli=sam_to_pairsam.sam_to_pairsam, 
-            args=['--input', mock_sam_path])
+    result = subprocess.check_output(
+        ['python',
+         '../utils/sam_to_pairsam.py',
+         '--input',
+         mock_sam_path],
+        ).decode('ascii')
 
     # check if the header got transferred correctly
     sam_header = [l.strip() for l in open(mock_sam_path, 'r') if l.startswith('@')]
-    pairsam_header = [l.strip() for l in result.output.split('\n') if l.startswith('#')] 
+    pairsam_header = [l.strip() for l in result.split('\n') if l.startswith('#')] 
     for l in sam_header:
         assert any([l in l2 for l2 in pairsam_header])
 
     # check that the pairs got assigned properly
-    print(result.output)
-    for l in result.output.split('\n'):
+    for l in result.split('\n'):
         if l.startswith('#') or not l:
             continue
 
