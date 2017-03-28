@@ -453,7 +453,6 @@ def write_pairsam(
             out_file.write(pair_type)
             if i < len(sams2) -1:
                 out_file.write(_distiller_common.SAM_ENTRY_SEP)
-    out_file.write('\v')
     out_file.write('\n')
 
 
