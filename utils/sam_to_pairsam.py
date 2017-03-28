@@ -60,9 +60,9 @@ def sam_to_pairsam(
     streaming_classify(instream, outstream, min_mapq, max_molecule_size,
                        drop_readid, drop_sam)
 
-    if hasattr(instream, 'close'):
+    if input:
         instream.close()
-    if hasattr(outstream, 'close'):
+    if output:
         outstream.close()
 
 
@@ -91,7 +91,7 @@ def parse_cigar(cigar):
                     read_len += cur_num
                 elif char == 'D':
                     algn_ref_span += cur_num
-                elif char == 'S':
+                elif char == 'S' or char == 'H':
                     read_len += cur_num
                     if matched_bp == 0:
                         clip5 = cur_num
