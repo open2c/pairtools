@@ -6,7 +6,6 @@ import click
 from nose.tools import assert_raises
 
 
-
 testdir = os.path.dirname(os.path.realpath(__file__))
 
 def test_mock_pairsam():
@@ -24,9 +23,9 @@ def test_mock_pairsam():
     for l in pairsam_header:
         assert any([l in l2 for l2 in pairsam_header])
         
-    # Check that the only modified string is a @PG record of a SAM header
+    # Check that the only added string is a @PG record of a SAM header
     for l in output_header:
-        if not any([l in l2 for l2 in output_header]):
+        if not any([l in l2 for l2 in pairsam_header]):
             assert l.startswith('#@PG')
 
     pairsam_body = [l.strip() for l in open(mock_pairsam_path, 'r') 
@@ -35,8 +34,6 @@ def test_mock_pairsam():
                     if not l.startswith('#') and l.strip()]
 
     # check that all pairsam entries survived sorting:
-    print(pairsam_body)
-    print(output_body)
     assert len(pairsam_body) == len(output_body)
 
     # check the sorting order of the output:
