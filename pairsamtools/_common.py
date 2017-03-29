@@ -14,7 +14,11 @@ COL_PTYPE = 7
 COL_SAM1 = 8
 COL_SAM2 = 9
 
-SAM_ENTRY_SEP = '\tNEXT_SAM\t'
+PAIRSAM_SEP = '\t'
+PAIRSAM_SEP_ESCAPE = r'\t'
+SAM_SEP = '\031'
+SAM_SEP_ESCAPE = r'\031'
+INTER_SAM_SEP = '\031NEXT_SAM\031'
 
 def open_sam_or_bam(path, mode):
     '''Opens a file as a bam file is `path` ends with .bam, otherwise 

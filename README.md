@@ -100,7 +100,7 @@ A pairsam starts with an arbitrary number of header lines, each starting with
 a "#" character.
 
 The body of a pairsam contains a table with a variable number of fields separated by 
-a "\v" character (a vertical tab):
+a "\t" character (a horizontal tab):
 
 | index | name      | description |
 |-------|-----------|-------------|
@@ -128,6 +128,10 @@ by pair_type.
 
 Null/ambiguous/chimeric alignments are stored as chrom='!', pos=0, strand='-'.
 
+The columns of the sam records in lines 9 and 10 are separated by a UNIT 
+SEPARATOR character (\031) instead of the horizontal tab character, such that
+it does not affect the columns of the pairsam file.
+
 Notes of the motivation behind some of the technical decisions in the definition
 of pairsam:
 - while the information in columns 1-8 may appear redundant to sam alignments in
@@ -138,11 +142,6 @@ several operations like filtering and tagging of unmapped/ambiguous/duplicated
 Hi-C molecules.
 - pair flipping and sorting is essential for the processing steps like PCR
 duplicate removal and aggregation.
-- the vertical tab is used as a field separator because the horizontal tab is 
-already used by sam entries. All printable characters can apprear in the
-PHRED field of sam entries and thus cannot be used as a separator; out of all 
-control characters, the vertical tab is the only remaining unused character 
-with a common escape notation.
 - the exclamation mark "!" is used as a character for unmapped chromosomes
 because it has a lexicographic sorting order lower than that of "0", good 
 interpretability and no other reserved technical roles.
