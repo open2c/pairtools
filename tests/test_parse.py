@@ -8,7 +8,7 @@ import subprocess
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
-from pairsamtools import sam_to_pairsam, parse_algn, parse_cigar
+from pairsamtools import parse, parse_algn, parse_cigar
 
 def test_python_version():
     assert (sys.version_info[0] == 3), 'Use Python 3!'
@@ -141,7 +141,7 @@ def test_mock_sam():
             ['python',
              '-m',
              'pairsamtools',
-             'sam_to_pairsam',
+             'parse',
              '--input',
              mock_sam_path],
             ).decode('ascii')
