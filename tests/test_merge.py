@@ -16,44 +16,54 @@ mock_sorted_pairsam_path_1 = os.path.join(tmpdir_name, '1.pairsam')
 mock_sorted_pairsam_path_2 = os.path.join(tmpdir_name, '2.pairsam')
 
 def setup_func():
-    subprocess.check_output(
-        ['python',
-         '-m',
-         'pairsamtools',
-         'sort',
-         '--input',
-         mock_pairsam_path_1,
-         '--output',
-         mock_sorted_pairsam_path_1
-         ],
-        )
+    try:
+        subprocess.check_output(
+            ['python',
+             '-m',
+             'pairsamtools',
+             'sort',
+             '--input',
+             mock_pairsam_path_1,
+             '--output',
+             mock_sorted_pairsam_path_1
+             ],
+            )
 
-    subprocess.check_output(
-        ['python',
-         '-m',
-         'pairsamtools',
-         'sort',
-         '--input',
-         mock_pairsam_path_2,
-         '--output',
-         mock_sorted_pairsam_path_2
-         ],
-        )
+        subprocess.check_output(
+            ['python',
+             '-m',
+             'pairsamtools',
+             'sort',
+             '--input',
+             mock_pairsam_path_2,
+             '--output',
+             mock_sorted_pairsam_path_2
+             ],
+            )
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
 
 def teardown_func():
     tmpdir.cleanup()
 
 @with_setup(setup_func, teardown_func)
 def test_mock_pairsam():
-    result = subprocess.check_output(
-        ['python',
-         '-m',
-         'pairsamtools',
-         'merge',
-         mock_sorted_pairsam_path_1,
-         mock_sorted_pairsam_path_2
-         ],
-        ).decode('ascii')
+    try:
+        result = subprocess.check_output(
+            ['python',
+             '-m',
+             'pairsamtools',
+             'merge',
+             mock_sorted_pairsam_path_1,
+             mock_sorted_pairsam_path_2
+             ],
+            ).decode('ascii')
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
 
     # check if the two headers got transferred correctly (PG's do get modified)
     pairsam_header_1 = [l.strip() for l in open(mock_sorted_pairsam_path_1, 'r') if l.startswith('#')]

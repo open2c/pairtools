@@ -9,14 +9,19 @@ testdir = os.path.dirname(os.path.realpath(__file__))
 
 def test_mock_pairsam():
     mock_pairsam_path = os.path.join(testdir, 'data', 'mock.pairsam')
-    result = subprocess.check_output(
-        ['python',
-         '-m',
-         'pairsamtools',
-         'sort',
-         '--input',
-         mock_pairsam_path],
-        ).decode('ascii')
+    try:
+        result = subprocess.check_output(
+            ['python',
+             '-m',
+             'pairsamtools',
+             'sort',
+             '--input',
+             mock_pairsam_path],
+            ).decode('ascii')
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
 
     # check if the header got transferred correctly
     pairsam_header = [l.strip() for l in open(mock_pairsam_path, 'r') if l.startswith('#')]

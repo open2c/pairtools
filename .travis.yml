@@ -24,6 +24,7 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION setuptools pip cython numpy nose pbgzip
   - source activate test-environment
   - pip install click
+  - python setup.py build_ext -i
 
 script:
   nosetests

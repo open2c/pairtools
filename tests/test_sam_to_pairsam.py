@@ -136,14 +136,19 @@ def test_parse_algn():
 
 def test_mock_sam():
     mock_sam_path = os.path.join(testdir, 'data', 'mock.sam')
-    result = subprocess.check_output(
-        ['python',
-         '-m',
-         'pairsamtools',
-         'sam_to_pairsam',
-         '--input',
-         mock_sam_path],
-        ).decode('ascii')
+    try:
+        result = subprocess.check_output(
+            ['python',
+             '-m',
+             'pairsamtools',
+             'sam_to_pairsam',
+             '--input',
+             mock_sam_path],
+            ).decode('ascii')
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
 
     # check if the header got transferred correctly
     sam_header = [l.strip() for l in open(mock_sam_path, 'r') if l.startswith('@')]

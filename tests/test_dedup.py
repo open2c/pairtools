@@ -16,21 +16,26 @@ dups_path = os.path.join(tmpdir_name, 'dups.pairsam')
 
 max_mismatch = 3
 def setup_func():
-    subprocess.check_output(
-        ['python',
-         '-m',
-         'pairsamtools',
-         'dedup',
-         '--input',
-         mock_pairsam_path,
-         '--output',
-         dedup_path,
-         '--output-dups',
-         dups_path,
-         '--max-mismatch',
-         str(max_mismatch)
-         ],
-        )
+    try:
+        subprocess.check_output(
+            ['python',
+             '-m',
+             'pairsamtools',
+             'dedup',
+             '--input',
+             mock_pairsam_path,
+             '--output',
+             dedup_path,
+             '--output-dups',
+             dups_path,
+             '--max-mismatch',
+             str(max_mismatch)
+             ],
+            )
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
 
 def teardown_func():
     tmpdir.cleanup()
