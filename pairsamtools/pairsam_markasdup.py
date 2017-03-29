@@ -4,31 +4,31 @@ import sys
 import pipes
 import click
 
-from . import _common, cli
+from . import _common, cli, __version__
 
 UTIL_NAME = 'pairsam_markasdup'
 
 @cli.command()
+@click.argument(
+    'pairsam_path', 
+    type=str,
+    required=False)
 @click.option(
-    '--input',
-    type=str, 
-    default="",
-    help='input pairsam file.'
-        ' If the path ends with .gz, the input is gzip-decompressed.'
-        ' By default, the input is read from stdin.')
-
-@click.option(
-    "--output", 
+    "-o", "--output", 
     type=str, 
     default="", 
-    help='output pairsam file.'
+    help='output .pairsam file.'
         ' If the path ends with .gz, the output is bgzip-compressed.'
         ' By default, the output is printed into stdout.')
 
-def markasdup(input, output):
-    '''Tags every line of a pairsam with a duplicate tag'''
-    instream = (_common.open_bgzip(input, mode='r') 
-                if input else sys.stdin)
+def markasdup(pairsam_path, output):
+    '''tag all pairsam entries with a duplicate tag.
+
+    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
+    gzip-decompressed. By default, the input is read from stdin.
+    '''
+    instream = (_common.open_bgzip(pairsam_path, mode='r') 
+                if pairsam_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
  
@@ -37,7 +37,7 @@ def markasdup(input, output):
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _common.DISTILLER_VERSION,
+         'VN': __version__,
          'CL': ' '.join(sys.argv)
          })
 
@@ -59,9 +59,9 @@ def markasdup(input, output):
         outstream.write('\v'.join(cols))
         outstream.write('\n')
 
-    if hasattr(instream, 'close'):
+    if instream != sys.stdin:
         instream.close()
-    if hasattr(outstream, 'close'):
+    if outstream != sys.stdout:
         outstream.close()
 
 def mark_sam_as_dup(sam):

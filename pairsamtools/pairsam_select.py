@@ -1,7 +1,7 @@
 import sys
 import click
 
-from . import _common, cli
+from . import _common, cli, __version__
 
 UTIL_NAME = 'pairsam_select'
 
@@ -17,6 +17,10 @@ UTIL_NAME = 'pairsam_select'
     metavar='VALUE',
 )
 
+@click.argument(
+    'pairsam_path', 
+    type=str,
+    required=False)
 @click.option(
     '--match-method', 
     type=click.Choice(['comma_list', 'single_value', 'wildcard', 'regexp']),
@@ -27,16 +31,9 @@ UTIL_NAME = 'pairsam_select'
     show_default=True,
 )
 
-@click.option(
-    '--input',
-    type=str, 
-    default="",
-    help='input pairsam file.'
-        ' If the path ends with .gz, the input is gzip-decompressed.'
-        ' By default, the input is read from stdin.')
 
 @click.option(
-    "--output", 
+    '-o', "--output", 
     type=str, 
     default="", 
     help='output file.'
@@ -59,20 +56,23 @@ UTIL_NAME = 'pairsam_select'
     show_default=True)
 
 def select(
-    field, value, match_method,input,output, output_rest, send_comments_to
+    field, value, pairsam_path, match_method,output, output_rest, send_comments_to
     ):
-    '''Read a pairsam file and print only the pairs of a certain type(s).
+    '''select pairsam entries.
 
-    FIELD : The field to filter pairs by. Possible choices are: pair_type,
-    chrom1,chrom2,read_id.
+    FIELD : The field to select pairs by. Possible choices are: pair_type,
+    chrom1, chrom2, read_id.
 
     VALUE : Select reads with FIELD matching VALUE. Depending on 
     --match-method, this argument can be interpreted as a single value, 
     a comma separated list, a wildcard or a regexp.
+
+    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
+    gzip-decompressed. By default, the input is read from stdin.
     '''
     
-    instream = (_common.open_bgzip(input, mode='r') 
-                if input else sys.stdin)
+    instream = (_common.open_bgzip(pairsam_path, mode='r') 
+                if pairsam_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
     outstream_rest = (_common.open_bgzip(output_rest, mode='w') 
@@ -107,7 +107,7 @@ def select(
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _common.DISTILLER_VERSION,
+         'VN': __version__,
          'CL': ' '.join(sys.argv)
          })
 
@@ -122,10 +122,12 @@ def select(
         elif outstream_rest:
             outstream_rest.write(line)
 
-    if hasattr(instream, 'close'):
+    if instream != sys.stdin:
         instream.close()
-    if hasattr(outstream, 'close'):
+
+    if outstream != sys.stdout:
         outstream.close()
+
     if outstream_rest:
         outstream_rest.close()
 
