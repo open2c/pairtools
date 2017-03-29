@@ -8,7 +8,7 @@ import click
 
 import numpy as np
 
-from . import _dedup, _common, cli
+from . import _dedup, _common, cli, __version__
 
 
 UTIL_NAME = 'pairsam_dedup'
@@ -19,15 +19,12 @@ MAX_LEN = 10000
 
 
 @cli.command()
+@click.argument(
+    'pairsam_path', 
+    type=str,
+    required=False)
 @click.option(
-    '--input',
-    type=str, 
-    default="",
-    help='input triu-flipped sorted pairs or pairsam file.'
-        ' If the path ends with .gz, the input is gzip-decompressed.'
-        ' By default, the input is read from stdin.')
-@click.option(
-    "--output", 
+    "-o", "--output", 
     type=str, 
     default="", 
     help='output file for pairs after duplicate removal.'
@@ -100,20 +97,27 @@ MAX_LEN = 10000
     default=_common.COL_S2,  
     help='Strand 2 column; default {}'.format(_common.COL_S2))
 
-def dedup(input, output, output_dups, max_mismatch, method, 
+def dedup(pairsam_path, output, output_dups, max_mismatch, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2
     ):
-    '''Remove PCR duplicates from an upper-triangular flipped sorted 
-    pairs/pairsam file. Allow for a +/-N bp mismatch at each side of 
-    duplicated molecules.'''
+    '''find and remove PCR duplicates.
+
+    Find PCR duplicates in an upper-triangular flipped sorted pairs/pairsam 
+    file. Allow for a +/-N bp mismatch at each side of duplicated molecules.
+
+    PAIRSAM_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the
+    path ends with .gz, the input is gzip-decompressed. By default, the input 
+    is read from stdin.
+    '''
+
 
     sep = ast.literal_eval('"""' + sep + '"""')
     send_header_to_dedup = send_header_to in ['both', 'dedup']
     send_header_to_dup = send_header_to in ['both', 'dups']
 
-    instream = (_common.open_bgzip(input, mode='r') 
-                if input else sys.stdin)
+    instream = (_common.open_bgzip(pairsam_path, mode='r') 
+                if pairsam_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
     outstream_dups = (_common.open_bgzip(output_dups, mode='w') 
@@ -124,7 +128,7 @@ def dedup(input, output, output_dups, max_mismatch, method,
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _common.DISTILLER_VERSION,
+         'VN': __version__,
          'CL': ' '.join(sys.argv)
          })
 
@@ -138,10 +142,12 @@ def dedup(input, output, output_dups, max_mismatch, method,
         c1, c2, p1, p2, s1, s2,
         pairsam_body_stream, outstream, outstream_dups)
 
-    if hasattr(instream, 'close'):
+    if instream != sys.stdin:
         instream.close()
-    if hasattr(outstream, 'close'):
+
+    if outstream != sys.stdout:
         outstream.close()
+
     if outstream_dups:
         outstream_dups.close()
 
