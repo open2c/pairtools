@@ -57,8 +57,8 @@ def test_mock_pairsam():
     assert len(output_body) + len(output_dups_body) == len(pairsam_body)
 
 
-    dedup_pairs = [l.split('\v') for l in output_body]
-    dup_pairs   = [l.split('\v') for l in output_dups_body]
+    dedup_pairs = [l.split('\t') for l in output_body]
+    dup_pairs   = [l.split('\t') for l in output_dups_body]
 
     def pairs_overlap(pair1, pair2, max_mismatch):
         overlap = (

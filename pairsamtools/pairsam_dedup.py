@@ -53,7 +53,7 @@ MAX_LEN = 10000
 @click.option(
     "--sep",
     type=str, 
-    default=r"\v", 
+    default=_common.PAIRSAM_SEP_ESCAPE, 
     help=r"Separator (\t, \v, etc. characters are "
           "supported, pass them in quotes) ")
 @click.option(
