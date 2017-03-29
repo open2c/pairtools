@@ -26,7 +26,7 @@ CONTEXT_SETTINGS = {
 def cli():
     pass
 
-from .pairs_dedup import dedup
+from .pairsam_dedup import dedup
 from .pairsam_sort import sort
 from .pairsam_merge import merge
 from .pairsam_select import select

@@ -11,7 +11,7 @@ import numpy as np
 from . import _dedup, _common, cli
 
 
-UTIL_NAME = 'pairs_dedup'
+UTIL_NAME = 'pairsam_dedup'
 
 # you don't need to load more than 10k lines at a time b/c you get out of the 
 # CPU cache, so this parameter is not adjustable
