@@ -13,7 +13,6 @@ CLI tools to process mapped Hi-C data
 
 __version__ = '0.0.1-dev'
 
-from . import __version__
 
 import click
 
@@ -29,6 +28,7 @@ def cli():
 from .pairsam_dedup import dedup
 from .pairsam_sort import sort
 from .pairsam_merge import merge
+from .pairsam_markasdup import markasdup
 from .pairsam_select import select
 from .pairsam_split import split
 from .pairsam_parse import parse, parse_cigar, parse_algn
