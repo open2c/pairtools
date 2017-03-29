@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 if [ $# -le 3 ] ; then
-    echo "Usage: bash distiller_pipeline BWA_INDEX FASTQ_1 FASTQ_2 OUTPUT_PREFIX"
+    echo "Usage: bash example_pipeline.sh BWA_INDEX FASTQ_1 FASTQ_2 OUTPUT_PREFIX"
     echo ""
     echo "A example of a bash pipeline to align the sequencing data from a "
     echo "single Hi-C experiment."
@@ -37,9 +37,6 @@ NODUPS_PAIRS_PATH=${OUTPREFIX}.nodups.pairs.gz
 DUPS_SAM_PATH=${OUTPREFIX}.dups.bam
 DUPS_PAIRS_PATH=${OUTPREFIX}.dups.pairs.gz
 
-DISTILLER_DIR="$(dirname ${BASH_SOURCE[0]})"
-UTILS_DIR=${DISTILLER_DIR}/utils
-
 bwa mem -SP -t "${N_THREADS}" "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     # Classify Hi-C molecules as unmapped/single-sided/multimapped/chimeric/etc
     # and output one line per read, containing the following, separated by \\v:
@@ -47,26 +44,26 @@ bwa mem -SP -t "${N_THREADS}" "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     #  * read id
     #  * type of a Hi-C molecule
     #  * corresponding sam entries
-    python ${UTILS_DIR}/sam_to_pairsam.py 
+    pairsamtools parse
 } | {
     # Block-sort pairs together with SAM entries
-    python ${UTILS_DIR}/pairsam_sort.py
+    pairsamtools sort
 } | {
     # Set unmapped and ambiguous reads aside
-    python ${UTILS_DIR}/pairsam_select.py pair_type CX,LL \
-        --output-rest >( python ${UTILS_DIR}/pairsam_split.py \
+    pairsamtools select pair_type CX,LL \
+        --output-rest >( pairsamtools split \
             --output-pairs ${UNMAPPED_PAIRS_PATH} \
             --output-sam ${UNMAPPED_SAM_PATH} ) 
 } | {
     # Remove duplicates
-    python ${UTILS_DIR}/pairs_dedup.py \
+    pairsamtools dedup \
         --output \
-            >( python ${UTILS_DIR}/pairsam_split.py \
+            >( pairsamtools split \
                 --output-pairs ${NODUPS_PAIRS_PATH} \
                 --output-sam ${NODUPS_SAM_PATH} ) \
         --output-dups \
-            >( python ${UTILS_DIR}/pairsam_markasdup.py \
-                | python ${UTILS_DIR}/pairsam_split.py \
+            >( pairsamtools markasdup \
+                | pairsamtools split \
                     --output-pairs ${DUPS_PAIRS_PATH} \
                     --output-sam ${DUPS_SAM_PATH} )
 }
