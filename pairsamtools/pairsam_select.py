@@ -1,11 +1,11 @@
 import sys
 import click
 
-import _distiller_common
+from . import _common, cli
 
 UTIL_NAME = 'pairsam_select'
 
-@click.command()
+@cli.command()
 @click.argument(
     'field',
     metavar='FIELD',
@@ -71,18 +71,18 @@ def select(
     a comma separated list, a wildcard or a regexp.
     '''
     
-    instream = (_distiller_common.open_bgzip(input, mode='r') 
+    instream = (_common.open_bgzip(input, mode='r') 
                 if input else sys.stdin)
-    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+    outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
-    outstream_rest = (_distiller_common.open_bgzip(output_rest, mode='w') 
+    outstream_rest = (_common.open_bgzip(output_rest, mode='w') 
                       if output_rest else None)
 
     colidx = {
-        'chrom1':_distiller_common.COL_C1,
-        'chrom2':_distiller_common.COL_C2,
-        'read_id':_distiller_common.COL_READID,
-        'pair_type':_distiller_common.COL_PTYPE,
+        'chrom1':_common.COL_C1,
+        'chrom2':_common.COL_C2,
+        'read_id':_common.COL_READID,
+        'pair_type':_common.COL_PTYPE,
         }[field]
 
     if match_method == 'single_value':
@@ -102,12 +102,12 @@ def select(
     else:
         raise Exception('An unknown matching method: {}'.format(match_method))
 
-    header, pairsam_body_stream = _distiller_common.get_header(instream)
-    header = _distiller_common.append_pg_to_sam_header(
+    header, pairsam_body_stream = _common.get_header(instream)
+    header = _common.append_pg_to_sam_header(
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _distiller_common.DISTILLER_VERSION,
+         'VN': _common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 

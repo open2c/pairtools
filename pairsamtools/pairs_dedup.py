@@ -7,20 +7,18 @@ import warnings
 import click
 
 import numpy as np
-import pyximport; pyximport.install()
-from _dedup import OnlineDuplicateDetector
 
-import _distiller_common
+from . import _dedup, _common, cli
+
 
 UTIL_NAME = 'pairs_dedup'
-
 
 # you don't need to load more than 10k lines at a time b/c you get out of the 
 # CPU cache, so this parameter is not adjustable
 MAX_LEN = 10000 
 
 
-@click.command()
+@cli.command()
 @click.option(
     '--input',
     type=str, 
@@ -74,33 +72,33 @@ MAX_LEN = 10000
 @click.option(
     "--c1", 
     type=int, 
-    default=_distiller_common.COL_C1,  
-    help='Chrom 1 column; default {}'.format(_distiller_common.COL_C1))
+    default=_common.COL_C1,  
+    help='Chrom 1 column; default {}'.format(_common.COL_C1))
 @click.option(
     "--c2", 
     type=int, 
-    default=_distiller_common.COL_C2,  
-    help='Chrom 2 column; default {}'.format(_distiller_common.COL_C2))
+    default=_common.COL_C2,  
+    help='Chrom 2 column; default {}'.format(_common.COL_C2))
 @click.option(
     "--p1", 
     type=int, 
-    default=_distiller_common.COL_P1,  
-    help='Position 1 column; default {}'.format(_distiller_common.COL_P1))
+    default=_common.COL_P1,  
+    help='Position 1 column; default {}'.format(_common.COL_P1))
 @click.option(
     "--p2", 
     type=int, 
-    default=_distiller_common.COL_P2,  
-    help='Position 2 column; default {}'.format(_distiller_common.COL_P2))
+    default=_common.COL_P2,  
+    help='Position 2 column; default {}'.format(_common.COL_P2))
 @click.option(
     "--s1", 
     type=int, 
-    default=_distiller_common.COL_S1,  
-    help='Strand 1 column; default {}'.format(_distiller_common.COL_S1))
+    default=_common.COL_S1,  
+    help='Strand 1 column; default {}'.format(_common.COL_S1))
 @click.option(
     "--s2", 
     type=int, 
-    default=_distiller_common.COL_S2,  
-    help='Strand 2 column; default {}'.format(_distiller_common.COL_S2))
+    default=_common.COL_S2,  
+    help='Strand 2 column; default {}'.format(_common.COL_S2))
 
 def dedup(input, output, output_dups, max_mismatch, method, 
     sep, comment_char, send_header_to,
@@ -114,19 +112,19 @@ def dedup(input, output, output_dups, max_mismatch, method,
     send_header_to_dedup = send_header_to in ['both', 'dedup']
     send_header_to_dup = send_header_to in ['both', 'dups']
 
-    instream = (_distiller_common.open_bgzip(input, mode='r') 
+    instream = (_common.open_bgzip(input, mode='r') 
                 if input else sys.stdin)
-    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+    outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
-    outstream_dups = (_distiller_common.open_bgzip(output_dups, mode='w') 
+    outstream_dups = (_common.open_bgzip(output_dups, mode='w') 
                       if output_dups else None)
 
-    header, pairsam_body_stream = _distiller_common.get_header(instream)
-    header = _distiller_common.append_pg_to_sam_header(
+    header, pairsam_body_stream = _common.get_header(instream)
+    header = _common.append_pg_to_sam_header(
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _distiller_common.DISTILLER_VERSION,
+         'VN': _common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 
@@ -166,7 +164,7 @@ def streaming_dedup(
 
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
 
-    dd = OnlineDuplicateDetector(method, max_mismatch, returnData=False)
+    dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False)
 
     c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []
     lines = []

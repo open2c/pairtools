@@ -4,11 +4,11 @@ import glob
 import subprocess
 import click
 
-import _distiller_common
+from . import _common, cli
 
 UTIL_NAME = 'pairsam_merge'
 
-@click.command()
+@cli.command()
 @click.argument(
     'infile', 
     metavar='INFILE',
@@ -35,17 +35,17 @@ def merge(infile,output):
     
     """
 
-    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+    outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
     paths = sum([glob.glob(mask) for mask in infile], [])
     merged_header = form_merged_header(paths)
 
-    merged_header = _distiller_common.append_pg_to_sam_header(
+    merged_header = _common.append_pg_to_sam_header(
         merged_header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _distiller_common.DISTILLER_VERSION,
+         'VN': _common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 
@@ -56,11 +56,11 @@ def merge(infile,output):
         /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
         --merge --field-separator=$'\''\v'\'' 
         '''.replace('\n',' ').format(
-                _distiller_common.COL_C1+1, 
-                _distiller_common.COL_C2+1, 
-                _distiller_common.COL_P1+1, 
-                _distiller_common.COL_P2+1,
-                _distiller_common.COL_PTYPE+1,
+                _common.COL_C1+1, 
+                _common.COL_C2+1, 
+                _common.COL_P1+1, 
+                _common.COL_P2+1,
+                _common.COL_PTYPE+1,
                 )
     for path in paths:
         if path.endswith('.gz'):
@@ -75,7 +75,7 @@ def form_merged_header(paths):
     headers = []
     for path in paths:
         header = []
-        f = _distiller_common.open_bgzip(path, mode='r')
+        f = _common.open_bgzip(path, mode='r')
         for line in f.readlines():
             if line and not line.isspace():
                 if line.strip().startswith('#'):

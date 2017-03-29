@@ -5,11 +5,11 @@ import sys
 import click
 import subprocess
 
-import _distiller_common
+from . import _common, cli
 
 UTIL_NAME = 'pairsam_sort'
 
-@click.command()
+@cli.command()
 
 @click.option(
     '--input',
@@ -33,17 +33,17 @@ def sort(input, output):
     along pair_type.
     '''
 
-    instream = (_distiller_common.open_bgzip(input, mode='r') 
+    instream = (_common.open_bgzip(input, mode='r') 
                 if input else sys.stdin)
-    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+    outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
-    header, pairsam_body_stream = _distiller_common.get_header(instream)
-    header = _distiller_common.append_pg_to_sam_header(
+    header, pairsam_body_stream = _common.get_header(instream)
+    header = _common.append_pg_to_sam_header(
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _distiller_common.DISTILLER_VERSION,
+         'VN': _common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 
@@ -55,11 +55,11 @@ def sort(input, output):
         -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
         --field-separator=$'\''\v'\'' 
         '''.replace('\n',' ').format(
-                _distiller_common.COL_C1+1, 
-                _distiller_common.COL_C2+1, 
-                _distiller_common.COL_P1+1, 
-                _distiller_common.COL_P2+1,
-                _distiller_common.COL_PTYPE+1,
+                _common.COL_C1+1, 
+                _common.COL_C2+1, 
+                _common.COL_P1+1, 
+                _common.COL_P2+1,
+                _common.COL_PTYPE+1,
         )
     command += "'"
 

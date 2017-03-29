@@ -4,11 +4,11 @@ import sys
 import pipes
 import click
 
-import _distiller_common
+from . import _common, cli
 
 UTIL_NAME = 'pairsam_markasdup'
 
-@click.command()
+@cli.command()
 @click.option(
     '--input',
     type=str, 
@@ -27,17 +27,17 @@ UTIL_NAME = 'pairsam_markasdup'
 
 def markasdup(input, output):
     '''Tags every line of a pairsam with a duplicate tag'''
-    instream = (_distiller_common.open_bgzip(input, mode='r') 
+    instream = (_common.open_bgzip(input, mode='r') 
                 if input else sys.stdin)
-    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+    outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
  
-    header, pairsam_body_stream = _distiller_common.get_header(instream)
-    header = _distiller_common.append_pg_to_sam_header(
+    header, pairsam_body_stream = _common.get_header(instream)
+    header = _common.append_pg_to_sam_header(
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _distiller_common.DISTILLER_VERSION,
+         'VN': _common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          })
 
@@ -45,15 +45,15 @@ def markasdup(input, output):
 
     for line in pairsam_body_stream:
         cols = line[:-1].split('\v')
-        cols[_distiller_common.COL_PTYPE] = 'DD'
+        cols[_common.COL_PTYPE] = 'DD'
         
-        for i in (_distiller_common.COL_SAM1,
-                  _distiller_common.COL_SAM2):
+        for i in (_common.COL_SAM1,
+                  _common.COL_SAM2):
                 
             # split each sam column into sam entries, tag and assemble back
-            cols[i] = _distiller_common.SAM_ENTRY_SEP.join(
+            cols[i] = _common.SAM_ENTRY_SEP.join(
                 [mark_sam_as_dup(sam) 
-                 for sam in cols[i].split(_distiller_common.SAM_ENTRY_SEP)
+                 for sam in cols[i].split(_common.SAM_ENTRY_SEP)
                 ])
 
         outstream.write('\v'.join(cols))

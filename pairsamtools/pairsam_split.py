@@ -4,9 +4,9 @@ import sys
 import pipes
 import click
 
-import _distiller_common
+from . import _common, cli
 
-@click.command()
+@cli.command()
 @click.option(
     '--input',
     type=str, 

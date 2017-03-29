@@ -9,11 +9,11 @@ import sys
 import os
 import io
 
-import _distiller_common
+from . import _common, cli
 
 UTIL_NAME = 'pairsam_markasdup'
 
-@click.command()
+@cli.command()
 @click.option(
     '--input',
     type=str, 
@@ -52,9 +52,9 @@ def sam_to_pairsam(
     drop_readid, drop_sam):
     '''Splits .sam entries into different read pair categories'''
 
-    instream = (_distiller_common.open_bgzip(input, mode='r') 
+    instream = (_common.open_bgzip(input, mode='r') 
                 if input else sys.stdin)
-    outstream = (_distiller_common.open_bgzip(output, mode='w') 
+    outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
     streaming_classify(instream, outstream, min_mapq, max_molecule_size,
@@ -442,7 +442,7 @@ def write_pairsam(
             out_file.write('\tYt:Z:')
             out_file.write(pair_type)
             if i < len(sams1) -1:
-                out_file.write(_distiller_common.SAM_ENTRY_SEP)
+                out_file.write(_common.SAM_ENTRY_SEP)
     out_file.write('\v')
     if drop_sam:
         out_file.write('.')
@@ -452,7 +452,7 @@ def write_pairsam(
             out_file.write('\tYt:Z:')
             out_file.write(pair_type)
             if i < len(sams2) -1:
-                out_file.write(_distiller_common.SAM_ENTRY_SEP)
+                out_file.write(_common.SAM_ENTRY_SEP)
     out_file.write('\n')
 
 
@@ -462,12 +462,12 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
 
     """
 
-    header, body_stream = _distiller_common.get_header(instream, comment_char='')
-    header = _distiller_common.append_pg_to_sam_header(
+    header, body_stream = _common.get_header(instream, comment_char='')
+    header = _common.append_pg_to_sam_header(
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _distiller_common.DISTILLER_VERSION,
+         'VN': _common.DISTILLER_VERSION,
          'CL': ' '.join(sys.argv)
          },
         comment_char='',
