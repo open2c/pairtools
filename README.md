@@ -1,37 +1,32 @@
-# distiller
+# pairsamtools
 
-[![Build Status](https://travis-ci.org/mirnylab/distiller.svg?branch=master)](https://travis-ci.org/mirnylab/distiller)
+[![Build Status](https://travis-ci.org/mirnylab/pairsamtools.svg?branch=master)](https://travis-ci.org/mirnylab/pairsamtools)
 [![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-## map Hi-C reads with distiller
+## build Hi-C mapping pipelines with pairsamtools
 
-distiller is a simple and fast command-line framework to process sequencing
+pairsamtools is a simple and fast command-line framework to process sequencing
 data from a Hi-C experiment.
 
-distiller provides command-line tools to perform the following operations:
-- map the sequences of Hi-C molecules to a reference genome
+pairsamtools processes bwa mem-mapped reads and provides command-line tools to 
+perform the following operations:
 - form and classify Hi-C pairs, accounting for the ligation junctions
 - filter valid Hi-C pairs
 - remove PCR duplicates 
 - tag .sam entries with Hi-C specific information
 - produce sorted lists of Hi-C pairs for downstream analyses
 
-distiller is provided as a set of command-line tools and a simple example bash
-pipeline. In the nearest future, distiller will include a simple make-like 
-workflow.
-
 ## installation
 
-At the moment, distiller is provided as a set of command-line scripts.
-In the nearest future, distiller will become pip/conda-installable.
+At the moment, pairsamtools are provided as a set of command-line scripts.
+In the nearest future, pairsamtools will become pip-installable.
 
 Requirements:
 - python 3.x
-- bgzip
-- bwa
 - Cython
 - numpy
 - click
+- bgzip
 
 ## usage
 
@@ -85,20 +80,20 @@ Requirements:
 
 - pairsam_skip_header: print the body of a pairsam file, skipping the header
 
-### pipeline
+### example pipeline
 
-Currently, distiller provides a simple mapping bash pipeline in /examples/.
-This bash pipeline serves as an illustration to distiller's functionality and
+We provide a simple mapping bash pipeline in /examples/.
+It serves as an illustration to pairsamtools' functionality and
 will not be further developed.
 
-In the nearest future, distiller will receive a make-like workflow for flexible
-and reliable execution.
+In the nearest future, [distiller](https://github.com/mirnylab/distiller) will
+provide a make-like interface for flexible and reliable data analysis workflow.
 
 ## data conventions
 
 ### pairsam
 
-distiller defines pairsam, a simple tabular format to pass and process
+pairsamtools define pairsam, a simple tabular format to pass and process
 alignments of Hi-C molecules.
 
 A pairsam starts with an arbitrary number of header lines, each starting with
@@ -154,9 +149,9 @@ interpretability and no other reserved technical roles.
 
 ### pair types
 
-distiller uses a simple two-character notation to define all possible pair types
-by the quality of alignment. For each pair, its type can be defined unambigously
-using the table below. To use this table, indentify which side has an alignment 
+pairsamtools uses a simple two-character notation to define all possible pair types
+by the quality of alignment. For each pair, its type can be defined unambiguously
+using the table below. To use this table, identify which side has an alignment 
 of a "poorer" quality (unmapped < multimapped < chimeric alignment < linear alignment)
 and which side has a "better" alignment and find the corresponding row in the table.
 
@@ -179,15 +174,15 @@ and which side has a "better" alignment and find the corresponding row in the ta
 | +      | +               | +                               | +      | +               | +                               | DD       | duplicate         | 2***         |
 
 \*  chimeric reads may represent Hi-C molecules formed via multiple ligation
-events and thus cannot be interpreted as unambigous pairs.
+events and thus cannot be interpreted as unambiguous pairs.
 
 **  some chimeric reads correspond to valid Hi-C molecules formed via a single
 ligation event, with the ligation junction sequenced through on one side. 
 Following the procedure introduced in
-[Juicer](https://github.com/theaidenlab/juicer), distiller rescues such 
-molecules, reports their outer-most mapped positions and tags them as "CX" pair type.
+[Juicer](https://github.com/theaidenlab/juicer), pairsamtools rescue such 
+molecules, report their outer-most mapped positions and tag them as "CX" pair type.
 Such molecules can and should be used in downstream analysis.
 
-***  distiller detects molecules that could be formed via PCR duplication and
+***  pairsamtools detect molecules that could be formed via PCR duplication and
 tags them as "DD" pair type. These pairs should be excluded from downstream 
 analyses.
