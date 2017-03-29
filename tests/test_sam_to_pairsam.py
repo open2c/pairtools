@@ -7,7 +7,8 @@ from nose.tools import assert_raises
 import subprocess
 
 testdir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(testdir, '..', 'utils'))
+srcdir = os.path.join(testdir, '..', 'pairsamtools')
+sys.path.append(srcdir)
 
 import sam_to_pairsam
 
@@ -139,7 +140,7 @@ def test_mock_sam():
     mock_sam_path = os.path.join(testdir, 'data', 'mock.sam')
     result = subprocess.check_output(
         ['python',
-         '../utils/sam_to_pairsam.py',
+         os.path.join(srcdir,'sam_to_pairsam.py'),
          '--input',
          mock_sam_path],
         ).decode('ascii')
