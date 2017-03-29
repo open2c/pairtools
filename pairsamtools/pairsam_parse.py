@@ -9,20 +9,18 @@ import sys
 import os
 import io
 
-from . import _common, cli
+from . import _common, cli, __version__
 
 UTIL_NAME = 'pairsam_parse'
 
 @cli.command()
+@click.argument(
+    'sam_path', 
+    type=str,
+    required=False)
+
 @click.option(
-    '--input',
-    type=str, 
-    default="",
-    help='input sam file.'
-        ' If the path ends with .bam, the input is decompressed from bam.'
-        ' By default, the input is read from stdin.')
-@click.option(
-    "--output", 
+    "-o", "--output", 
     type=str, 
     default="", 
     help='output file.'
@@ -47,22 +45,25 @@ UTIL_NAME = 'pairsam_parse'
     is_flag=True,
     help='If specified, do not add sams to the output')
 
-def parse(
-    input, output, min_mapq, max_molecule_size, 
-    drop_readid, drop_sam):
-    '''parse .sam and make .pairsam'''
+def parse(sam_path, output, min_mapq, max_molecule_size, drop_readid, drop_sam):
+    '''parse .sam and make .pairsam.
 
-    instream = (_common.open_bgzip(input, mode='r') 
-                if input else sys.stdin)
+    SAM_PATH : input .sam file. If the path ends with .bam, the input is 
+    decompressed from bam. By default, the input is read from stdin.
+    '''
+
+    instream = (_common.open_sam_or_bam(sam_path, mode='r') 
+                if sam_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
     streaming_classify(instream, outstream, min_mapq, max_molecule_size,
                        drop_readid, drop_sam)
 
-    if input:
+
+    if instream != sys.stdin:
         instream.close()
-    if output:
+    if outstream != sys.stdout:
         outstream.close()
 
 
@@ -467,7 +468,7 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
         header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _common.DISTILLER_VERSION,
+         'VN': __version__,
          'CL': ' '.join(sys.argv)
          },
         comment_char='',

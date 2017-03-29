@@ -142,7 +142,6 @@ def test_mock_sam():
              '-m',
              'pairsamtools',
              'parse',
-             '--input',
              mock_sam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
