@@ -57,13 +57,14 @@ def merge(pairsam_path, output):
  
     command = r'''
         /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
-        --merge --field-separator=$'\''\v'\'' 
+        --merge --field-separator=$'\''{5}'\'' 
         '''.replace('\n',' ').format(
                 _common.COL_C1+1, 
                 _common.COL_C2+1, 
                 _common.COL_P1+1, 
                 _common.COL_P2+1,
                 _common.COL_PTYPE+1,
+                _common.PAIRSAM_SEP_ESCAPE
                 )
     for path in paths:
         if path.endswith('.gz'):

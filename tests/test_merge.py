@@ -89,7 +89,7 @@ def test_mock_pairsam():
     # check the sorting order of the output:
     prev_pair = None
     for l in output_body:
-        cur_pair = l.split('\v')[1:8]
+        cur_pair = l.split('\t')[1:8]
         if prev_pair is not None:
             assert (cur_pair[0] >= prev_pair[0])
             if (cur_pair[0] == prev_pair[0]):
