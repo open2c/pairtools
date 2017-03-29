@@ -22,7 +22,6 @@ def setup_func():
              '-m',
              'pairsamtools',
              'sort',
-             '--input',
              mock_pairsam_path_1,
              '--output',
              mock_sorted_pairsam_path_1
@@ -34,7 +33,6 @@ def setup_func():
              '-m',
              'pairsamtools',
              'sort',
-             '--input',
              mock_pairsam_path_2,
              '--output',
              mock_sorted_pairsam_path_2

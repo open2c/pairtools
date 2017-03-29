@@ -4,48 +4,51 @@ import glob
 import subprocess
 import click
 
-from . import _common, cli
+from . import _common, cli, __version__
 
 UTIL_NAME = 'pairsam_merge'
 
 @cli.command()
 @click.argument(
-    'infile', 
-    metavar='INFILE',
+    'pairsam_path', 
     nargs=-1, 
     type=str,
     )
+
 @click.option(
-    "--output", 
+    "-o", "--output", 
     type=str, 
     default="", 
     help='output file.'
         ' If the path ends with .gz, the output is bgzip-compressed.'
         ' By default, the output is printed into stdout.')
 
-def merge(infile,output):
-    """Merge multiple sorted pairsam files. 
-    The @SQ records of the SAM header must be identical; the sorting order of 
+def merge(pairsam_path, output):
+    """merge sorted pairs/pairsam files. 
+
+    Merge triu-flipped sorted pairs/pairsam files. If present, the @SQ records 
+    of the SAM header must be identical; the sorting order of 
     these lines is taken from the first file in the list. 
     The ID fields of the @PG records of the SAM header are modified with a
     numeric suffix to produce unique records.
     The other unique SAM and non-SAM header lines are copied into the output header.
 
-    INFILE : a file to merge or a group of files specified by a wildcard
+    PAIRSAM_PATH : upper-triangular flipped sorted pairs/pairsam files to merge
+    or a group/groups of .pairsam files specified by a wildcard
     
     """
 
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
-    paths = sum([glob.glob(mask) for mask in infile], [])
+    paths = sum([glob.glob(mask) for mask in pairsam_path], [])
     merged_header = form_merged_header(paths)
 
     merged_header = _common.append_pg_to_sam_header(
         merged_header,
         {'ID': UTIL_NAME,
          'PN': UTIL_NAME,
-         'VN': _common.DISTILLER_VERSION,
+         'VN': __version__,
          'CL': ' '.join(sys.argv)
          })
 
@@ -69,6 +72,9 @@ def merge(infile,output):
             command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(path)
     command += "'"
     subprocess.call(command, shell=True, stdout=outstream)
+
+    if outstream != sys.stdout:
+        outstream.close()
 
 
 def form_merged_header(paths):
