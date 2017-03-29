@@ -160,8 +160,8 @@ def test_mock_sam():
         if l.startswith('#') or not l:
             continue
 
-        assigned_pair = l.split('\v')[1:8]
-        simulated_pair = l.split('SIMULATED:',1)[1].split('\t',1)[0].split(',')
+        assigned_pair = l.split('\t')[1:8]
+        simulated_pair = l.split('SIMULATED:',1)[1].split('\031',1)[0].split(',')
         print(assigned_pair)
         print(simulated_pair)
         print()

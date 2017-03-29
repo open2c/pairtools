@@ -420,40 +420,40 @@ def write_pairsam(
         out_file.write('.')
     else:
         out_file.write(read_id)
-    out_file.write('\v')
+    out_file.write(_common.PAIRSAM_SEP)
     out_file.write(algn1['chrom'])
-    out_file.write('\v')
+    out_file.write(_common.PAIRSAM_SEP)
     out_file.write(algn2['chrom'])
-    out_file.write('\v')
+    out_file.write(_common.PAIRSAM_SEP)
     out_file.write(str(algn1['pos']))
-    out_file.write('\v')
+    out_file.write(_common.PAIRSAM_SEP)
     out_file.write(str(algn2['pos']))
-    out_file.write('\v')
+    out_file.write(_common.PAIRSAM_SEP)
     out_file.write(algn1['strand'])
-    out_file.write('\v')
+    out_file.write(_common.PAIRSAM_SEP)
     out_file.write(algn2['strand'])
-    out_file.write('\v')
+    out_file.write(_common.PAIRSAM_SEP)
     out_file.write(pair_type)
-    out_file.write('\v')
+    out_file.write(_common.PAIRSAM_SEP)
     if drop_sam:
         out_file.write('.')
     else:
         for i, sam in enumerate(sams1):
-            out_file.write(sam[:-1])
-            out_file.write('\tYt:Z:')
+            out_file.write(sam[:-1].replace('\t', _common.SAM_SEP))
+            out_file.write(_common.SAM_SEP + 'Yt:Z:')
             out_file.write(pair_type)
             if i < len(sams1) -1:
-                out_file.write(_common.SAM_ENTRY_SEP)
-    out_file.write('\v')
+                out_file.write(_common.INTER_SAM_SEP)
+    out_file.write(_common.PAIRSAM_SEP)
     if drop_sam:
         out_file.write('.')
     else:
         for i, sam in enumerate(sams2):
-            out_file.write(sam[:-1])
-            out_file.write('\tYt:Z:')
+            out_file.write(sam[:-1].replace('\t', _common.SAM_SEP))
+            out_file.write(_common.SAM_SEP + 'Yt:Z:')
             out_file.write(pair_type)
             if i < len(sams2) -1:
-                out_file.write(_common.SAM_ENTRY_SEP)
+                out_file.write(_common.INTER_SAM_SEP)
     out_file.write('\n')
 
 
