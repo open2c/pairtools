@@ -3,7 +3,6 @@ import copy
 import collections
 import itertools
 
-DISTILLER_VERSION = '0.0.1'
 COL_READID = 0
 COL_C1 = 1
 COL_C2 = 2
