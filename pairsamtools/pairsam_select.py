@@ -116,7 +116,7 @@ def select(
         outstream.writelines(header)
 
     for line in pairsam_body_stream:
-        cols = line.split('\v')
+        cols = line.split(_common.PAIRSAM_SEP)
         if do_match(cols[colidx]):
             outstream.write(line)
         elif outstream_rest:

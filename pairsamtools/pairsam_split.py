@@ -63,16 +63,17 @@ def split(pairsam_path, output_pairs, output_sam):
                 outstream_pairs.write(line)
             continue
 
-        cols = line[:-1].split('\v')
+        cols = line[:-1].split(_common.PAIRSAM_SEP)
         if outstream_pairs:
+            # hard-coded tab separator to follow the DCIC pairs standard
             outstream_pairs.write('\t'.join(cols[:_common.COL_SAM1]))
             outstream_pairs.write('\n')
         
         if outstream_sam:
             for col in (cols[_common.COL_SAM1],
                         cols[_common.COL_SAM2]):
-                for sam_entry in col.split(_common.SAM_ENTRY_SEP):
-                    outstream_sam.write(sam_entry)
+                for sam_entry in col.split(_common.INTER_SAM_SEP):
+                    outstream_sam.write(sam_entry.replace(_common.SAM_SEP,'\t'))
                     outstream_sam.write('\n')
 
     if outstream_pairs and outstream_pairs != sys.stdout:

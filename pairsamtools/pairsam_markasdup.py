@@ -44,19 +44,19 @@ def markasdup(pairsam_path, output):
     outstream.writelines(header)
 
     for line in pairsam_body_stream:
-        cols = line[:-1].split('\v')
+        cols = line[:-1].split(_common.PAIRSAM_SEP)
         cols[_common.COL_PTYPE] = 'DD'
         
         for i in (_common.COL_SAM1,
                   _common.COL_SAM2):
                 
             # split each sam column into sam entries, tag and assemble back
-            cols[i] = _common.SAM_ENTRY_SEP.join(
+            cols[i] = _common.INTER_SAM_SEP.join(
                 [mark_sam_as_dup(sam) 
-                 for sam in cols[i].split(_common.SAM_ENTRY_SEP)
+                 for sam in cols[i].split(_common.INTER_SAM_SEP)
                 ])
 
-        outstream.write('\v'.join(cols))
+        outstream.write(_common.PAIRSAM_SEP.join(cols))
         outstream.write('\n')
 
     if instream != sys.stdin:
@@ -67,13 +67,13 @@ def markasdup(pairsam_path, output):
 def mark_sam_as_dup(sam):
     '''Tag the binary flag and the optional pair type field of a sam entry
     as a PCR duplicate.'''
-    samcols = sam.split('\t')
+    samcols = sam.split(_common.SAM_SEP)
     samcols[1] = str(int(samcols[1]) | 1024)
 
     for j in range(11, len(samcols)):
         if samcols[j].startswith('Yt:Z:'):
             samcols[j] = 'Yt:Z:DD'
-    return '\t'.join(samcols)
+    return _common.SAM_SEP.join(samcols)
 
 
 if __name__ == '__main__':
