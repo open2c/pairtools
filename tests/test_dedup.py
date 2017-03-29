@@ -7,7 +7,6 @@ from nose.tools import assert_raises, with_setup
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
-srcdir = os.path.join(testdir, '..', 'pairsamtools')
 mock_pairsam_path = os.path.join(testdir, 'data', 'mock.4dedup.pairsam')
 
 tmpdir = tempfile.TemporaryDirectory()
@@ -19,7 +18,9 @@ max_mismatch = 3
 def setup_func():
     subprocess.check_output(
         ['python',
-         os.path.join(srcdir,'pairs_dedup.py'),
+         '-m',
+         'pairsamtools',
+         'dedup',
          '--input',
          mock_pairsam_path,
          '--output',

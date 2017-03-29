@@ -7,7 +7,6 @@ from nose.tools import assert_raises, with_setup
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
-srcdir = os.path.join(testdir, '..', 'pairsamtools')
 
 tmpdir = tempfile.TemporaryDirectory()
 tmpdir_name = tmpdir.name
@@ -19,7 +18,9 @@ mock_sorted_pairsam_path_2 = os.path.join(tmpdir_name, '2.pairsam')
 def setup_func():
     subprocess.check_output(
         ['python',
-         os.path.join(srcdir,'pairsam_sort.py'),
+         '-m',
+         'pairsamtools',
+         'sort',
          '--input',
          mock_pairsam_path_1,
          '--output',
@@ -29,7 +30,9 @@ def setup_func():
 
     subprocess.check_output(
         ['python',
-         os.path.join(srcdir,'pairsam_sort.py'),
+         '-m',
+         'pairsamtools',
+         'sort',
          '--input',
          mock_pairsam_path_2,
          '--output',
@@ -44,7 +47,9 @@ def teardown_func():
 def test_mock_pairsam():
     result = subprocess.check_output(
         ['python',
-         os.path.join(srcdir,'pairsam_merge.py'),
+         '-m',
+         'pairsamtools',
+         'merge',
          mock_sorted_pairsam_path_1,
          mock_sorted_pairsam_path_2
          ],

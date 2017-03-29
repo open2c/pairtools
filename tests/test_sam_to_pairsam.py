@@ -7,16 +7,14 @@ from nose.tools import assert_raises
 import subprocess
 
 testdir = os.path.dirname(os.path.realpath(__file__))
-srcdir = os.path.join(testdir, '..', 'pairsamtools')
-sys.path.append(srcdir)
 
-import sam_to_pairsam
+from pairsamtools import sam_to_pairsam, parse_algn, parse_cigar
 
 def test_python_version():
     assert (sys.version_info[0] == 3), 'Use Python 3!'
 
 def test_parse_cigar():
-    assert (sam_to_pairsam.parse_cigar('*') == 
+    assert (parse_cigar('*') == 
         {'read_len': 0, 
          'matched_bp': 0, 
          'algn_ref_span': 0, 
@@ -24,7 +22,7 @@ def test_parse_cigar():
          'clip5': 0, 
          'clip3': 0})
 
-    assert (sam_to_pairsam.parse_cigar('50M') == 
+    assert (parse_cigar('50M') == 
         {'read_len': 50, 
          'matched_bp': 50, 
          'algn_ref_span': 50, 
@@ -32,7 +30,7 @@ def test_parse_cigar():
          'clip5': 0, 
          'clip3': 0})
 
-    assert (sam_to_pairsam.parse_cigar('40M10S') == 
+    assert (parse_cigar('40M10S') == 
         {'read_len': 50, 
          'matched_bp': 40, 
          'algn_ref_span': 40, 
@@ -40,7 +38,7 @@ def test_parse_cigar():
          'clip5': 0, 
          'clip3': 10})
 
-    assert (sam_to_pairsam.parse_cigar('10S40M') == 
+    assert (parse_cigar('10S40M') == 
         {'read_len': 50, 
          'matched_bp': 40, 
          'algn_ref_span': 40, 
@@ -48,7 +46,7 @@ def test_parse_cigar():
          'clip5': 10, 
          'clip3': 0})
 
-    assert (sam_to_pairsam.parse_cigar('10S30M10S') == 
+    assert (parse_cigar('10S30M10S') == 
         {'read_len': 50, 
          'matched_bp': 30, 
          'algn_ref_span': 30, 
@@ -56,7 +54,7 @@ def test_parse_cigar():
          'clip5': 10, 
          'clip3': 10})
 
-    assert (sam_to_pairsam.parse_cigar('30M10I10M') == 
+    assert (parse_cigar('30M10I10M') == 
         {'read_len': 50, 
          'matched_bp': 40, 
          'algn_ref_span': 40, 
@@ -64,7 +62,7 @@ def test_parse_cigar():
          'clip5': 0, 
          'clip3': 0})
 
-    assert (sam_to_pairsam.parse_cigar('30M10D10M10S') == 
+    assert (parse_cigar('30M10D10M10S') == 
         {'read_len': 50, 
          'matched_bp': 40, 
          'algn_ref_span': 50, 
@@ -80,7 +78,7 @@ def test_parse_algn():
     '=\t46893391\t22577187\t.\t.\t'
     'NM:i:1\tMD:Z:36A53\tAS:i:85\tXS:i:19'
     samcols = sam.split('\t')
-    parsed_algn = sam_to_pairsam.parse_algn(samcols, min_mapq)
+    parsed_algn = parse_algn(samcols, min_mapq)
     assert parsed_algn == {'chrom': 'chr12', 
          'pos': 24316205, 
          'strand': '+', 
@@ -99,7 +97,7 @@ def test_parse_algn():
     sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
           '\tFLAG1\tFLAG2\tSIMULATED:readid01,chr1,chr1,10,200,+,+,LL')
     samcols = sam.split('\t')
-    parsed_algn = sam_to_pairsam.parse_algn(samcols, min_mapq)
+    parsed_algn = parse_algn(samcols, min_mapq)
     assert parsed_algn == {'chrom': 'chr1', 
          'pos': 10, 
          'strand': '+', 
@@ -119,7 +117,7 @@ def test_parse_algn():
     sam = ('readid10\t77\t*\t0\t0\t*\t*\t0\t0\tSEQ\tPHRED'
            '\tFLAG1\tFLAG2\tSIMULATED:readid10,!,!,0,0,-,-,NN')
     samcols = sam.split('\t')
-    parsed_algn = sam_to_pairsam.parse_algn(samcols, min_mapq)
+    parsed_algn = parse_algn(samcols, min_mapq)
     assert parsed_algn == {'chrom': '!', 
          'pos': 0, 
          'strand': '-', 
@@ -140,7 +138,9 @@ def test_mock_sam():
     mock_sam_path = os.path.join(testdir, 'data', 'mock.sam')
     result = subprocess.check_output(
         ['python',
-         os.path.join(srcdir,'sam_to_pairsam.py'),
+         '-m',
+         'pairsamtools',
+         'sam_to_pairsam',
          '--input',
          mock_sam_path],
         ).decode('ascii')

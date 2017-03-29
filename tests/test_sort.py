@@ -6,13 +6,14 @@ import click
 from nose.tools import assert_raises
 
 testdir = os.path.dirname(os.path.realpath(__file__))
-srcdir = os.path.join(testdir, '..', 'pairsamtools')
 
 def test_mock_pairsam():
     mock_pairsam_path = os.path.join(testdir, 'data', 'mock.pairsam')
     result = subprocess.check_output(
         ['python',
-         os.path.join(srcdir,'pairsam_sort.py'),
+         '-m',
+         'pairsamtools',
+         'sort',
          '--input',
          mock_pairsam_path],
         ).decode('ascii')
