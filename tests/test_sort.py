@@ -15,7 +15,6 @@ def test_mock_pairsam():
              '-m',
              'pairsamtools',
              'sort',
-             '--input',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
