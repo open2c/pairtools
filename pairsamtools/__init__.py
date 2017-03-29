@@ -31,5 +31,5 @@ from .pairsam_sort import sort
 from .pairsam_merge import merge
 from .pairsam_select import select
 from .pairsam_split import split
-from .sam_to_pairsam import sam_to_pairsam, parse_cigar, parse_algn
+from .pairsam_parse import parse, parse_cigar, parse_algn
 

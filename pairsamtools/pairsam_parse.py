@@ -11,7 +11,7 @@ import io
 
 from . import _common, cli
 
-UTIL_NAME = 'pairsam_markasdup'
+UTIL_NAME = 'pairsam_parse'
 
 @cli.command()
 @click.option(
@@ -47,10 +47,10 @@ UTIL_NAME = 'pairsam_markasdup'
     is_flag=True,
     help='If specified, do not add sams to the output')
 
-def sam_to_pairsam(
+def parse(
     input, output, min_mapq, max_molecule_size, 
     drop_readid, drop_sam):
-    '''Splits .sam entries into different read pair categories'''
+    '''parse .sam and make .pairsam'''
 
     instream = (_common.open_bgzip(input, mode='r') 
                 if input else sys.stdin)
@@ -516,4 +516,4 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
             prev_read_id = read_id
 
 if __name__ == '__main__':
-    sam_to_pairsam()
+    parse()
