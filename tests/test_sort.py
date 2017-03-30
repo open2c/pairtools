@@ -21,14 +21,12 @@ def test_mock_pairsam():
         print(sys.exc_info())
         raise e
 
-    # check if the header got transferred correctly
-    pairsam_header = [l.strip() for l in open(mock_pairsam_path, 'r') if l.startswith('#')]
-    output_header  = [l.strip() for l in result.split('\n') if l.startswith('#')] 
-    for l in pairsam_header:
-        assert any([l in l2 for l2 in pairsam_header])
         
     # Check that the only changes strings are a @PG record of a SAM header,
     # the "#sorted" entry and chromosomes
+    pairsam_header = [l.strip() for l in open(mock_pairsam_path, 'r') if l.startswith('#')]
+    output_header  = [l.strip() for l in result.split('\n') if l.startswith('#')] 
+
     print(output_header)
     print(pairsam_header)
     for l in output_header:
