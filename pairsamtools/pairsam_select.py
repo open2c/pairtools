@@ -1,35 +1,21 @@
 import sys
 import click
+import re, fnmatch
 
-from . import _common, cli, __version__
+from . import _common, cli, _headerops
 
 UTIL_NAME = 'pairsam_select'
 
 @cli.command()
 @click.argument(
-    'field',
-    metavar='FIELD',
-    type=click.Choice(['pair_type', 'chrom1', 'chrom2', 'read_id']),
-)
-
-@click.argument(
-    'value', 
-    metavar='VALUE',
+    'condition',
+    type=str
 )
 
 @click.argument(
     'pairsam_path', 
     type=str,
     required=False)
-@click.option(
-    '--match-method', 
-    type=click.Choice(['comma_list', 'single_value', 'wildcard', 'regexp']),
-    default='comma_list',
-    help='The method of matching of a field to `value`. Possible choices '
-        'are: comma_list (`value` is interpreted as a comma-separated list of accepted values), '
-        'single_value, wildcard, regexp (a Python-flavor regular expression).',
-    show_default=True,
-)
 
 
 @click.option(
@@ -56,7 +42,7 @@ UTIL_NAME = 'pairsam_select'
     show_default=True)
 
 def select(
-    field, value, pairsam_path, match_method,output, output_rest, send_comments_to
+    condition, pairsam_path, output, output_rest, send_comments_to
     ):
     '''select pairsam entries.
 
@@ -78,46 +64,48 @@ def select(
     outstream_rest = (_common.open_bgzip(output_rest, mode='w') 
                       if output_rest else None)
 
-    colidx = {
-        'chrom1':_common.COL_C1,
-        'chrom2':_common.COL_C2,
-        'read_id':_common.COL_READID,
-        'pair_type':_common.COL_PTYPE,
-        }[field]
+    wildcard_library = {}
+    def wildcard_match(x, wildcard):
+        if wildcard not in wildcard_library:
+            regex = fnmatch.translate(wildcard)
+            reobj = re.compile(regex)
+            wildcard_library[wildcard] = reobj
+        return wildcard_library[wildcard].match(x)
 
-    if match_method == 'single_value':
-        do_match = lambda x: x==value
-    elif match_method == 'comma_list':
-        vals = value.split(',')
-        do_match = lambda x: any((i==x for i in vals))
-    elif match_method == 'wildcard':
-        import fnmatch, re
-        regex = fnmatch.translate(value)
-        reobj = re.compile(regex)
-        do_match = lambda x: bool(reobj.match(x))
-    elif match_method == 'regexp':
-        import re
-        reobj = re.compile(value)
-        do_match = lambda x: bool(reobj.match(x))
-    else:
-        raise Exception('An unknown matching method: {}'.format(match_method))
+    csv_library = {}
+    def csv_match(x, csv):
+        if csv not in csv_library:
+            csv_library[csv] = set(csv.split(','))
+        return x in csv_library[csv]
 
-    header, pairsam_body_stream = _common.get_header(instream)
-    header = _common.append_pg_to_sam_header(
-        header,
-        {'ID': UTIL_NAME,
-         'PN': UTIL_NAME,
-         'VN': __version__,
-         'CL': ' '.join(sys.argv)
-         })
+    regex_library = {}
+    def regex_match(x, regex):
+        if regex not in regex_library:
+            reobj = re.compile(regex)
+            regex_library[regex] = reobj
+        return regex_library[regex].match(x)
 
-    outstream.writelines(header)
+    match_func = compile(condition, '<string>', 'eval')
+
+    header, body_stream = _headerops.get_header(instream)
+    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    outstream.writelines((l+'\n' for l in header))
     if outstream_rest:
-        outstream.writelines(header)
+        outstream_rest.writelines((l+'\n' for l in header))
 
-    for line in pairsam_body_stream:
+
+    for line in body_stream:
         cols = line.split(_common.PAIRSAM_SEP)
-        if do_match(cols[colidx]):
+        chrom1 = cols[_common.COL_C1]
+        chrom2 = cols[_common.COL_C2]
+        pos1 = int(cols[_common.COL_P1])
+        pos2 = int(cols[_common.COL_P2])
+        strand1 = cols[_common.COL_S1]
+        strand2 = cols[_common.COL_S2]
+        read_id = cols[_common.COL_READID]
+        pair_type = cols[_common.COL_PTYPE]
+        if eval(match_func):
+#        if True:
             outstream.write(line)
         elif outstream_rest:
             outstream_rest.write(line)
