@@ -9,7 +9,7 @@ import sys
 import os
 import io
 
-from . import _common, cli, __version__
+from . import _io, _common, _headerops, cli
 
 UTIL_NAME = 'pairsam_parse'
 
@@ -26,6 +26,10 @@ UTIL_NAME = 'pairsam_parse'
     help='output file.'
         ' If the path ends with .gz, the output is bgzip-compressed.'
         ' By default, the output is printed into stdout.')
+@click.option(
+    "--assembly", 
+    type=str, 
+    help='Name of genome assembly (e.g. hg19, mm10)')
 @click.option(
     "--min-mapq", 
     type=int, 
@@ -45,7 +49,8 @@ UTIL_NAME = 'pairsam_parse'
     is_flag=True,
     help='If specified, do not add sams to the output')
 
-def parse(sam_path, output, min_mapq, max_molecule_size, drop_readid, drop_sam):
+def parse(sam_path, output, assembly, min_mapq, max_molecule_size, 
+          drop_readid, drop_sam):
     '''parse .sam and make .pairsam.
 
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
@@ -57,7 +62,17 @@ def parse(sam_path, output, min_mapq, max_molecule_size, drop_readid, drop_sam):
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
-    streaming_classify(instream, outstream, min_mapq, max_molecule_size,
+    samheader, body_stream = _headerops.get_header(instream, comment_char='@')
+    chromosomes = _headerops._get_chroms_from_sam_header(samheader)
+    header = _headerops.make_standard_pairsheader(
+            assembly=assembly,
+            chromosomes=chromosomes)
+    header = _headerops.insert_samheader(header, samheader) 
+    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    outstream.writelines((l+'\n' for l in header))
+
+
+    streaming_classify(body_stream, outstream, min_mapq, max_molecule_size,
                        drop_readid, drop_sam)
 
 
@@ -463,24 +478,12 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
 
     """
 
-    header, body_stream = _common.get_header(instream, comment_char='')
-    header = _common.append_pg_to_sam_header(
-        header,
-        {'ID': UTIL_NAME,
-         'PN': UTIL_NAME,
-         'VN': __version__,
-         'CL': ' '.join(sys.argv)
-         },
-        comment_char='',
-        )
-    outstream.writelines(('#'+l for l in header))
-
     prev_read_id = ''
     sams1 = []
     sams2 = []
     line = ''
     while line is not None:
-        line = next(body_stream, None)
+        line = next(instream, None)
 
         read_id = line.split('\t', 1)[0] if line else None
 
