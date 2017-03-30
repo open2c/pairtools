@@ -4,7 +4,7 @@ import sys
 import pipes
 import click
 
-from . import _common, cli, __version__
+from . import _common, cli, _headerops
 
 UTIL_NAME = 'pairsam_markasdup'
 
@@ -32,18 +32,13 @@ def markasdup(pairsam_path, output):
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
  
-    header, pairsam_body_stream = _common.get_header(instream)
-    header = _common.append_pg_to_sam_header(
-        header,
-        {'ID': UTIL_NAME,
-         'PN': UTIL_NAME,
-         'VN': __version__,
-         'CL': ' '.join(sys.argv)
-         })
 
-    outstream.writelines(header)
+    header, body_stream = _headerops.get_header(instream)
+    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    outstream.writelines((l+'\n' for l in header))
 
-    for line in pairsam_body_stream:
+
+    for line in body_stream:
         cols = line[:-1].split(_common.PAIRSAM_SEP)
         cols[_common.COL_PTYPE] = 'DD'
         
