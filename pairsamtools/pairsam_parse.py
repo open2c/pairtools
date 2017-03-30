@@ -9,7 +9,7 @@ import sys
 import os
 import io
 
-from . import _io, _common, _headerops, cli
+from . import _common, _headerops, cli
 
 UTIL_NAME = 'pairsam_parse'
 
