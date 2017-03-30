@@ -46,15 +46,33 @@ def select(
     ):
     '''select pairsam entries.
 
-    FIELD : The field to select pairs by. Possible choices are: pair_type,
-    chrom1, chrom2, read_id.
-
-    VALUE : Select reads with FIELD matching VALUE. Depending on 
-    --match-method, this argument can be interpreted as a single value, 
-    a comma separated list, a wildcard or a regexp.
+    CONDITION : A Python expression; if it returns True, select the read pair.
+    The following variables can be used: READ_ID, CHROM_1, CHROM_2, POS_1, 
+    POS_2, STRAND_1, STRAND_2. In Bash, quote CONDITION with single quotes,
+    and use double quotes for string variables inside CONDITION.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
+
+    The following functions can be used in CONDITION besides the standard Python functions:
+
+    - csv_match(x, csv) - True if variable x is contained in a list of
+    comma-separated values, e.g. csv_match(CHROM_1, 'chr1,chr2')
+
+    - wildcard_match(x, wildcard) - True if variable x matches a wildcard,
+    e.g. wildcard_match(PAIR_TYPE, 'C*')
+
+    - regex_match(x, regex) - True if variable x matches a Python-flavor regex,
+    e.g. regex_match(CHROM_1, 'chr\d')
+
+    \b
+    Examples:
+    pairsam select '(PAIR_TYPE=="LL") or (PAIR_TYPE=="CC")'
+    pairsam select 'CHROM_1==CHROM_2'
+    pairsam select '(CHROM_1==CHROM_2) and (abs(POS_1 - POS_2) < 1e6)'
+    pairsam select '(CHROM_1=="!") and (CHROM_2!="!")'
+    pairsam select 'regex_match(CHROM_1, "chr\d+") and regex_match(CHROM_2, "chr\d+")'
+
     '''
     
     instream = (_common.open_bgzip(pairsam_path, mode='r') 
@@ -70,7 +88,7 @@ def select(
             regex = fnmatch.translate(wildcard)
             reobj = re.compile(regex)
             wildcard_library[wildcard] = reobj
-        return wildcard_library[wildcard].match(x)
+        return wildcard_library[wildcard].fullmatch(x)
 
     csv_library = {}
     def csv_match(x, csv):
@@ -83,7 +101,7 @@ def select(
         if regex not in regex_library:
             reobj = re.compile(regex)
             regex_library[regex] = reobj
-        return regex_library[regex].match(x)
+        return regex_library[regex].fullmatch(x)
     
     condition = condition.replace('PAIR_TYPE', 'cols[_common.COL_PTYPE]')
     condition = condition.replace('READ_ID', 'cols[_common.COL_READID]')
@@ -95,16 +113,14 @@ def select(
     condition = condition.replace('STRAND_2', 'cols[_common.COL_P2]')
     match_func = compile(condition, '<string>', 'eval')
 
-
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l+'\n' for l in header))
     if outstream_rest:
         outstream_rest.writelines((l+'\n' for l in header))
 
-
     for line in body_stream:
-        cols = line.split(_common.PAIRSAM_SEP)
+        cols = line[:-1].split(_common.PAIRSAM_SEP)
         if eval(match_func):
             outstream.write(line)
         elif outstream_rest:
