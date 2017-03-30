@@ -4,7 +4,9 @@ import sys
 import pipes
 import click
 
-from . import _common, cli
+from . import _common, _headerops, cli
+
+UTIL_NAME = 'pairsam_split'
 
 @cli.command()
 @click.argument(
@@ -51,18 +53,17 @@ def split(pairsam_path, output_pairs, output_sam):
                 else _common.open_sam_or_bam(output_sam, mode='w') if output_sam
                 else None)
 
+    header, body_stream = _headerops.get_header(instream)
+    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+
+    if outstream_pairs:
+        outstream_pairs.writelines((l+'\n' for l in header))
+    if outstream_sam:
+        outstream_sam.writelines(
+            (l[11:].strip()+'\n' for l in header if l.startswith('#samheader:')))
 
     # Split
-    for line in instream.readlines():
-        if line.startswith('#'):
-            if line.startswith('#'+'@'):
-                if outstream_sam:
-                    outstream_sam.write(line[len('#'):])
-
-            if outstream_pairs:
-                outstream_pairs.write(line)
-            continue
-
+    for line in body_stream:
         cols = line[:-1].split(_common.PAIRSAM_SEP)
         if outstream_pairs:
             # hard-coded tab separator to follow the DCIC pairs standard
