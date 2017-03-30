@@ -1,7 +1,9 @@
-#@SQ	SN:chr1	LN:100
-#@SQ	SN:chr2	LN:100
-#@SQ	SN:chr3	LN:100
-#@PG	ID:bwa	PN:bwa	VN:0.7.15-r1140	CL:bwa mem -SP /path/ucsc.hg19.fasta.gz /path/1.fastq.gz /path/2.fastq.gz
+## pairs format v1.0.0
+#sorted: chr1-chr2-pos1-pos2
+#shape: upper triangle
+#genome_assembly: unknown
+#chromosomes: chr1 chr2
+#columns: readID chrom1 chrom2 pos1 pos2 strand1 strand2 pair_type sam1 sam2
 .	chr1	chr1	1	25	+	+	LL	.	.
 .	chr1	chr1	1	27	+	+	LL	.	.
 .	chr1	chr1	1	28	+	-	LL	.	.

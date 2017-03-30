@@ -2,7 +2,6 @@
 import os
 import sys
 import subprocess
-import click
 from nose.tools import assert_raises, with_setup
 import tempfile
 
@@ -54,6 +53,10 @@ def test_mock_pairsam():
     assert len(output_dups_body) > 0
 
     # check that all pairsam entries survived deduping:
+
+    print(pairsam_body)
+    print(output_body)
+    print(output_dups_body)
     assert len(output_body) + len(output_dups_body) == len(pairsam_body)
 
 

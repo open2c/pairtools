@@ -8,7 +8,7 @@ import click
 
 import numpy as np
 
-from . import _dedup, _common, cli, __version__
+from . import _dedup, _common, _headerops, cli
 
 
 UTIL_NAME = 'pairsam_dedup'
@@ -123,24 +123,18 @@ def dedup(pairsam_path, output, output_dups, max_mismatch, method,
     outstream_dups = (_common.open_bgzip(output_dups, mode='w') 
                       if output_dups else None)
 
-    header, pairsam_body_stream = _common.get_header(instream)
-    header = _common.append_pg_to_sam_header(
-        header,
-        {'ID': UTIL_NAME,
-         'PN': UTIL_NAME,
-         'VN': __version__,
-         'CL': ' '.join(sys.argv)
-         })
+    header, body_stream = _headerops.get_header(instream)
+    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
 
     if send_header_to_dedup:
-        outstream.writelines(header)
+        outstream.writelines((l+'\n' for l in header))
     if send_header_to_dup and outstream_dups:
-        outstream_dups.writelines(header)
+        outstream_dups.writelines((l+'\n' for l in header))
 
     streaming_dedup(
         method, max_mismatch, sep, 
         c1, c2, p1, p2, s1, s2,
-        pairsam_body_stream, outstream, outstream_dups)
+        body_stream, outstream, outstream_dups)
 
     if instream != sys.stdin:
         instream.close()
