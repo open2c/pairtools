@@ -103,6 +103,7 @@ def select(
             regex_library[regex] = reobj
         return regex_library[regex].fullmatch(x)
     
+    condition = condition.strip()
     condition = condition.replace('PAIR_TYPE', 'cols[_common.COL_PTYPE]')
     condition = condition.replace('READ_ID', 'cols[_common.COL_READID]')
     condition = condition.replace('CHROM_1', 'cols[_common.COL_C1]')
