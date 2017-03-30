@@ -84,8 +84,17 @@ def select(
             reobj = re.compile(regex)
             regex_library[regex] = reobj
         return regex_library[regex].match(x)
-
+    
+    condition = condition.replace('PAIR_TYPE', 'cols[_common.COL_PTYPE]')
+    condition = condition.replace('READ_ID', 'cols[_common.COL_READID]')
+    condition = condition.replace('CHROM_1', 'cols[_common.COL_C1]')
+    condition = condition.replace('CHROM_2', 'cols[_common.COL_C2]')
+    condition = condition.replace('POS_1', 'int(cols[_common.COL_P1])')
+    condition = condition.replace('POS_2', 'int(cols[_common.COL_P2])')
+    condition = condition.replace('STRAND_1', 'cols[_common.COL_P1]')
+    condition = condition.replace('STRAND_2', 'cols[_common.COL_P2]')
     match_func = compile(condition, '<string>', 'eval')
+
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
@@ -96,16 +105,7 @@ def select(
 
     for line in body_stream:
         cols = line.split(_common.PAIRSAM_SEP)
-        chrom1 = cols[_common.COL_C1]
-        chrom2 = cols[_common.COL_C2]
-        pos1 = int(cols[_common.COL_P1])
-        pos2 = int(cols[_common.COL_P2])
-        strand1 = cols[_common.COL_S1]
-        strand2 = cols[_common.COL_S2]
-        read_id = cols[_common.COL_READID]
-        pair_type = cols[_common.COL_PTYPE]
         if eval(match_func):
-#        if True:
             outstream.write(line)
         elif outstream_rest:
             outstream_rest.write(line)
