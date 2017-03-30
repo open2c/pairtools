@@ -5,7 +5,7 @@ import sys
 import click
 import subprocess
 
-from . import _common, cli, __version__
+from . import _common, cli, _headerops
 
 UTIL_NAME = 'pairsam_sort'
 
@@ -39,16 +39,12 @@ def sort(pairsam_path, output):
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
-    header, pairsam_body_stream = _common.get_header(instream)
-    header = _common.append_pg_to_sam_header(
-        header,
-        {'ID': UTIL_NAME,
-         'PN': UTIL_NAME,
-         'VN': __version__,
-         'CL': ' '.join(sys.argv)
-         })
+    header, body_stream = _headerops.get_header(instream)
+    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    header = _headerops.mark_header_as_sorted(header)
 
-    outstream.writelines(header)
+    outstream.writelines((l+'\n' for l in header))
+
     outstream.flush()
 
     command = r'''
@@ -69,7 +65,7 @@ def sort(pairsam_path, output):
             command, stdin=subprocess.PIPE, bufsize=-1, shell=True,
             stdout=outstream) as process:
         stdin_wrapper = io.TextIOWrapper(process.stdin, 'utf-8')
-        for line in pairsam_body_stream:
+        for line in body_stream:
             stdin_wrapper.write(line)
         stdin_wrapper.flush()
         process.communicate()

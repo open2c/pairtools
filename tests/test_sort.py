@@ -2,7 +2,6 @@
 import os
 import sys
 import subprocess
-import click
 from nose.tools import assert_raises
 
 testdir = os.path.dirname(os.path.realpath(__file__))
@@ -28,10 +27,17 @@ def test_mock_pairsam():
     for l in pairsam_header:
         assert any([l in l2 for l2 in pairsam_header])
         
-    # Check that the only added string is a @PG record of a SAM header
+    # Check that the only changes strings are a @PG record of a SAM header,
+    # the "#sorted" entry and chromosomes
+    print(output_header)
+    print(pairsam_header)
     for l in output_header:
         if not any([l in l2 for l2 in pairsam_header]):
-            assert l.startswith('#@PG')
+            assert (
+                l.startswith('#samheader: @PG')
+                or l.startswith('#sorted')
+                or l.startswith('#chromosomes')
+                )
 
     pairsam_body = [l.strip() for l in open(mock_pairsam_path, 'r') 
                     if not l.startswith('#') and l.strip()]
