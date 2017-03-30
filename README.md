@@ -16,6 +16,8 @@ perform the following operations:
 - tag .sam entries with Hi-C specific information
 - produce sorted lists of Hi-C pairs for downstream analyses
 
+All pairsamtools are compliant with the DCIC standards.
+
 ## installation
 
 At the moment, pairsamtools are provided as a set of command-line scripts.
@@ -32,7 +34,7 @@ Requirements:
 
 ### tools
 
-- sam_to_pairsam: read .sam files produced by bwa and form Hi-C pairs
+- parse: read .sam files produced by bwa and form Hi-C pairs
     - form Hi-C pairs by reporting the outer-most mapped positions and the strand
     on the either side of each molecule;
     - report unmapped/multimapped (ambiguous alignments)/chimeric alignments as
@@ -46,39 +48,38 @@ Requirements:
     read ID, pair type, and .sam entries for each alignment);
     - print the .sam header as #-comment lines at the start of the file.
 
-- pairsam_sort: sort pairsam files (the lexicographic order for chromosomes, 
+- sort: sort pairsam files (the lexicographic order for chromosomes, 
     the numeric order for the positions, the lexicographic order for pair types).
 
-- pairsam_merge: merge sorted pairsam files
+- merge: merge sorted pairsam files
     - simple merge sort for pairsam entries;
-    - combine the #-comment sections from the beginning of each file. Report the
-    sam header @SQ lines first, then other sam header lines, then non-sam
-    comments;
+    - combine the pairs headers from all input files;
     - check that each pairsam file was mapped to the same reference genome index 
     (by checking the identity of the @SQ sam header lines).
 
-- pairsam_select: select pairsam entries with specific field values
-    - select pairsam entries with specific pair types, chromosomes or
-    read IDs (allow matching to a wildcard/regexp/list).
+- select: select pairsam entries with specific field values
+    - select pairsam entries according to the provided condition. A programmable
+    interface allows for arbitrarily complex queries on specific pair types, 
+    chromosomes, positions, strands, read IDs (including matches to a
+    wildcard/regexp/list).
     - optionally print the non-matching entries into a separate file.
 
-- pairsam_dedup: remove PCR duplicates from a sorted triu-flipped pairsam file
+- dedup: remove PCR duplicates from a sorted triu-flipped pairsam file
     - remove PCR duplicates by finding pairs of entries with both sides mapped
     to similar genomic locations (+/- N bp);
     - optionally output the PCR duplicate entries into a separate file.
     - NOTE: in order to remove all PCR duplicates, the input must contain \*all\* 
     LL/CX read pairs from a single experimental replicate;
 
-- pairsam_maskasdup: mark all pairs in a pairsam as Hi-C duplicates
+- maskasdup: mark all pairs in a pairsam as Hi-C duplicates
     - change the field pair_type to DD;
     - change the pair_type tag (Yt:Z:) for all sam alignments;
     - set the PCR duplicate binary flag for all sam alignments (0x400).
 
-- pairsam_split: split a pairsam file into pairs and sam alignments.
+- split: split a pairsam file into pairs and sam alignments.
 
-- pairsam_get_header: print the header of a pairsam file
-
-- pairsam_skip_header: print the body of a pairsam file, skipping the header
+All pairsamtools properly manage file headers and keep track of the data
+processing history.
 
 ### example pipeline
 
