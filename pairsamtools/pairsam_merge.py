@@ -4,7 +4,7 @@ import glob
 import subprocess
 import click
 
-from . import _common, cli, __version__
+from . import _common, _headerops, cli
 
 UTIL_NAME = 'pairsam_merge'
 
@@ -15,6 +15,7 @@ UTIL_NAME = 'pairsam_merge'
     type=str,
     )
 
+
 @click.option(
     "-o", "--output", 
     type=str, 
@@ -22,6 +23,7 @@ UTIL_NAME = 'pairsam_merge'
     help='output file.'
         ' If the path ends with .gz, the output is bgzip-compressed.'
         ' By default, the output is printed into stdout.')
+
 
 def merge(pairsam_path, output):
     """merge sorted pairs/pairsam files. 
@@ -42,17 +44,18 @@ def merge(pairsam_path, output):
                  if output else sys.stdout)
 
     paths = sum([glob.glob(mask) for mask in pairsam_path], [])
-    merged_header = form_merged_header(paths)
 
-    merged_header = _common.append_pg_to_sam_header(
-        merged_header,
-        {'ID': UTIL_NAME,
-         'PN': UTIL_NAME,
-         'VN': __version__,
-         'CL': ' '.join(sys.argv)
-         })
+    headers = []
+    for path in paths:
+        f = _common.open_bgzip(path, mode='r')
+        h, _ = _headerops.get_header(f)
+        headers.append(h)
+        f.close()
+    merged_header = _headerops.merge_headers(headers)
+    merged_header = _headerops.append_new_pg(
+        merged_header, ID=UTIL_NAME, PN=UTIL_NAME)
 
-    outstream.writelines(merged_header)
+    outstream.writelines((l+'\n' for l in merged_header))
     outstream.flush()
  
     command = r'''
@@ -77,72 +80,6 @@ def merge(pairsam_path, output):
     if outstream != sys.stdout:
         outstream.close()
 
-
-def form_merged_header(paths):
-    headers = []
-    for path in paths:
-        header = []
-        f = _common.open_bgzip(path, mode='r')
-        for line in f.readlines():
-            if line and not line.isspace():
-                if line.strip().startswith('#'):
-                    header.append(line.strip())
-                else:
-                    break
-        f.close()
-        headers.append(header)
-
-    # HD headers contain information that becomes invalid after processing
-    # with distiller. Do not print into the output.
-    HD_headers = [set(line for line in header if line.startswith('#@HD'))
-                  for header in headers]
-
-    SQ_headers = [set(line for line in header if line.startswith('#@SQ'))
-                  for header in headers]
-    common_sq_header = set.intersection(*SQ_headers)
-    sq_headers_same = all([len(header) == len(common_sq_header) 
-                           for header in SQ_headers])
-
-    if not sq_headers_same:
-        raise Exception('The SQ (sequence) lines of the sam headers are not identical')
-
-    # First select unique header lines that start with #@.
-    PQ_header = []
-    for i, header in enumerate(headers):
-        for line in header:
-            if line.startswith('#@PG'):
-                split_line = line.split('\t')
-                for j in range(len(split_line)):
-                    if (split_line[j].startswith('ID:') 
-                        or split_line[j].startswith('PP:')):
-                        split_line[j] = split_line[j] + '-' + str(i+1)
-                PQ_header.append('\t'.join(split_line))
-
-    other_sam_headers = sum([
-        list(set(line for line in header 
-            if line.startswith('#@') 
-                and (not line.startswith('#@HD'))
-                and (not line.startswith('#@SQ'))
-                and (not line.startswith('#@PG'))
-            ))
-        for header in headers], 
-        [])
-    other_headers = sum([
-        list(set(line for line in header 
-            if line.startswith('#') 
-                and (not line.startswith('#@'))
-            ))
-        for header in headers], 
-        [])
-
-    out_header = [line for line in headers[0] if line.startswith('#@SQ')]
-    out_header += PQ_header
-    out_header += other_sam_headers
-    out_header += other_headers
-
-    out_header = [l.strip() for l in out_header if l.strip()]
-
-    return out_header
 
 if __name__ == '__main__':
     merge()

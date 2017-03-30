@@ -2,7 +2,6 @@
 import os
 import sys
 import subprocess
-import click
 from nose.tools import assert_raises, with_setup
 import tempfile
 
@@ -63,19 +62,6 @@ def test_mock_pairsam():
         print(sys.exc_info())
         raise e
 
-    # check if the two headers got transferred correctly (PG's do get modified)
-    pairsam_header_1 = [l.strip() for l in open(mock_sorted_pairsam_path_1, 'r') if l.startswith('#')]
-    pairsam_header_2 = [l.strip() for l in open(mock_sorted_pairsam_path_2, 'r') if l.startswith('#')]
-    output_header  = [l.strip() for l in result.split('\n') if l.startswith('#')] 
-
-    for l in pairsam_header_1:
-        if not l.startswith('#@PG'):
-            assert any([l in l2 for l2 in pairsam_header_1])
-
-    for l in pairsam_header_2:
-        if not l.startswith('#@PG'):
-            assert any([l in l2 for l2 in pairsam_header_1])
-        
     # check that all pairsam entries survived sorting:
     pairsam_body_1 = [l.strip() for l in open(mock_pairsam_path_1, 'r') 
                       if not l.startswith('#') and l.strip()]
@@ -83,7 +69,6 @@ def test_mock_pairsam():
                       if not l.startswith('#') and l.strip()]
     output_body  = [l.strip() for l in result.split('\n')
                     if not l.startswith('#') and l.strip()]
-
     assert len(pairsam_body_1) + len(pairsam_body_2) == len(output_body)
 
     # check the sorting order of the output:
