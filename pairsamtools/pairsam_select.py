@@ -47,9 +47,10 @@ def select(
     '''select pairsam entries.
 
     CONDITION : A Python expression; if it returns True, select the read pair.
-    The following variables can be used: READ_ID, CHROM_1, CHROM_2, POS_1, 
-    POS_2, STRAND_1, STRAND_2. In Bash, quote CONDITION with single quotes,
-    and use double quotes for string variables inside CONDITION.
+    The column values are available as the following variables: READ_ID, 
+    CHROM_1, CHROM_2, POS_1, POS_2, STRAND_1, STRAND_2 (and COLS array to access
+    the string values of columns by index). In Bash, quote CONDITION with single
+    quotes, and use double quotes for string variables inside CONDITION.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
@@ -69,6 +70,7 @@ def select(
     Examples:
     pairsam select '(PAIR_TYPE=="LL") or (PAIR_TYPE=="CC")'
     pairsam select 'CHROM_1==CHROM_2'
+    pairsam select 'COLS[1]==COLS[2]'
     pairsam select '(CHROM_1==CHROM_2) and (abs(POS_1 - POS_2) < 1e6)'
     pairsam select '(CHROM_1=="!") and (CHROM_2!="!")'
     pairsam select 'regex_match(CHROM_1, "chr\d+") and regex_match(CHROM_2, "chr\d+")'
@@ -104,14 +106,14 @@ def select(
         return regex_library[regex].fullmatch(x)
     
     condition = condition.strip()
-    condition = condition.replace('PAIR_TYPE', 'cols[_common.COL_PTYPE]')
-    condition = condition.replace('READ_ID', 'cols[_common.COL_READID]')
-    condition = condition.replace('CHROM_1', 'cols[_common.COL_C1]')
-    condition = condition.replace('CHROM_2', 'cols[_common.COL_C2]')
-    condition = condition.replace('POS_1', 'int(cols[_common.COL_P1])')
-    condition = condition.replace('POS_2', 'int(cols[_common.COL_P2])')
-    condition = condition.replace('STRAND_1', 'cols[_common.COL_P1]')
-    condition = condition.replace('STRAND_2', 'cols[_common.COL_P2]')
+    condition = condition.replace('PAIR_TYPE', 'COLS[_common.COL_PTYPE]')
+    condition = condition.replace('READ_ID', 'COLS[_common.COL_READID]')
+    condition = condition.replace('CHROM_1', 'COLS[_common.COL_C1]')
+    condition = condition.replace('CHROM_2', 'COLS[_common.COL_C2]')
+    condition = condition.replace('POS_1', 'int(COLS[_common.COL_P1])')
+    condition = condition.replace('POS_2', 'int(COLS[_common.COL_P2])')
+    condition = condition.replace('STRAND_1', 'COLS[_common.COL_P1]')
+    condition = condition.replace('STRAND_2', 'COLS[_common.COL_P2]')
     match_func = compile(condition, '<string>', 'eval')
 
     header, body_stream = _headerops.get_header(instream)
@@ -121,7 +123,7 @@ def select(
         outstream_rest.writelines((l+'\n' for l in header))
 
     for line in body_stream:
-        cols = line[:-1].split(_common.PAIRSAM_SEP)
+        COLS = line[:-1].split(_common.PAIRSAM_SEP)
         if eval(match_func):
             outstream.write(line)
         elif outstream_rest:
