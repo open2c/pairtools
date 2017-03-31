@@ -34,13 +34,17 @@ def get_header(instream, comment_char='#'):
     header = []
     if not comment_char:
         raise Exception('Please, provide a comment char!')
+    line = None
     for line in instream:
         if line.startswith(comment_char):
             header.append(line.strip())
         else:
             break
-        
-    return header, itertools.chain([line], instream)
+
+    if line:
+        return header, itertools.chain([line], instream)
+    else:
+        return header, instream
 
 
 def _extract_samheader(header):
