@@ -82,7 +82,7 @@ def make_standard_pairsheader(
         else:
             header.append('#chromosomes: {}'.format(' '.join(chromosomes)))
 
-    header.append('#columns: readID chrom1 chrom2 pos1 pos2 strand1 strand2 pair_type sam1 sam2')
+    header.append('#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type sam1 sam2')
 
     return header
 

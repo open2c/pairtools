@@ -2,8 +2,8 @@ import pipes
 
 COL_READID = 0
 COL_C1 = 1
-COL_C2 = 2
-COL_P1 = 3
+COL_P1 = 2
+COL_C2 = 3
 COL_P2 = 4
 COL_S1 = 5
 COL_S2 = 6

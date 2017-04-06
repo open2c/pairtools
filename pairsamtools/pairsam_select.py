@@ -70,7 +70,7 @@ def select(
     Examples:
     pairsam select '(PAIR_TYPE=="LL") or (PAIR_TYPE=="CC")'
     pairsam select 'CHROM_1==CHROM_2'
-    pairsam select 'COLS[1]==COLS[2]'
+    pairsam select 'COLS[1]==COLS[3]'
     pairsam select '(CHROM_1==CHROM_2) and (abs(POS_1 - POS_2) < 1e6)'
     pairsam select '(CHROM_1=="!") and (CHROM_2!="!")'
     pairsam select 'regex_match(CHROM_1, "chr\d+") and regex_match(CHROM_2, "chr\d+")'

@@ -3,10 +3,10 @@
 #shape: upper triangle
 #genome_assembly: unknown
 #chromosomes: chr1 chr2
-#columns: readID chrom1 chrom2 pos1 pos2 strand1 strand2 pair_type sam1 sam2
-.	chr1	chr1	1	25	+	+	LL	.	.
-.	chr1	chr1	1	27	+	+	LL	.	.
-.	chr1	chr1	1	28	+	-	LL	.	.
-.	chr1	chr1	1	28	+	+	LL	.	.
-.	chr1	chr1	1	50	+	+	LL	.	.
-.	chr1	chr2	1	25	+	+	LL	.	.
+#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type sam1 sam2
+.	chr1	1	chr1	25	+	+	LL	.	.
+.	chr1	1	chr1	27	+	+	LL	.	.
+.	chr1	1	chr1	28	+	-	LL	.	.
+.	chr1	1	chr1	28	+	+	LL	.	.
+.	chr1	1	chr1	50	+	+	LL	.	.
+.	chr1	1	chr2	25	+	+	LL	.	.

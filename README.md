@@ -107,8 +107,8 @@ a "\t" character (a horizontal tab):
 |-------|-----------|-------------|
 | 1     | read_id   | the ID of the read as defined in fastq files |
 | 2     | chrom1    | the chromosome of the alignment on side 1 |
-| 3     | chrom2    | the chromosome of the alignment on side 2 |
-| 4     | pos1      | the 1-based genomic position of the outer-most (5') mapped bp on side 1 |
+| 3     | pos1      | the 1-based genomic position of the outer-most (5') mapped bp on side 1 |
+| 4     | chrom2    | the chromosome of the alignment on side 2 |
 | 5     | pos2      | the 1-based genomic position of the outer-most (5') mapped bp on side 2 |
 | 6     | strand1   | the strand of the alignment on side 1 |
 | 7     | strand2   | the strand of the alignment on side 2 |

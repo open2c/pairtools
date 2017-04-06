@@ -53,6 +53,7 @@ def test_mock_pairsam():
     assert len(output_dups_body) > 0
 
     # check that all pairsam entries survived deduping:
+
     assert len(output_body) + len(output_dups_body) == len(pairsam_body)
 
 
@@ -62,10 +63,10 @@ def test_mock_pairsam():
     def pairs_overlap(pair1, pair2, max_mismatch):
         overlap = (
             (pair1[1] == pair2[1])
-            and (pair1[2] == pair2[2])
+            and (pair1[3] == pair2[3])
             and (pair1[5] == pair2[5])
             and (pair1[6] == pair2[6])
-            and (abs(int(pair1[3]) - int(pair2[3])) <= max_mismatch)
+            and (abs(int(pair1[2]) - int(pair2[2])) <= max_mismatch)
             and (abs(int(pair1[4]) - int(pair2[4])) <= max_mismatch)
             )
         return overlap
