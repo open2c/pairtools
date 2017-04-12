@@ -286,7 +286,7 @@ def get_pair_order(chrm1, pos1, chrm2, pos2):
     elif (chrm1 > chrm2):
         return 1
     else:
-        return int(pos1 < pos2) * 2 - 1
+        return int(pos1 > pos2) * 2 - 1
 
 
 def classify(sams1, sams2, min_mapq, max_molecule_size):
@@ -378,7 +378,7 @@ def classify(sams1, sams2, min_mapq, max_molecule_size):
                 algn2 = algn2_5
                 flip_pair = get_pair_order(
                     algn1['chrom'], algn1['pos'],
-                    algn2['chrom'], algn2['pos']) < 0
+                    algn2['chrom'], algn2['pos']) > 0
             else:
                 pair_type = 'CL'
                 flip_pair = is_chimeric_2
@@ -396,7 +396,7 @@ def classify(sams1, sams2, min_mapq, max_molecule_size):
         pair_type = 'LL'
         flip_pair = get_pair_order(
             algn1['chrom'], algn1['pos'],
-            algn2['chrom'], algn2['pos']) < 0
+            algn2['chrom'], algn2['pos']) > 0
 
     return pair_type, algn1, algn2, flip_pair
 
