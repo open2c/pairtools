@@ -26,12 +26,27 @@ UTIL_NAME = 'pairsam_stats'
     default="", 
     help='output stats tsv file.')
 
-def stats(pairsam_path, output):
+@click.option(
+    '-m', "--merge", 
+    type=str, 
+    default="", 
+    multiple=True,
+    help='If provided, merge multiple stats files instead of calculating'
+        ' statistics on the input file. Provide each of the files to merge using'
+        ' a separate -m flag.',
+    )
+
+
+def stats(pairsam_path, output, merge):
     '''Calculate various statistics of a pairs/pairsam file. 
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
     '''
+
+    if merge:
+        do_merge(output, merge)
+        return
 
     instream = (_common.open_bgzip(pairsam_path, mode='r') 
                 if pairsam_path else sys.stdin)
@@ -128,6 +143,52 @@ def stats(pairsam_path, output):
     if outstream != sys.stdout:
         outstream.close()
 
+
+def do_merge(output, files_to_merge):
+
+    # Parse all stats files.
+    stats = []
+    for stat_file in files_to_merge:
+        f = _common.open_bgzip(stat_file,'r')
+        stat = OrderedDict()
+        for l in f:
+            fields = l.strip().split('\t') 
+            if len(fields) == 0:
+                continue
+            if len(fields) != 2:
+                raise Exception(
+                    '{} is not a valid stats file'.format(stat_file))
+            stat[fields[0]] = int(fields[1])
+
+        stats.append(stat)
+        f.close()
+
+    # Find a set of all possible keys. First, print overlapping keys, 
+    # preserving the order. Then, add unique keys from each of the stats tables.
+    out_keys = [
+        k for k in stats[0]
+        if all(k in stat for stat in stats)]
+
+    for stat in stats:
+        out_keys += [
+            k for k in stat
+            if k not in out_keys]
+
+    # Sum all stats.
+    out_stats = OrderedDict()
+    for k in out_keys:
+        out_stats[k] = sum(stat.get(k, 0) for stat in stats)
+
+
+    # Save merged stats.
+    outstream = (_common.open_bgzip(output, mode='w') 
+                 if output else sys.stdout)
+
+    for k,v in out_stats.items():
+        outstream.write('{}\t{}\n'.format(k,v))
+        
+    if outstream != sys.stdout:
+        outstream.close()
 
 if __name__ == '__main__':
     stats()
