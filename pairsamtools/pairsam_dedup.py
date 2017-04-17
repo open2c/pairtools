@@ -148,8 +148,8 @@ def dedup(pairsam_path, output, output_dups,
 
     if stats_file:
         stat_f = _common.open_bgzip(stats_file, mode='a') 
-        stat_f.write('{}\t\{}\n'.format('n_dups', n_dups))
-        stat_f.write('{}\t\{}\n'.format('n_nodups', n_nodups))
+        stat_f.write('{}\t{}\n'.format('n_dups', n_dups))
+        stat_f.write('{}\t{}\n'.format('n_nodups', n_nodups))
         stat_f.close()
 
     if instream != sys.stdin:
