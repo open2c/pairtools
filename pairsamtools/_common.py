@@ -43,12 +43,16 @@ def open_bgzip(path, mode):
     '''Opens a file as a bgzip file is `path` ends with .bam, otherwise 
     opens it as a text.
     '''
-    if mode not in ['r','w']:
-        raise Exception("mode can be either 'r' or 'w'")
+    if mode not in ['r','w', 'a']:
+        raise Exception("mode can be either 'r', 'w' or 'a'")
     if path.endswith('.gz'):
         if mode =='w': 
             t = pipes.Template()
             t.append('bgzip -c', '--')
+            f = t.open(path, 'w')
+        elif mode =='a': 
+            t = pipes.Template()
+            t.append('bgzip -c $IN >> $OUT', 'ff')
             f = t.open(path, 'w')
         elif mode =='r': 
             t = pipes.Template()
