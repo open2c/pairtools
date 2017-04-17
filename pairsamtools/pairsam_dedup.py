@@ -38,6 +38,14 @@ MAX_LEN = 10000
         ' If the path ends with .gz, the output is bgzip-compressed.'
         ' By default, duplicates are dropped.')
 @click.option(
+    "--stats-file", 
+    type=str, 
+    default="", 
+    help='output file for duplicate statistics. '
+        ' If file exists, it will be open in the append mode.'
+        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' By default, statistics are not printed.')
+@click.option(
     "--max-mismatch",
     type=int, 
     default=3,
@@ -97,7 +105,9 @@ MAX_LEN = 10000
     default=_common.COL_S2,  
     help='Strand 2 column; default {}'.format(_common.COL_S2))
 
-def dedup(pairsam_path, output, output_dups, max_mismatch, method, 
+def dedup(pairsam_path, output, output_dups,
+    stats_file,
+    max_mismatch, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2
     ):
@@ -131,10 +141,16 @@ def dedup(pairsam_path, output, output_dups, max_mismatch, method,
     if send_header_to_dup and outstream_dups:
         outstream_dups.writelines((l+'\n' for l in header))
 
-    streaming_dedup(
+    n_dups, n_nodups = streaming_dedup(
         method, max_mismatch, sep, 
         c1, c2, p1, p2, s1, s2,
         body_stream, outstream, outstream_dups)
+
+    if stats_file:
+        stat_f = _common.open_bgzip(stats_file, mode='a') 
+        stat_f.write('{}\t\{}\n'.format('n_dups', n_dups))
+        stat_f.write('{}\t\{}\n'.format('n_nodups', n_nodups))
+        stat_f.close()
 
     if instream != sys.stdin:
         instream.close()
@@ -170,6 +186,8 @@ def streaming_dedup(
     lines = []
     chromDict = {}
     strandDict = {}
+    n_dups = 0
+    n_nodups = 0
 
     while True: 
         line = next(instream, None)
@@ -207,7 +225,9 @@ def streaming_dedup(
             for newline, remove in zip(lines[:len(res)], res):
                 if not remove:
                     outstream.write(newline)  
+                    n_nodups += 1
                 else:
+                    n_dups += 1
                     if outstream_dups:
                         outstream_dups.write(newline)
                     
@@ -220,6 +240,8 @@ def streaming_dedup(
                         + "should be none;"
                         + "something went terribly wrong")
                 break
+
+    return n_dups, n_nodups
 
 
 if __name__ == '__main__':
