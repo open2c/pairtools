@@ -16,8 +16,9 @@ UTIL_NAME = 'pairsam_stats'
 @cli.command()
 
 @click.argument(
-    'pairsam_path', 
+    'input_path', 
     type=str,
+    nargs=-1,
     required=False)
 
 @click.option(
@@ -27,29 +28,32 @@ UTIL_NAME = 'pairsam_stats'
     help='output stats tsv file.')
 
 @click.option(
-    '-m', "--merge", 
-    type=str, 
-    default="", 
-    multiple=True,
-    help='If provided, merge multiple stats files instead of calculating'
-        ' statistics on the input file. Provide each of the files to merge using'
-        ' a separate -m flag.',
+    "--merge", 
+    is_flag=True,
+    help='If specified, merge multiple input stats files instead of calculating'
+        ' statistics of a pairsam file. Merging is performed via summation of'
+        ' all overlapping statistics. Non-overlapping statistics are appended to'
+        ' the end of the file.',
     )
 
 
-def stats(pairsam_path, output, merge):
+def stats(input_path, output, merge):
     '''Calculate various statistics of a pairs/pairsam file. 
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
-    gzip-decompressed. By default, the input is read from stdin.
+    INPUT_PATH : by default, a .pairsam file to calculate statistics.
+    If not provided, the input is read from stdin.
+    If --merge is specified, then INPUT_PATH is interpreted as an arbitrary number 
+    of stats files to merge.
+    
+    The files with paths ending with .gz are gzip-decompressed. 
     '''
 
     if merge:
-        do_merge(output, merge)
+        do_merge(output, input_path)
         return
 
-    instream = (_common.open_bgzip(pairsam_path, mode='r') 
-                if pairsam_path else sys.stdin)
+    instream = (_common.open_bgzip(input_path[0], mode='r') 
+                if input_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
