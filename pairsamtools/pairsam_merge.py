@@ -29,7 +29,8 @@ UTIL_NAME = 'pairsam_merge'
     "--nproc", 
     type=int, 
     default=8, 
-    help='Number of processes to split the work between.'
+    help='Number of threads per process.',
+    show_default=True,
     )
 
 
@@ -50,9 +51,7 @@ def merge(pairsam_path, output, nproc):
 
     paths = sum([glob.glob(mask) for mask in pairsam_path], [])
 
-    nproc_per_process = int(math.ceil(nproc  / (len(paths) + 2)))
-
-    outstream = (_common.open_bgzip(output, mode='w', nproc=nproc_per_process) 
+    outstream = (_common.open_bgzip(output, mode='w', nproc=nproc) 
                  if output else sys.stdout)
 
 
@@ -71,7 +70,9 @@ def merge(pairsam_path, output, nproc):
  
     command = r'''
         /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
-        --merge  --field-separator=$'\''{5}'\'' --parallel={6}
+        --merge  --field-separator=$'\''{5}'\''
+        {6}
+        -S 1G
         '''.replace('\n',' ').format(
                 _common.COL_C1+1, 
                 _common.COL_C2+1, 
@@ -79,11 +80,11 @@ def merge(pairsam_path, output, nproc):
                 _common.COL_P2+1,
                 _common.COL_PTYPE+1,
                 _common.PAIRSAM_SEP_ESCAPE,
-                nproc_per_process
+                ' --parallel={} '.format(nproc) if nproc > 1 else ' ',
                 )
     for path in paths:
         if path.endswith('.gz'):
-            command += r''' <(pbgzip -dc -n {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(nproc_per_process, path)
+            command += r''' <(pbgzip -dc -n {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(nproc, path)
         else:
             command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(path)
     command += "'"
