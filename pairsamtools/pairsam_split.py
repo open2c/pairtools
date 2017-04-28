@@ -70,7 +70,10 @@ def split(pairsam_path, output_pairs, output_sam):
             outstream_pairs.write('\t'.join(cols[:_common.COL_SAM1]))
             outstream_pairs.write('\n')
         
-        if outstream_sam:
+        if (outstream_sam 
+            and (len(cols) > _common.COL_SAM1) 
+            and (len(cols) > _common.COL_SAM2)):
+
             for col in (cols[_common.COL_SAM1],
                         cols[_common.COL_SAM2]):
                 for sam_entry in col.split(_common.INTER_SAM_SEP):
