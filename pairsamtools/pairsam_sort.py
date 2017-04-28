@@ -78,7 +78,8 @@ def sort(pairsam_path, output, nproc, tmpdir, memory):
         --stable
         --field-separator=$'\''{5}'\'' 
         {6}
-        -S {7}
+        {7}
+        -S {8}
         '''.replace('\n',' ').format(
                 _common.COL_C1+1, 
                 _common.COL_C2+1, 
