@@ -42,14 +42,15 @@ def markasdup(pairsam_path, output):
         cols = line[:-1].split(_common.PAIRSAM_SEP)
         cols[_common.COL_PTYPE] = 'DD'
         
-        for i in (_common.COL_SAM1,
-                  _common.COL_SAM2):
-                
-            # split each sam column into sam entries, tag and assemble back
-            cols[i] = _common.INTER_SAM_SEP.join(
-                [mark_sam_as_dup(sam) 
-                 for sam in cols[i].split(_common.INTER_SAM_SEP)
-                ])
+        if (len(cols) > _common.COL_SAM1) and (len(cols) > _common.COL_SAM2):
+            for i in (_common.COL_SAM1,
+                      _common.COL_SAM2):
+                    
+                # split each sam column into sam entries, tag and assemble back
+                cols[i] = _common.INTER_SAM_SEP.join(
+                    [mark_sam_as_dup(sam) 
+                     for sam in cols[i].split(_common.INTER_SAM_SEP)
+                    ])
 
         outstream.write(_common.PAIRSAM_SEP.join(cols))
         outstream.write('\n')
@@ -63,6 +64,10 @@ def mark_sam_as_dup(sam):
     '''Tag the binary flag and the optional pair type field of a sam entry
     as a PCR duplicate.'''
     samcols = sam.split(_common.SAM_SEP)
+
+    if len(samcols) == 1:
+        return sam
+
     samcols[1] = str(int(samcols[1]) | 1024)
 
     for j in range(11, len(samcols)):
