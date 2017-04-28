@@ -39,7 +39,7 @@ def open_sam_or_bam(path, mode):
         return open(path, mode)
 
 
-def open_bgzip(path, mode, nproc=1):
+def open_bgzip(path, mode, nproc=8):
     '''Opens a file as a bgzip file is `path` ends with .bam, otherwise 
     opens it as a text.
     '''
