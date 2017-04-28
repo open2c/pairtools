@@ -39,29 +39,28 @@ def open_sam_or_bam(path, mode):
         return open(path, mode)
 
 
-def open_bgzip(path, mode):
+def open_bgzip(path, mode, nproc=1):
     '''Opens a file as a bgzip file is `path` ends with .bam, otherwise 
     opens it as a text.
     '''
-    if mode not in ['r','w', 'a']:
+    if mode not in ['r', 'w', 'a']:
         raise Exception("mode can be either 'r', 'w' or 'a'")
     if path.endswith('.gz'):
         if mode =='w': 
             t = pipes.Template()
-            t.append('bgzip -c', '--')
+            t.append('pbgzip -c -n {}'.format(nproc), '--')
             f = t.open(path, 'w')
         elif mode =='a': 
             t = pipes.Template()
-            t.append('bgzip -c $IN >> $OUT', 'ff')
+            t.append('pbgzip -c -n {} $IN >> $OUT'.format(nproc), 'ff')
             f = t.open(path, 'w')
         elif mode =='r': 
             t = pipes.Template()
-            t.append('zcat', '--')
+            t.append('pbgzip -dc -n {}'.format(nproc), '--')
             f = t.open(path, 'r')
         else:
             raise Exception("Unknown mode : {}".format(mode))
         return f
     else:
         return open(path, mode)
-
 
