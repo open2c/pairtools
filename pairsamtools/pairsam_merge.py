@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import glob
+import math
 import subprocess
 import click
 
@@ -24,8 +25,15 @@ UTIL_NAME = 'pairsam_merge'
         ' If the path ends with .gz, the output is bgzip-compressed.'
         ' By default, the output is printed into stdout.')
 
+@click.option(
+    "--nproc", 
+    type=int, 
+    default=8, 
+    help='Number of processes to split the work between.'
+    )
 
-def merge(pairsam_path, output):
+
+def merge(pairsam_path, output, nproc):
     """merge sorted pairs/pairsam files. 
 
     Merge triu-flipped sorted pairs/pairsam files. If present, the @SQ records 
@@ -40,10 +48,13 @@ def merge(pairsam_path, output):
     
     """
 
-    outstream = (_common.open_bgzip(output, mode='w') 
+    paths = sum([glob.glob(mask) for mask in pairsam_path], [])
+
+    nproc_per_process = int(math.ceil(nproc  / (len(paths) + 2)))
+
+    outstream = (_common.open_bgzip(output, mode='w', nproc=nproc_per_process) 
                  if output else sys.stdout)
 
-    paths = sum([glob.glob(mask) for mask in pairsam_path], [])
 
     headers = []
     for path in paths:
@@ -60,18 +71,19 @@ def merge(pairsam_path, output):
  
     command = r'''
         /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
-        --merge --field-separator=$'\''{5}'\'' 
+        --merge  --field-separator=$'\''{5}'\'' --parallel={6}
         '''.replace('\n',' ').format(
                 _common.COL_C1+1, 
                 _common.COL_C2+1, 
                 _common.COL_P1+1, 
                 _common.COL_P2+1,
                 _common.COL_PTYPE+1,
-                _common.PAIRSAM_SEP_ESCAPE
+                _common.PAIRSAM_SEP_ESCAPE,
+                nproc_per_process
                 )
     for path in paths:
         if path.endswith('.gz'):
-            command += r''' <(zcat {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path)
+            command += r''' <(pbgzip -dc -n {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(nproc_per_process, path)
         else:
             command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(path)
     command += "'"
