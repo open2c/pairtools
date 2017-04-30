@@ -45,12 +45,16 @@ UTIL_NAME = 'pairsam_parse'
     is_flag=True,
     help='If specified, do not add read ids to the output')
 @click.option(
+    "--drop-seq", 
+    is_flag=True,
+    help='If specified, remove sequences and PHREDs from the sam fields')
+@click.option(
     "--drop-sam", 
     is_flag=True,
     help='If specified, do not add sams to the output')
 
 def parse(sam_path, output, assembly, min_mapq, max_molecule_size, 
-          drop_readid, drop_sam):
+          drop_readid, drop_seq, drop_sam):
     '''parse .sam and make .pairsam.
 
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
@@ -73,7 +77,7 @@ def parse(sam_path, output, assembly, min_mapq, max_molecule_size,
 
 
     streaming_classify(body_stream, outstream, min_mapq, max_molecule_size,
-                       drop_readid, drop_sam)
+                       drop_readid, drop_seq, drop_sam)
 
 
     if instream != sys.stdin:
@@ -401,12 +405,23 @@ def classify(sams1, sams2, min_mapq, max_molecule_size):
     return pair_type, algn1, algn2, flip_pair
 
 
-def push_sam(line, sams1, sams2):
+def push_sam(line, drop_seq, sams1, sams2):
     """
 
     """
-    _, flag, _ = line.split('\t', 2)
-    flag = int(flag)
+
+    if drop_seq:
+        split_line = line.split('\t')
+        split_line[9] = '.'
+        split_line[10] = '.'
+        line = '\t'.join(split_line)
+
+        flag = split_line[1]
+        flag = int(flag)
+    else:
+        _, flag, _ = line.split('\t', 2)
+        flag = int(flag)
+
 
     if ((flag & 0x40) != 0):
         if ((flag & 0x800) == 0):
@@ -473,7 +488,7 @@ def write_pairsam(
 
 
 def streaming_classify(instream, outstream, min_mapq, max_molecule_size, 
-                       drop_readid, drop_sam):
+                       drop_readid, drop_seq, drop_sam):
     """
 
     """
@@ -516,7 +531,7 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
             sams2.clear()
 
         if line is not None:
-            push_sam(line, sams1, sams2)
+            push_sam(line, drop_seq, sams1, sams2)
             prev_read_id = read_id
 
 if __name__ == '__main__':
