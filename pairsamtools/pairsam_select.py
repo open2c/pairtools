@@ -76,7 +76,13 @@ def select(
     pairsam select 'regex_match(CHROM_1, "chr\d+") and regex_match(CHROM_2, "chr\d+")'
 
     '''
+    select_py(
+        condition, pairsam_path, output, output_rest, send_comments_to
+    )
     
+def select_py(
+    condition, pairsam_path, output, output_rest, send_comments_to
+    ):
     instream = (_common.open_bgzip(pairsam_path, mode='r') 
                 if pairsam_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 

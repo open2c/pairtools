@@ -31,13 +31,25 @@ UTIL_NAME = 'pairsam_split'
         ' If -, sam entries are printed to stdout.'
         ' If not specified, sam entries are dropped.')
 
-def split(pairsam_path, output_pairs, output_sam):
+@click.option(
+    "--nproc", 
+    type=int, 
+    default=8, 
+    show_default=True,
+    help='Number of processes to split the work between.'
+    )
+
+def split(pairsam_path, output_pairs, output_sam, nproc):
     '''split a .pairsam file into pairs and sam.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
     '''
-    instream = (_common.open_bgzip(pairsam_path, mode='r') 
+    split_py(pairsam_path, output_pairs, output_sam, nproc)
+
+
+def split_py(pairsam_path, output_pairs, output_sam, nproc):
+    instream = (_common.open_bgzip(pairsam_path, mode='r', nproc=nproc) 
                 if pairsam_path else sys.stdin)
 
     # Output streams
@@ -47,10 +59,10 @@ def split(pairsam_path, output_pairs, output_sam):
         raise Exception('Only one output (pairs or sam) can be printed in stdout!')
 
     outstream_pairs = (sys.stdout if (output_pairs=='-')
-                  else _common.open_bgzip(output_pairs, mode='w') if output_pairs
+                  else _common.open_bgzip(output_pairs, mode='w', nproc=nproc) if output_pairs
                   else None)
     outstream_sam = (sys.stdout if (output_sam=='-')
-                else _common.open_sam_or_bam(output_sam, mode='w') if output_sam
+                else _common.open_sam_or_bam(output_sam, mode='w', nproc=nproc) if output_sam
                 else None)
 
     header, body_stream = _headerops.get_header(instream)

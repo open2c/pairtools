@@ -120,8 +120,20 @@ def dedup(pairsam_path, output, output_dups,
     path ends with .gz, the input is gzip-decompressed. By default, the input 
     is read from stdin.
     '''
+    dedup_py(pairsam_path, output, output_dups,
+        stats_file,
+        max_mismatch, method, 
+        sep, comment_char, send_header_to,
+        c1, c2, p1, p2, s1, s2
+        )
 
 
+def dedup_py(pairsam_path, output, output_dups,
+    stats_file,
+    max_mismatch, method, 
+    sep, comment_char, send_header_to,
+    c1, c2, p1, p2, s1, s2
+    ):
     sep = ast.literal_eval('"""' + sep + '"""')
     send_header_to_dedup = send_header_to in ['both', 'dedup']
     send_header_to_dup = send_header_to in ['both', 'dups']

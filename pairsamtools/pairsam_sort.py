@@ -58,6 +58,9 @@ def sort(pairsam_path, output, nproc, tmpdir, memory):
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
     '''
+    sort_py(pairsam_path, output, nproc, tmpdir, memory)
+
+def sort_py(pairsam_path, output, nproc, tmpdir, memory):
 
     instream = (_common.open_bgzip(pairsam_path, mode='r', nproc=nproc) 
                 if pairsam_path else sys.stdin)

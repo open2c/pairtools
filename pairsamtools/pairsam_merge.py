@@ -48,7 +48,9 @@ def merge(pairsam_path, output, nproc):
     or a group/groups of .pairsam files specified by a wildcard
     
     """
+    merge_py(pairsam_path, output, nproc)
 
+def merge_py(pairsam_path, output, nproc):
     paths = sum([glob.glob(mask) for mask in pairsam_path], [])
 
     outstream = (_common.open_bgzip(output, mode='w', nproc=nproc) 

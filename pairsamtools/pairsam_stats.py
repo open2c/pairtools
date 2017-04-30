@@ -47,7 +47,9 @@ def stats(input_path, output, merge):
     
     The files with paths ending with .gz are gzip-decompressed. 
     '''
+    stats_py(input_path, output, merge)
 
+def stats_py(input_path, output, merge):
     if merge:
         do_merge(output, input_path)
         return

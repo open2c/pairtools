@@ -40,7 +40,9 @@ def restrict(pairsam_path, frags, output):
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
     '''
+    restrict_py(pairsam_path, frags, output)
 
+def restrict_py(pairsam_path, frags, output):
     instream = (_common.open_bgzip(pairsam_path, mode='r') 
                 if pairsam_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 

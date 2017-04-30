@@ -27,6 +27,9 @@ def markasdup(pairsam_path, output):
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
     '''
+    markasdup_py(pairsam_path, output)
+
+def markasdup_py(pairsam_path, output):
     instream = (_common.open_bgzip(pairsam_path, mode='r') 
                 if pairsam_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 

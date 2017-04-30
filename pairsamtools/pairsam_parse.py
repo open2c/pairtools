@@ -60,7 +60,11 @@ def parse(sam_path, output, assembly, min_mapq, max_molecule_size,
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
     decompressed from bam. By default, the input is read from stdin.
     '''
+    parse_py(sam_path, output, assembly, min_mapq, max_molecule_size, 
+             drop_readid, drop_seq, drop_sam)
 
+def parse_py(sam_path, output, assembly, min_mapq, max_molecule_size, 
+          drop_readid, drop_seq, drop_sam):
     instream = (_common.open_sam_or_bam(sam_path, mode='r') 
                 if sam_path else sys.stdin)
     outstream = (_common.open_bgzip(output, mode='w') 
