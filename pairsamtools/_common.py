@@ -17,7 +17,7 @@ SAM_SEP = '\031'
 SAM_SEP_ESCAPE = r'\031'
 INTER_SAM_SEP = '\031NEXT_SAM\031'
 
-def open_sam_or_bam(path, mode):
+def open_sam_or_bam(path, mode, nproc=8):
     '''Opens a file as a bam file is `path` ends with .bam, otherwise 
     opens it as a sam.
     '''
@@ -26,7 +26,9 @@ def open_sam_or_bam(path, mode):
     if path.endswith('.bam'):
         if mode =='w': 
             t = pipes.Template()
-            t.append('samtools view -bS', '--')
+            t.append('samtools view -bS {}'.format(
+                         '-@ '+str(nproc-1) if nproc>1 else ''),
+                     '--')
             f = t.open(path, 'w')
         elif mode =='r': 
             t = pipes.Template()
