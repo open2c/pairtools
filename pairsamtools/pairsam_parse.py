@@ -416,8 +416,8 @@ def push_sam(line, drop_seq, sams1, sams2):
 
     if drop_seq:
         split_line = line.split('\t')
-        split_line[9] = '.'
-        split_line[10] = '.'
+        split_line[9] = '*'
+        split_line[10] = '*'
         line = '\t'.join(split_line)
 
         flag = split_line[1]
