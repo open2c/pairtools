@@ -70,6 +70,12 @@ def stats_py(input_path, output, merge):
     stats['cis'] = 0
     stats['trans'] = 0
     stats['pair_types'] = {}
+
+    stats['cis_1kb+'] = 0
+    stats['cis_2kb+'] = 0
+    stats['cis_10kb+'] = 0
+    stats['cis_20kb+'] = 0
+
     stats['chrom_freq'] = OrderedDict()
     min_log10_dist = 0
     max_log10_dist = 9
@@ -79,7 +85,6 @@ def stats_py(input_path, output, merge):
         .astype(np.int)]
     )
 
-    stats['dist_bins'] = dist_bins
     stats['dist_freq'] = OrderedDict([
         ('+-', np.zeros(len(dist_bins), dtype=np.int)),
         ('-+', np.zeros(len(dist_bins), dtype=np.int)),
@@ -87,6 +92,7 @@ def stats_py(input_path, output, merge):
         ('++', np.zeros(len(dist_bins), dtype=np.int)),
         ])
 
+    # Collecting statistics
     for line in body_stream:
         cols = line[:-1].split(_common.PAIRSAM_SEP)
         chrom1, pos1, strand1 = (
@@ -110,14 +116,25 @@ def stats_py(input_path, output, merge):
 
             if chrom1 == chrom2:
                 stats['cis'] += 1
-                bin_idx = np.searchsorted(dist_bins, pos2-pos1, 'right') -1
+                dist = np.abs(pos2-pos1)
+                bin_idx = np.searchsorted(dist_bins, dist, 'right') -1
                 stats['dist_freq'][strand1+strand2][bin_idx] += 1
+                if dist >= 1000:
+                    stats['cis_1kb+'] += 1
+                if dist >= 2000:
+                    stats['cis_2kb+'] += 1
+                if dist >= 10000:
+                    stats['cis_10kb+'] += 1
+                if dist >= 20000:
+                    stats['cis_20kb+'] += 1
 
             else:
                 stats['trans'] += 1
         else:
             stats['total_single_sided_mapped'] += 1
 
+
+    # Storing statistics
     for k,v in stats.items():
         if isinstance(v, int):
             outstream.write('{}\t{}\n'.format(k,v))
