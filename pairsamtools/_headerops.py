@@ -2,11 +2,10 @@ import sys
 import copy
 import itertools
 
-from . import __version__
+from . import __version__, _pairsam_format
 
 
 PAIRS_FORMAT_VERSION = '1.0.0'
-SAMHEADER_COMMENT = '#samheader:'
 
 
 def get_header(instream, comment_char='#'):
@@ -47,15 +46,36 @@ def get_header(instream, comment_char='#'):
         return header, instream
 
 
-def _extract_samheader(header):
-    samheader = []
-    other = []
+def extract_fields(header, field_name, save_rest=False):
+    '''
+    Extract the specified fields from the pairs header and returns
+    a list of corresponding values, even if a single field was found.
+    Additionally, can return the list of intact non-matching entries.
+    '''
+
+    fields = []
+    rest = []
     for l in header:
-        if l.startswith(SAMHEADER_COMMENT):
-            samheader.append(l[len(SAMHEADER_COMMENT):].strip())
-        else:
-            other.append(l)
-    return samheader, other
+        if l.lstrip('#').startswith(field_name+':'):
+            fields.append(l.split(':',1)[1].strip())
+        elif save_rest:
+            rest.append(l)
+
+    if save_rest:
+        return fields, rest
+    else:
+        return fields
+
+def extract_column_names(header):
+    '''
+    Extract column names from header lines.
+    '''
+    columns = extract_fields(header, 'columns')
+
+    if len(columns) != 0:
+        return columns[0].split(' ')
+    else:
+        return []
 
 
 def _get_chroms_from_sam_header(samheader):
@@ -68,6 +88,7 @@ def _get_chroms_from_sam_header(samheader):
 def make_standard_pairsheader(
         assembly=None,
         chromosomes=None,
+        columns = _pairsam_format.COLUMNS
         ):
     header = []
     header.append(
@@ -82,7 +103,7 @@ def make_standard_pairsheader(
         else:
             header.append('#chromosomes: {}'.format(' '.join(chromosomes)))
 
-    header.append('#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type sam1 sam2')
+    header.append('#columns: '+ ' '.join(columns))
 
     return header
 
@@ -111,7 +132,7 @@ def mark_header_as_sorted(header):
 
 def append_new_pg(header, ID='', PN='', VN=None, CL=None, force=False):
     header = copy.deepcopy(header)
-    samheader, other_header = _extract_samheader(header)
+    samheader, other_header = extract_fields(header, 'samheader', save_rest=True)
     new_samheader = _add_pg_to_samheader(samheader, ID, PN, VN, CL, force)
     new_header = insert_samheader(other_header, new_samheader)
     return new_header
@@ -380,7 +401,7 @@ def _merge_pairheaders(pairheaders, force=False):
                     
 def merge_headers(headers, force=False):
 
-    samheaders, pairheaders = zip(*[_extract_samheader(h) for h in headers])
+    samheaders, pairheaders = zip(*[extract_fields(h, 'samheader', save_rest=True) for h in headers])
     # HD headers contain information that becomes invalid after processing
     # with distiller. Do not print into the output.
     new_pairheader = _merge_pairheaders(pairheaders, force=False)
