@@ -47,10 +47,13 @@ def select(
     '''select pairsam entries.
 
     CONDITION : A Python expression; if it returns True, select the read pair.
-    The column values are available as the following variables: READ_ID, 
-    CHROM_1, CHROM_2, POS_1, POS_2, STRAND_1, STRAND_2 (and COLS array to access
-    the string values of columns by index). In Bash, quote CONDITION with single
-    quotes, and use double quotes for string variables inside CONDITION.
+    Any column declared in the #columns line of the pairs header can be 
+    accessed by its name. If the header lacks the #columns line, the columns
+    are assumed to follow the pairs/pairsam standard (readID, chrom1, chrom2, 
+    pos1, pos2, strand1, strand2, pair_type). Finally, CONDITION has access to 
+    COLS list which contains the string values of columns. In Bash, quote 
+    CONDITION with single quotes, and use double quotes for string variables
+    inside CONDITION.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
@@ -58,22 +61,22 @@ def select(
     The following functions can be used in CONDITION besides the standard Python functions:
 
     - csv_match(x, csv) - True if variable x is contained in a list of
-    comma-separated values, e.g. csv_match(CHROM_1, 'chr1,chr2')
+    comma-separated values, e.g. csv_match(chrom1, 'chr1,chr2')
 
     - wildcard_match(x, wildcard) - True if variable x matches a wildcard,
-    e.g. wildcard_match(PAIR_TYPE, 'C*')
+    e.g. wildcard_match(pair_type, 'C*')
 
     - regex_match(x, regex) - True if variable x matches a Python-flavor regex,
-    e.g. regex_match(CHROM_1, 'chr\d')
+    e.g. regex_match(chrom1, 'chr\d')
 
     \b
     Examples:
-    pairsam select '(PAIR_TYPE=="LL") or (PAIR_TYPE=="CC")'
-    pairsam select 'CHROM_1==CHROM_2'
+    pairsam select '(pair_type=="LL") or (pair_type=="CC")'
+    pairsam select 'chrom1==chrom2'
     pairsam select 'COLS[1]==COLS[3]'
-    pairsam select '(CHROM_1==CHROM_2) and (abs(POS_1 - POS_2) < 1e6)'
-    pairsam select '(CHROM_1=="!") and (CHROM_2!="!")'
-    pairsam select 'regex_match(CHROM_1, "chr\d+") and regex_match(CHROM_2, "chr\d+")'
+    pairsam select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
+    pairsam select '(chrom1=="!") and (chrom2!="!")'
+    pairsam select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
 
     '''
     select_py(
@@ -111,22 +114,25 @@ def select_py(
             regex_library[regex] = reobj
         return regex_library[regex].fullmatch(x)
     
-    condition = condition.strip()
-    condition = condition.replace('PAIR_TYPE', 'COLS[_pairsam_format.COL_PTYPE]')
-    condition = condition.replace('READ_ID', 'COLS[_pairsam_format.COL_READID]')
-    condition = condition.replace('CHROM_1', 'COLS[_pairsam_format.COL_C1]')
-    condition = condition.replace('CHROM_2', 'COLS[_pairsam_format.COL_C2]')
-    condition = condition.replace('POS_1', 'int(COLS[_pairsam_format.COL_P1])')
-    condition = condition.replace('POS_2', 'int(COLS[_pairsam_format.COL_P2])')
-    condition = condition.replace('STRAND_1', 'COLS[_pairsam_format.COL_P1]')
-    condition = condition.replace('STRAND_2', 'COLS[_pairsam_format.COL_P2]')
-    match_func = compile(condition, '<string>', 'eval')
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l+'\n' for l in header))
     if outstream_rest:
         outstream_rest.writelines((l+'\n' for l in header))
+
+    column_names = _headerops.extract_column_names(header)
+    if len(column_names) == 0:
+        column_names = _pairsam_format.COLUMNS
+
+    condition = condition.strip()
+    for i,col in enumerate(column_names):
+        if col in ['pos1', 'pos2']:
+            condition = condition.replace(col, 'int(COLS[{}])'.format(i))
+        else:
+            condition = condition.replace(col, 'COLS[{}]'.format(i))
+
+    match_func = compile(condition, '<string>', 'eval')
 
     for line in body_stream:
         COLS = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
