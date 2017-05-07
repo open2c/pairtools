@@ -2,7 +2,7 @@ import sys
 import click
 import re, fnmatch
 
-from . import _common, cli, _headerops
+from . import _io, _common, cli, _headerops
 
 UTIL_NAME = 'pairsam_select'
 
@@ -83,11 +83,11 @@ def select(
 def select_py(
     condition, pairsam_path, output, output_rest, send_comments_to
     ):
-    instream = (_common.open_bgzip(pairsam_path, mode='r') 
+    instream = (_io.open_bgzip(pairsam_path, mode='r') 
                 if pairsam_path else sys.stdin)
-    outstream = (_common.open_bgzip(output, mode='w') 
+    outstream = (_io.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
-    outstream_rest = (_common.open_bgzip(output_rest, mode='w') 
+    outstream_rest = (_io.open_bgzip(output_rest, mode='w') 
                       if output_rest else None)
 
     wildcard_library = {}

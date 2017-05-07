@@ -9,7 +9,7 @@ import sys
 import os
 import io
 
-from . import _common, _headerops, cli
+from . import _io, _common, _headerops, cli
 
 UTIL_NAME = 'pairsam_parse'
 
@@ -65,9 +65,9 @@ def parse(sam_path, output, assembly, min_mapq, max_molecule_size,
 
 def parse_py(sam_path, output, assembly, min_mapq, max_molecule_size, 
           drop_readid, drop_seq, drop_sam):
-    instream = (_common.open_sam_or_bam(sam_path, mode='r') 
+    instream = (_io.open_sam_or_bam(sam_path, mode='r') 
                 if sam_path else sys.stdin)
-    outstream = (_common.open_bgzip(output, mode='w') 
+    outstream = (_io.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
     samheader, body_stream = _headerops.get_header(instream, comment_char='@')

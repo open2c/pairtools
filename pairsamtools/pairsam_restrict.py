@@ -7,7 +7,7 @@ import subprocess
 
 import numpy as np
 
-from . import _common, cli, _headerops
+from . import _io, _common, cli, _headerops
 
 UTIL_NAME = 'pairsam_restrict'
 
@@ -43,9 +43,9 @@ def restrict(pairsam_path, frags, output):
     restrict_py(pairsam_path, frags, output)
 
 def restrict_py(pairsam_path, frags, output):
-    instream = (_common.open_bgzip(pairsam_path, mode='r') 
+    instream = (_io.open_bgzip(pairsam_path, mode='r') 
                 if pairsam_path else sys.stdin)
-    outstream = (_common.open_bgzip(output, mode='w') 
+    outstream = (_io.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
 

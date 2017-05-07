@@ -4,7 +4,7 @@ import sys
 import pipes
 import click
 
-from . import _common, _headerops, cli
+from . import _io, _common, _headerops, cli
 
 UTIL_NAME = 'pairsam_split'
 
@@ -49,7 +49,7 @@ def split(pairsam_path, output_pairs, output_sam, nproc):
 
 
 def split_py(pairsam_path, output_pairs, output_sam, nproc):
-    instream = (_common.open_bgzip(pairsam_path, mode='r', nproc=nproc) 
+    instream = (_io.open_bgzip(pairsam_path, mode='r', nproc=nproc) 
                 if pairsam_path else sys.stdin)
 
     # Output streams
@@ -59,10 +59,10 @@ def split_py(pairsam_path, output_pairs, output_sam, nproc):
         raise Exception('Only one output (pairs or sam) can be printed in stdout!')
 
     outstream_pairs = (sys.stdout if (output_pairs=='-')
-                  else _common.open_bgzip(output_pairs, mode='w', nproc=nproc) if output_pairs
+                  else _io.open_bgzip(output_pairs, mode='w', nproc=nproc) if output_pairs
                   else None)
     outstream_sam = (sys.stdout if (output_sam=='-')
-                else _common.open_sam_or_bam(output_sam, mode='w', nproc=nproc) if output_sam
+                else _io.open_sam_or_bam(output_sam, mode='w', nproc=nproc) if output_sam
                 else None)
 
     header, body_stream = _headerops.get_header(instream)

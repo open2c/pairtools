@@ -9,7 +9,7 @@ import numpy as np
 
 from collections import OrderedDict
 
-from . import _common, cli, _headerops
+from . import _io, _common, cli, _headerops
 
 UTIL_NAME = 'pairsam_stats'
 
@@ -54,9 +54,9 @@ def stats_py(input_path, output, merge):
         do_merge(output, input_path)
         return
 
-    instream = (_common.open_bgzip(input_path[0], mode='r') 
+    instream = (_io.open_bgzip(input_path[0], mode='r') 
                 if input_path else sys.stdin)
-    outstream = (_common.open_bgzip(output, mode='w') 
+    outstream = (_io.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
 
@@ -155,7 +155,7 @@ def do_merge(output, files_to_merge):
     # Parse all stats files.
     stats = []
     for stat_file in files_to_merge:
-        f = _common.open_bgzip(stat_file,'r')
+        f = _io.open_bgzip(stat_file,'r')
         stat = OrderedDict()
         for l in f:
             fields = l.strip().split('\t') 
@@ -187,7 +187,7 @@ def do_merge(output, files_to_merge):
 
 
     # Save merged stats.
-    outstream = (_common.open_bgzip(output, mode='w') 
+    outstream = (_io.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
     for k,v in out_stats.items():
