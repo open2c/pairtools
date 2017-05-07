@@ -4,7 +4,7 @@ import sys
 import pipes
 import click
 
-from . import _io, _common, cli, _headerops
+from . import _io, _pairsam_format, cli, _headerops
 
 UTIL_NAME = 'pairsam_markasdup'
 
@@ -42,20 +42,20 @@ def markasdup_py(pairsam_path, output):
 
 
     for line in body_stream:
-        cols = line[:-1].split(_common.PAIRSAM_SEP)
-        cols[_common.COL_PTYPE] = 'DD'
+        cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
+        cols[_pairsam_format.COL_PTYPE] = 'DD'
         
-        if (len(cols) > _common.COL_SAM1) and (len(cols) > _common.COL_SAM2):
-            for i in (_common.COL_SAM1,
-                      _common.COL_SAM2):
+        if (len(cols) > _pairsam_format.COL_SAM1) and (len(cols) > _pairsam_format.COL_SAM2):
+            for i in (_pairsam_format.COL_SAM1,
+                      _pairsam_format.COL_SAM2):
                     
                 # split each sam column into sam entries, tag and assemble back
-                cols[i] = _common.INTER_SAM_SEP.join(
+                cols[i] = _pairsam_format.INTER_SAM_SEP.join(
                     [mark_sam_as_dup(sam) 
-                     for sam in cols[i].split(_common.INTER_SAM_SEP)
+                     for sam in cols[i].split(_pairsam_format.INTER_SAM_SEP)
                     ])
 
-        outstream.write(_common.PAIRSAM_SEP.join(cols))
+        outstream.write(_pairsam_format.PAIRSAM_SEP.join(cols))
         outstream.write('\n')
 
     if instream != sys.stdin:
@@ -66,7 +66,7 @@ def markasdup_py(pairsam_path, output):
 def mark_sam_as_dup(sam):
     '''Tag the binary flag and the optional pair type field of a sam entry
     as a PCR duplicate.'''
-    samcols = sam.split(_common.SAM_SEP)
+    samcols = sam.split(_pairsam_format.SAM_SEP)
 
     if len(samcols) == 1:
         return sam
@@ -76,7 +76,7 @@ def mark_sam_as_dup(sam):
     for j in range(11, len(samcols)):
         if samcols[j].startswith('Yt:Z:'):
             samcols[j] = 'Yt:Z:DD'
-    return _common.SAM_SEP.join(samcols)
+    return _pairsam_format.SAM_SEP.join(samcols)
 
 
 if __name__ == '__main__':

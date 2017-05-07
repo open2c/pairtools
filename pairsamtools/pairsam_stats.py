@@ -9,7 +9,7 @@ import numpy as np
 
 from collections import OrderedDict
 
-from . import _io, _common, cli, _headerops
+from . import _io, _pairsam_format, cli, _headerops
 
 UTIL_NAME = 'pairsam_stats'
 
@@ -94,17 +94,17 @@ def stats_py(input_path, output, merge):
 
     # Collecting statistics
     for line in body_stream:
-        cols = line[:-1].split(_common.PAIRSAM_SEP)
+        cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
         chrom1, pos1, strand1 = (
-                cols[_common.COL_C1], 
-                int(cols[_common.COL_P1]),
-                cols[_common.COL_S1])
+                cols[_pairsam_format.COL_C1], 
+                int(cols[_pairsam_format.COL_P1]),
+                cols[_pairsam_format.COL_S1])
         chrom2, pos2, strand2 = (
-                cols[_common.COL_C2], 
-                int(cols[_common.COL_P2]),
-                cols[_common.COL_S2])
+                cols[_pairsam_format.COL_C2], 
+                int(cols[_pairsam_format.COL_P2]),
+                cols[_pairsam_format.COL_S2])
 
-        pair_type = cols[_common.COL_PTYPE]
+        pair_type = cols[_pairsam_format.COL_PTYPE]
         stats['total'] += 1
         stats['pair_types'][pair_type] = stats['pair_types'].get(pair_type,0) +1
         if chrom1 == '!' and chrom2 == '!':

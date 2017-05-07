@@ -4,7 +4,7 @@ import sys
 import pipes
 import click
 
-from . import _io, _common, _headerops, cli
+from . import _io, _pairsam_format, _headerops, cli
 
 UTIL_NAME = 'pairsam_split'
 
@@ -76,20 +76,20 @@ def split_py(pairsam_path, output_pairs, output_sam, nproc):
 
     # Split
     for line in body_stream:
-        cols = line[:-1].split(_common.PAIRSAM_SEP)
+        cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
         if outstream_pairs:
             # hard-coded tab separator to follow the DCIC pairs standard
-            outstream_pairs.write('\t'.join(cols[:_common.COL_SAM1]))
+            outstream_pairs.write('\t'.join(cols[:_pairsam_format.COL_SAM1]))
             outstream_pairs.write('\n')
         
         if (outstream_sam 
-            and (len(cols) > _common.COL_SAM1) 
-            and (len(cols) > _common.COL_SAM2)):
+            and (len(cols) > _pairsam_format.COL_SAM1) 
+            and (len(cols) > _pairsam_format.COL_SAM2)):
 
-            for col in (cols[_common.COL_SAM1],
-                        cols[_common.COL_SAM2]):
-                for sam_entry in col.split(_common.INTER_SAM_SEP):
-                    outstream_sam.write(sam_entry.replace(_common.SAM_SEP,'\t'))
+            for col in (cols[_pairsam_format.COL_SAM1],
+                        cols[_pairsam_format.COL_SAM2]):
+                for sam_entry in col.split(_pairsam_format.INTER_SAM_SEP):
+                    outstream_sam.write(sam_entry.replace(_pairsam_format.SAM_SEP,'\t'))
                     outstream_sam.write('\n')
 
     if outstream_pairs and outstream_pairs != sys.stdout:

@@ -2,7 +2,7 @@ import sys
 import click
 import re, fnmatch
 
-from . import _io, _common, cli, _headerops
+from . import _io, _pairsam_format, cli, _headerops
 
 UTIL_NAME = 'pairsam_select'
 
@@ -112,14 +112,14 @@ def select_py(
         return regex_library[regex].fullmatch(x)
     
     condition = condition.strip()
-    condition = condition.replace('PAIR_TYPE', 'COLS[_common.COL_PTYPE]')
-    condition = condition.replace('READ_ID', 'COLS[_common.COL_READID]')
-    condition = condition.replace('CHROM_1', 'COLS[_common.COL_C1]')
-    condition = condition.replace('CHROM_2', 'COLS[_common.COL_C2]')
-    condition = condition.replace('POS_1', 'int(COLS[_common.COL_P1])')
-    condition = condition.replace('POS_2', 'int(COLS[_common.COL_P2])')
-    condition = condition.replace('STRAND_1', 'COLS[_common.COL_P1]')
-    condition = condition.replace('STRAND_2', 'COLS[_common.COL_P2]')
+    condition = condition.replace('PAIR_TYPE', 'COLS[_pairsam_format.COL_PTYPE]')
+    condition = condition.replace('READ_ID', 'COLS[_pairsam_format.COL_READID]')
+    condition = condition.replace('CHROM_1', 'COLS[_pairsam_format.COL_C1]')
+    condition = condition.replace('CHROM_2', 'COLS[_pairsam_format.COL_C2]')
+    condition = condition.replace('POS_1', 'int(COLS[_pairsam_format.COL_P1])')
+    condition = condition.replace('POS_2', 'int(COLS[_pairsam_format.COL_P2])')
+    condition = condition.replace('STRAND_1', 'COLS[_pairsam_format.COL_P1]')
+    condition = condition.replace('STRAND_2', 'COLS[_pairsam_format.COL_P2]')
     match_func = compile(condition, '<string>', 'eval')
 
     header, body_stream = _headerops.get_header(instream)
@@ -129,7 +129,7 @@ def select_py(
         outstream_rest.writelines((l+'\n' for l in header))
 
     for line in body_stream:
-        COLS = line[:-1].split(_common.PAIRSAM_SEP)
+        COLS = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
         if eval(match_func):
             outstream.write(line)
         elif outstream_rest:

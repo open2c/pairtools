@@ -5,7 +5,7 @@ import sys
 import click
 import subprocess
 
-from . import _io, _common, cli, _headerops
+from . import _io, _pairsam_format, cli, _headerops
 
 UTIL_NAME = 'pairsam_sort'
 
@@ -84,12 +84,12 @@ def sort_py(pairsam_path, output, nproc, tmpdir, memory):
         {7}
         -S {8}
         '''.replace('\n',' ').format(
-                _common.COL_C1+1, 
-                _common.COL_C2+1, 
-                _common.COL_P1+1, 
-                _common.COL_P2+1,
-                _common.COL_PTYPE+1,
-                _common.PAIRSAM_SEP_ESCAPE,
+                _pairsam_format.COL_C1+1, 
+                _pairsam_format.COL_C2+1, 
+                _pairsam_format.COL_P1+1, 
+                _pairsam_format.COL_P2+1,
+                _pairsam_format.COL_PTYPE+1,
+                _pairsam_format.PAIRSAM_SEP_ESCAPE,
                 ' --parallel={} '.format(nproc) if nproc > 1 else ' ',
                 ' -T {} '.format(tmpdir) if tmpdir else ' ',
                 memory

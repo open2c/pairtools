@@ -7,7 +7,7 @@ import subprocess
 
 import numpy as np
 
-from . import _io, _common, cli, _headerops
+from . import _io, _pairsam_format, cli, _headerops
 
 UTIL_NAME = 'pairsam_restrict'
 
@@ -67,14 +67,14 @@ def restrict_py(pairsam_path, frags, output):
 
 
     for line in body_stream:
-        cols = line[:-1].split(_common.PAIRSAM_SEP)
-        chrom1, pos1 = cols[_common.COL_C1], int(cols[_common.COL_P1])
+        cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
+        chrom1, pos1 = cols[_pairsam_format.COL_C1], int(cols[_pairsam_format.COL_P1])
         rfrag_idx1, rfrag_start1, rfrag_end1 = find_rfrag(rfrags, chrom1, pos1)
-        chrom2, pos2 = cols[_common.COL_C2], int(cols[_common.COL_P2])
+        chrom2, pos2 = cols[_pairsam_format.COL_C2], int(cols[_pairsam_format.COL_P2])
         rfrag_idx2, rfrag_start2, rfrag_end2 = find_rfrag(rfrags, chrom2, pos2)
         cols += [str(rfrag_idx1), str(rfrag_start1), str(rfrag_end1)]
         cols += [str(rfrag_idx2), str(rfrag_start2), str(rfrag_end2)]
-        outstream.write(_common.PAIRSAM_SEP.join(cols))
+        outstream.write(_pairsam_format.PAIRSAM_SEP.join(cols))
         outstream.write('\n')
 
     if instream != sys.stdin:

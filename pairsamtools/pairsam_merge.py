@@ -5,7 +5,7 @@ import math
 import subprocess
 import click
 
-from . import _io, _common, _headerops, cli
+from . import _io, _pairsam_format, _headerops, cli
 
 UTIL_NAME = 'pairsam_merge'
 
@@ -76,12 +76,12 @@ def merge_py(pairsam_path, output, nproc):
         {6}
         -S 1G
         '''.replace('\n',' ').format(
-                _common.COL_C1+1, 
-                _common.COL_C2+1, 
-                _common.COL_P1+1, 
-                _common.COL_P2+1,
-                _common.COL_PTYPE+1,
-                _common.PAIRSAM_SEP_ESCAPE,
+                _pairsam_format.COL_C1+1, 
+                _pairsam_format.COL_C2+1, 
+                _pairsam_format.COL_P1+1, 
+                _pairsam_format.COL_P2+1,
+                _pairsam_format.COL_PTYPE+1,
+                _pairsam_format.PAIRSAM_SEP_ESCAPE,
                 ' --parallel={} '.format(nproc) if nproc > 1 else ' ',
                 )
     for path in paths:

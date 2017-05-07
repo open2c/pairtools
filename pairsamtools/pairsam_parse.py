@@ -9,7 +9,7 @@ import sys
 import os
 import io
 
-from . import _io, _common, _headerops, cli
+from . import _io, _pairsam_format, _headerops, cli
 
 UTIL_NAME = 'pairsam_parse'
 
@@ -454,40 +454,40 @@ def write_pairsam(
         out_file.write('.')
     else:
         out_file.write(read_id)
-    out_file.write(_common.PAIRSAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(algn1['chrom'])
-    out_file.write(_common.PAIRSAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(str(algn1['pos']))
-    out_file.write(_common.PAIRSAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(algn2['chrom'])
-    out_file.write(_common.PAIRSAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(str(algn2['pos']))
-    out_file.write(_common.PAIRSAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(algn1['strand'])
-    out_file.write(_common.PAIRSAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(algn2['strand'])
-    out_file.write(_common.PAIRSAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(pair_type)
-    out_file.write(_common.PAIRSAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     if drop_sam:
         out_file.write('.')
     else:
         for i, sam in enumerate(sams1):
-            out_file.write(sam[:-1].replace('\t', _common.SAM_SEP))
-            out_file.write(_common.SAM_SEP + 'Yt:Z:')
+            out_file.write(sam[:-1].replace('\t', _pairsam_format.SAM_SEP))
+            out_file.write(_pairsam_format.SAM_SEP + 'Yt:Z:')
             out_file.write(pair_type)
             if i < len(sams1) -1:
-                out_file.write(_common.INTER_SAM_SEP)
-    out_file.write(_common.PAIRSAM_SEP)
+                out_file.write(_pairsam_format.INTER_SAM_SEP)
+    out_file.write(_pairsam_format.PAIRSAM_SEP)
     if drop_sam:
         out_file.write('.')
     else:
         for i, sam in enumerate(sams2):
-            out_file.write(sam[:-1].replace('\t', _common.SAM_SEP))
-            out_file.write(_common.SAM_SEP + 'Yt:Z:')
+            out_file.write(sam[:-1].replace('\t', _pairsam_format.SAM_SEP))
+            out_file.write(_pairsam_format.SAM_SEP + 'Yt:Z:')
             out_file.write(pair_type)
             if i < len(sams2) -1:
-                out_file.write(_common.INTER_SAM_SEP)
+                out_file.write(_pairsam_format.INTER_SAM_SEP)
     out_file.write('\n')
 
 

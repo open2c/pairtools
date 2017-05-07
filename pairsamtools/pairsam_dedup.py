@@ -8,7 +8,7 @@ import click
 
 import numpy as np
 
-from . import _dedup, _io, _common, _headerops, cli
+from . import _dedup, _io, _pairsam_format, _headerops, cli
 
 
 UTIL_NAME = 'pairsam_dedup'
@@ -61,7 +61,7 @@ MAX_LEN = 10000
 @click.option(
     "--sep",
     type=str, 
-    default=_common.PAIRSAM_SEP_ESCAPE, 
+    default=_pairsam_format.PAIRSAM_SEP_ESCAPE, 
     help=r"Separator (\t, \v, etc. characters are "
           "supported, pass them in quotes) ")
 @click.option(
@@ -77,33 +77,33 @@ MAX_LEN = 10000
 @click.option(
     "--c1", 
     type=int, 
-    default=_common.COL_C1,  
-    help='Chrom 1 column; default {}'.format(_common.COL_C1))
+    default=_pairsam_format.COL_C1,  
+    help='Chrom 1 column; default {}'.format(_pairsam_format.COL_C1))
 @click.option(
     "--c2", 
     type=int, 
-    default=_common.COL_C2,  
-    help='Chrom 2 column; default {}'.format(_common.COL_C2))
+    default=_pairsam_format.COL_C2,  
+    help='Chrom 2 column; default {}'.format(_pairsam_format.COL_C2))
 @click.option(
     "--p1", 
     type=int, 
-    default=_common.COL_P1,  
-    help='Position 1 column; default {}'.format(_common.COL_P1))
+    default=_pairsam_format.COL_P1,  
+    help='Position 1 column; default {}'.format(_pairsam_format.COL_P1))
 @click.option(
     "--p2", 
     type=int, 
-    default=_common.COL_P2,  
-    help='Position 2 column; default {}'.format(_common.COL_P2))
+    default=_pairsam_format.COL_P2,  
+    help='Position 2 column; default {}'.format(_pairsam_format.COL_P2))
 @click.option(
     "--s1", 
     type=int, 
-    default=_common.COL_S1,  
-    help='Strand 1 column; default {}'.format(_common.COL_S1))
+    default=_pairsam_format.COL_S1,  
+    help='Strand 1 column; default {}'.format(_pairsam_format.COL_S1))
 @click.option(
     "--s2", 
     type=int, 
-    default=_common.COL_S2,  
-    help='Strand 2 column; default {}'.format(_common.COL_S2))
+    default=_pairsam_format.COL_S2,  
+    help='Strand 2 column; default {}'.format(_pairsam_format.COL_S2))
 
 def dedup(pairsam_path, output, output_dups,
     stats_file,
