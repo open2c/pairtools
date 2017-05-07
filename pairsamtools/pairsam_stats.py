@@ -123,15 +123,15 @@ def stats_py(input_path, output, merge):
             outstream.write('{}\t{}\n'.format(k,v))
         else:
             if k == 'dist_freq':
-                for dirs, freqs in v.items():
-                    for i, freq in enumerate(freqs):
-                        if i != len(freqs) -1:
-                            outstream.write('{}/{}/{}-{}\t{}\n'.format(
-                                k, dirs, dist_bins[i], dist_bins[i+1], freq)
+                for i in range(len(dist_bins)):
+                    for dirs, freqs in v.items():
+                        if i != len(dist_bins) - 1:
+                            outstream.write('{}/{}-{}/{}\t{}\n'.format(
+                                k, dist_bins[i], dist_bins[i+1], dirs, freqs[i])
                                 )
                         else:
-                            outstream.write('{}/{}/{}+\t{}\n'.format(
-                                k, dirs, dist_bins[i], freq))
+                            outstream.write('{}/{}+/{}\t{}\n'.format(
+                                k, dist_bins[i], dirs, freqs[i]))
 
             if k == 'pair_types':
                 for pair_type, freq in v.items():
