@@ -33,7 +33,7 @@ UTIL_NAME = 'pairsam_parse'
 @click.option(
     "--min-mapq", 
     type=int, 
-    default=10,
+    default=1,
     help='The minimal MAPQ score of a mapped read')
 @click.option(
     "--max-molecule-size", 
@@ -52,19 +52,23 @@ UTIL_NAME = 'pairsam_parse'
     "--drop-sam", 
     is_flag=True,
     help='If specified, do not add sams to the output')
+@click.option(
+    "--store-mapq", 
+    is_flag=True,
+    help='If specified, add two columns with MAPQ on both sides.')
 
 def parse(sam_path, output, assembly, min_mapq, max_molecule_size, 
-          drop_readid, drop_seq, drop_sam):
+          drop_readid, drop_seq, drop_sam, store_mapq):
     '''parse .sam and make .pairsam.
 
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
     decompressed from bam. By default, the input is read from stdin.
     '''
     parse_py(sam_path, output, assembly, min_mapq, max_molecule_size, 
-             drop_readid, drop_seq, drop_sam)
+             drop_readid, drop_seq, drop_sam, store_mapq)
 
 def parse_py(sam_path, output, assembly, min_mapq, max_molecule_size, 
-          drop_readid, drop_seq, drop_sam):
+          drop_readid, drop_seq, drop_sam, store_mapq):
     instream = (_io.open_sam_or_bam(sam_path, mode='r') 
                 if sam_path else sys.stdin)
     outstream = (_io.open_bgzip(output, mode='w') 
@@ -74,14 +78,18 @@ def parse_py(sam_path, output, assembly, min_mapq, max_molecule_size,
     chromosomes = _headerops._get_chroms_from_sam_header(samheader)
     header = _headerops.make_standard_pairsheader(
             assembly=assembly,
-            chromosomes=chromosomes)
+            chromosomes=chromosomes,
+            columns = _pairsam_format.COLUMNS + (
+                ['mapq1', 'mapq2'] if store_mapq else [])
+            )
+    
     header = _headerops.insert_samheader(header, samheader) 
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l+'\n' for l in header))
 
 
     streaming_classify(body_stream, outstream, min_mapq, max_molecule_size,
-                       drop_readid, drop_seq, drop_sam)
+                       drop_readid, drop_seq, drop_sam, store_mapq)
 
 
     if instream != sys.stdin:
@@ -442,7 +450,7 @@ def push_sam(line, drop_seq, sams1, sams2):
 
 def write_pairsam(
         algn1, algn2, read_id, pair_type, sams1, sams2, out_file, 
-        drop_readid, drop_sam):
+        drop_readid, drop_sam, store_mapq):
     """
     SAM is already tab-separated and
     any printable character between ! and ~ may appear in the PHRED field!
@@ -488,11 +496,18 @@ def write_pairsam(
             out_file.write(pair_type)
             if i < len(sams2) -1:
                 out_file.write(_pairsam_format.INTER_SAM_SEP)
+
+    if store_mapq:
+        out_file.write(_pairsam_format.PAIRSAM_SEP)
+        out_file.write(str(algn1['mapq']))
+        out_file.write(_pairsam_format.PAIRSAM_SEP)
+        out_file.write(str(algn2['mapq']))
+
     out_file.write('\n')
 
 
 def streaming_classify(instream, outstream, min_mapq, max_molecule_size, 
-                       drop_readid, drop_seq, drop_sam):
+                       drop_readid, drop_seq, drop_sam, store_mapq):
     """
 
     """
@@ -520,7 +535,8 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
                     sams2, sams1,
                     outstream, 
                     drop_readid,
-                    drop_sam)
+                    drop_sam,
+                    store_mapq)
             else:
                 write_pairsam(
                     algn1, algn2,
@@ -529,7 +545,8 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
                     sams1, sams2,
                     outstream,
                     drop_readid,
-                    drop_sam)
+                    drop_sam,
+                    store_mapq)
             
             sams1.clear()
             sams2.clear()
