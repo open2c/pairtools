@@ -38,7 +38,7 @@ def test_equal():
              '-m',
              'pairsamtools',
              'select',
-             '(PAIR_TYPE == "CX") or (PAIR_TYPE == "LL")',
+             '(pair_type == "CX") or (pair_type == "LL")',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -65,7 +65,7 @@ def test_csv():
              '-m',
              'pairsamtools',
              'select',
-             'csv_match(PAIR_TYPE, "CX,LL")',
+             'csv_match(pair_type, "CX,LL")',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -92,7 +92,7 @@ def test_wildcard():
              '-m',
              'pairsamtools',
              'select',
-             'wildcard_match(PAIR_TYPE, "*L")',
+             'wildcard_match(pair_type, "*L")',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -119,7 +119,7 @@ def test_regex():
              '-m',
              'pairsamtools',
              'select',
-             'regex_match(PAIR_TYPE, "[NM]L")',
+             'regex_match(pair_type, "[NM]L")',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
