@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import sys
 import copy
 import itertools
@@ -83,6 +84,31 @@ def _get_chroms_from_sam_header(samheader):
     SNs = [[field[3:] for field in sq.split('\t') if field.startswith('SN:')][0]
            for sq in SQs]
     return SNs
+
+
+def get_chrom_order(chroms_file, header_chroms):
+    """
+    Produce an "enumeration" of chromosomes based on the list
+    of chromosomes
+
+    """
+    chroms = [('!', 0)]
+    i = 1
+    with open(chroms_file, 'rt') as f:
+        for line in f:
+            chrom = line.split('\t')[0].strip()
+            if chrom:
+                chroms.append((chrom, i))
+                i += 1
+    chrom_enum = OrderedDict(chroms)
+
+    remaining = sorted(chrom for chrom in header_chroms
+                        if chrom not in chrom_enum.keys())
+    for chrom in remaining:
+        chrom_enum[chrom] = i
+        i += 1
+
+    return chrom_enum
 
 
 def make_standard_pairsheader(
