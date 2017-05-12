@@ -10,9 +10,10 @@ def test_make_standard_header():
     assert any([l.startswith('#shape') for l in header])
     assert any([l.startswith('#columns') for l in header])
 
-    header = _headerops.make_standard_pairsheader(chromosomes=['b', 'c', 'a'])
+    header = _headerops.make_standard_pairsheader(
+        chromsizes=[('b', 100), ('c', 100), ('a', 100)])
 
-    assert any([l.startswith('#chromosomes') for l in header])
+    assert sum([l.startswith('#chromsize') for l in header]) == 3
 
 def test_samheaderops():
     header = _headerops.make_standard_pairsheader()

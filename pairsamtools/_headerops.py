@@ -79,30 +79,28 @@ def extract_column_names(header):
         return []
 
 
-def _get_chroms_from_sam_header(samheader):
-    SQs = [l for l in samheader if l.startswith('@SQ')]
-    SNs = [[field[3:] for field in sq.split('\t') if field.startswith('SN:')][0]
-           for sq in SQs]
-    return SNs
+def get_chromsizes_from_sam_header(samheader):
+    SQs = [l.split('\t') for l in samheader if l.startswith('@SQ')]
+    chromsizes = [(sq[1][3:], int(sq[2][3:])) for sq in SQs]
+    return OrderedDict(chromsizes)
 
 
-def get_chrom_order(chroms_file, header_chroms):
+def get_chrom_order(chroms_file, sam_chroms):
     """
     Produce an "enumeration" of chromosomes based on the list
     of chromosomes
 
     """
-    chroms = [('!', 0)]
+    chrom_enum = OrderedDict()
     i = 1
     with open(chroms_file, 'rt') as f:
         for line in f:
             chrom = line.split('\t')[0].strip()
             if chrom:
-                chroms.append((chrom, i))
+                chrom_enum[chrom] = i
                 i += 1
-    chrom_enum = OrderedDict(chroms)
 
-    remaining = sorted(chrom for chrom in header_chroms
+    remaining = sorted(chrom for chrom in sam_chroms
                         if chrom not in chrom_enum.keys())
     for chrom in remaining:
         chrom_enum[chrom] = i
@@ -113,21 +111,23 @@ def get_chrom_order(chroms_file, header_chroms):
 
 def make_standard_pairsheader(
         assembly=None,
-        chromosomes=None,
-        columns = _pairsam_format.COLUMNS
-        ):
+        chromsizes=None,
+        columns=_pairsam_format.COLUMNS):
     header = []
     header.append(
         '## pairs format v{}'.format(PAIRS_FORMAT_VERSION))
     header.append('#shape: upper triangle')
+
     header.append('#genome_assembly: {}'.format(
         assembly if assembly is not None else 'unknown'))
-    if chromosomes is not None:
-        if not (issubclass(type(chromosomes), list) 
-            or issubclass(type(chromosomes), tuple)):
-            raise('Chromosomes must be provided as a list!')
-        else:
-            header.append('#chromosomes: {}'.format(' '.join(chromosomes)))
+
+    if chromsizes is not None:
+        try:
+            chromsizes = chromsizes.items()
+        except AttributeError:
+            pass
+        for chrom, length in chromsizes:
+            header.append('#chromsize: {} {}'.format(chrom, length))
 
     header.append('#columns: '+ ' '.join(columns))
 
