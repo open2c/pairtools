@@ -43,11 +43,13 @@ UTIL_NAME = 'pairsam_parse'
     "--min-mapq", 
     type=int, 
     default=1,
+    show_default=True,
     help='The minimal MAPQ score of a mapped read')
 @click.option(
     "--max-molecule-size", 
     type=int, 
     default=2000,
+    show_default=True,
     help='The maximal size of a ligated Hi-C molecule; used in chimera rescue.')
 @click.option(
     "--drop-readid", 
