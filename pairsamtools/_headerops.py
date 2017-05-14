@@ -376,7 +376,7 @@ def merge_chrom_lists(*lsts):
     g = defaultdict(set)
     for lst in lsts:
         if len(lst) == 1:
-            g[lst[0]] = {sentinel}
+            g[lst[0]].add(sentinel)
         for a, b in zip(lst[:-1], lst[1:]):
             g[b].add(a)
     if len(g) == 0:
