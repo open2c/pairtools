@@ -70,9 +70,11 @@ def test_merge_pairheaders():
 
     headers = [
         ['## pairs format v1.0',
-         '#chromosomes: chr1 chr2'],
+         '#chromsize: chr1 100',
+         '#chromsize: chr2 200'],
         ['## pairs format v1.0',
-         '#chromosomes: chr1 chr2'],
+         '#chromsize: chr1 100',
+         '#chromsize: chr2 200'],
     ]
     merged_header = _headerops._merge_pairheaders(headers)
     assert merged_header == headers[0]
@@ -88,13 +90,14 @@ def test_merge_different_pairheaders():
 def test_force_merge_pairheaders():
     headers = [
         ['## pairs format v1.0',
-         '#chromosomes: chr1'],
+         '#chromsize: chr1 100'],
         ['## pairs format v1.0',
-         '#chromosomes: chr2'],
+         '#chromsize: chr2 200'],
     ]
     merged_header = _headerops._merge_pairheaders(headers, force=True)
     assert merged_header == ['## pairs format v1.0',
-                             '#chromosomes: chr1 chr2']
+                             '#chromsize: chr1 100',
+                             '#chromsize: chr2 200']
 
 def test_merge_samheaders():
     headers = [
@@ -136,7 +139,6 @@ def test_merge_samheaders():
 def test_merge_headers():
     headers = [
         ['## pairs format v1.0',
-         '#chromosomes: chr1 chr2',
          '#samheader: @HD\tVN:1',
          '#samheader: @SQ\tSN:chr1\tLN:100',
          '#samheader: @SQ\tSN:chr2\tLN:100']
