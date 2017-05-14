@@ -9,14 +9,13 @@ from . import _io, _pairsam_format, _headerops, cli
 
 UTIL_NAME = 'pairsam_merge'
 
+
 @cli.command()
 @click.argument(
     'pairsam_path', 
     nargs=-1, 
     type=str,
     )
-
-
 @click.option(
     "-o", "--output", 
     type=str, 
@@ -24,7 +23,6 @@ UTIL_NAME = 'pairsam_merge'
     help='output file.'
         ' If the path ends with .gz, the output is bgzip-compressed.'
         ' By default, the output is printed into stdout.')
-
 @click.option(
     "--nproc", 
     type=int, 
@@ -32,8 +30,6 @@ UTIL_NAME = 'pairsam_merge'
     help='Number of threads per process.',
     show_default=True,
     )
-
-
 def merge(pairsam_path, output, nproc):
     """merge sorted pairs/pairsam files. 
 
@@ -50,12 +46,12 @@ def merge(pairsam_path, output, nproc):
     """
     merge_py(pairsam_path, output, nproc)
 
+
 def merge_py(pairsam_path, output, nproc):
     paths = sum([glob.glob(mask) for mask in pairsam_path], [])
 
     outstream = (_io.open_bgzip(output, mode='w', nproc=nproc) 
                  if output else sys.stdout)
-
 
     headers = []
     for path in paths:
