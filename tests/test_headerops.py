@@ -10,9 +10,10 @@ def test_make_standard_header():
     assert any([l.startswith('#shape') for l in header])
     assert any([l.startswith('#columns') for l in header])
 
-    header = _headerops.make_standard_pairsheader(chromosomes=['b', 'c', 'a'])
+    header = _headerops.make_standard_pairsheader(
+        chromsizes=[('b', 100), ('c', 100), ('a', 100)])
 
-    assert any([l.startswith('#chromosomes') for l in header])
+    assert sum([l.startswith('#chromsize') for l in header]) == 3
 
 def test_samheaderops():
     header = _headerops.make_standard_pairsheader()
@@ -69,9 +70,11 @@ def test_merge_pairheaders():
 
     headers = [
         ['## pairs format v1.0',
-         '#chromosomes: chr1 chr2'],
+         '#chromsize: chr1 100',
+         '#chromsize: chr2 200'],
         ['## pairs format v1.0',
-         '#chromosomes: chr1 chr2'],
+         '#chromsize: chr1 100',
+         '#chromsize: chr2 200'],
     ]
     merged_header = _headerops._merge_pairheaders(headers)
     assert merged_header == headers[0]
@@ -87,13 +90,14 @@ def test_merge_different_pairheaders():
 def test_force_merge_pairheaders():
     headers = [
         ['## pairs format v1.0',
-         '#chromosomes: chr1'],
+         '#chromsize: chr1 100'],
         ['## pairs format v1.0',
-         '#chromosomes: chr2'],
+         '#chromsize: chr2 200'],
     ]
     merged_header = _headerops._merge_pairheaders(headers, force=True)
     assert merged_header == ['## pairs format v1.0',
-                             '#chromosomes: chr1 chr2']
+                             '#chromsize: chr1 100',
+                             '#chromsize: chr2 200']
 
 def test_merge_samheaders():
     headers = [
@@ -135,7 +139,6 @@ def test_merge_samheaders():
 def test_merge_headers():
     headers = [
         ['## pairs format v1.0',
-         '#chromosomes: chr1 chr2',
          '#samheader: @HD\tVN:1',
          '#samheader: @SQ\tSN:chr1\tLN:100',
          '#samheader: @SQ\tSN:chr2\tLN:100']

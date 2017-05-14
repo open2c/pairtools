@@ -136,12 +136,15 @@ def test_parse_algn():
 
 def test_mock_sam():
     mock_sam_path = os.path.join(testdir, 'data', 'mock.sam')
+    mock_chroms_path = os.path.join(testdir, 'data', 'mock.chrom.sizes')
     try:
         result = subprocess.check_output(
             ['python',
              '-m',
              'pairsamtools',
              'parse',
+             '-c',
+             mock_chroms_path,
              mock_sam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:

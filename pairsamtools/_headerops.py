@@ -1,3 +1,4 @@
+from collections import OrderedDict, defaultdict
 import sys
 import copy
 import itertools
@@ -78,30 +79,55 @@ def extract_column_names(header):
         return []
 
 
-def _get_chroms_from_sam_header(samheader):
-    SQs = [l for l in samheader if l.startswith('@SQ')]
-    SNs = [[field[3:] for field in sq.split('\t') if field.startswith('SN:')][0]
-           for sq in SQs]
-    return SNs
+def get_chromsizes_from_sam_header(samheader):
+    SQs = [l.split('\t') for l in samheader if l.startswith('@SQ')]
+    chromsizes = [(sq[1][3:], int(sq[2][3:])) for sq in SQs]
+    return OrderedDict(chromsizes)
+
+
+def get_chrom_order(chroms_file, sam_chroms):
+    """
+    Produce an "enumeration" of chromosomes based on the list
+    of chromosomes
+
+    """
+    chrom_enum = OrderedDict()
+    i = 1
+    with open(chroms_file, 'rt') as f:
+        for line in f:
+            chrom = line.split('\t')[0].strip()
+            if chrom:
+                chrom_enum[chrom] = i
+                i += 1
+
+    remaining = sorted(chrom for chrom in sam_chroms
+                        if chrom not in chrom_enum.keys())
+    for chrom in remaining:
+        chrom_enum[chrom] = i
+        i += 1
+
+    return chrom_enum
 
 
 def make_standard_pairsheader(
         assembly=None,
-        chromosomes=None,
-        columns = _pairsam_format.COLUMNS
-        ):
+        chromsizes=None,
+        columns=_pairsam_format.COLUMNS):
     header = []
     header.append(
         '## pairs format v{}'.format(PAIRS_FORMAT_VERSION))
     header.append('#shape: upper triangle')
+
     header.append('#genome_assembly: {}'.format(
         assembly if assembly is not None else 'unknown'))
-    if chromosomes is not None:
-        if not (issubclass(type(chromosomes), list) 
-            or issubclass(type(chromosomes), tuple)):
-            raise('Chromosomes must be provided as a list!')
-        else:
-            header.append('#chromosomes: {}'.format(' '.join(chromosomes)))
+
+    if chromsizes is not None:
+        try:
+            chromsizes = chromsizes.items()
+        except AttributeError:
+            pass
+        for chrom, length in chromsizes:
+            header.append('#chromsize: {} {}'.format(chrom, length))
 
     header.append('#columns: '+ ' '.join(columns))
 
@@ -281,6 +307,87 @@ def _parse_pg_chains(header, force=False):
 
     return pg_chains
 
+
+def _toposort(dag, tie_breaker):
+    """
+    Topological sort on a directed acyclic graph
+    
+    Uses Kahn's algorithm with a custom tie-breaking option. The 
+    dictionary ``dag`` can be interpreted in two ways:
+       
+    1. A dependency graph (i.e. arcs point from values to keys), 
+       and the generator yields items with no dependences followed 
+       by items that depend on previous ones.
+
+    2. Arcs point from keys to values, in which case the generator produces 
+       a **reverse** topological ordering of the nodes.
+       
+    Parameters
+    ----------
+    dag: dict of nodes to sets of nodes
+        Directed acyclic graph encoded as a dictionary.
+    tie_breaker: callable
+        Function that picks a tie breaker from a set of nodes with no 
+        unprocessed dependences.
+
+    Returns
+    -------
+    Generator
+    
+    Notes
+    -----
+    See <https://en.wikipedia.org/wiki/Topological_sorting for more info>.
+    Based in part on activestate recipe: 
+    <http://code.activestate.com/recipes/578272-topological-sort/> by Sam 
+    Denton (MIT licensed).
+    
+    """
+    # Drop self-edges.
+    for k, v in dag.items():
+        v.discard(k)
+
+    # Find all nodes that don't depend on anything
+    # and include them with empty dependencies.
+    indep_nodes = set.union(*dag.values()) - set(dag.keys())
+    dag.update({node: set() for node in indep_nodes})
+    
+    while True:
+        if not indep_nodes:
+            break
+        out = tie_breaker(indep_nodes)
+        indep_nodes.discard(out)
+        del dag[out]
+        
+        yield out
+        
+        for node, deps in dag.items():
+            deps.discard(out)
+            if len(deps) == 0:
+                indep_nodes.add(node)
+
+    if len(dag) != 0:
+        raise ValueError(
+            'Circular dependencies exist: {} '.format(list(dag.items())))
+
+
+def merge_chrom_lists(*lsts):
+    sentinel = '!NONE!'
+    
+    g = defaultdict(set)
+    for lst in lsts:
+        if len(lst) == 1:
+            g[lst[0]].add(sentinel)
+        for a, b in zip(lst[:-1], lst[1:]):
+            g[b].add(a)
+    if len(g) == 0:
+        return []
+
+    chrom_list = list(_toposort(g.copy(), tie_breaker=min))
+    if sentinel in chrom_list:
+        chrom_list.remove(sentinel)
+    return chrom_list
+
+
 def _merge_samheaders(samheaders, force=False):
     # first, append an HD line if it is present in any files
     # if different lines are present, raise an error
@@ -344,57 +451,46 @@ def _merge_pairheaders(pairheaders, force=False):
         '#sorted:',
         '#shape:',
         '#genome_assembly:',
-        '#columns:']
+        '#columns:'
+    ]
 
     for k in keys_expected_identical:
         lines = [[l for l in header if l.startswith(k)]
                  for header in pairheaders]
-        same = all([l==lines[0] for l in lines])
+        same = all([l == lines[0] for l in lines])
         if not (same or force):
             raise Exception(
                 'The following header entries must be the same '
                 'the merged files: {}'.format(k))
-
         new_header += lines[0]
 
-    # second, add the chromosome field.
-    # the chromosomes are expected to be the same, but if merge is forced,
-    # make a sorted list of unique chromosomes
-    chromosome_headers = [[l for l in header if l.startswith('#chromosomes:')]
-                          for header in pairheaders]
-    if not (all(len(c)==0 for c in chromosome_headers)
-            or all(len(c)==1 for c in chromosome_headers)
-            or force):
-        raise Exception(
-                'All headers of the merged files must have the same number '
-                '#chromosome entries (either 0 or 1)')
+    # second, merge and add the chromsizes fields.
+    chrom_lists = []
+    chromsizes = {}
+    for header in pairheaders:
+        chromlist = []
+        for line in header:
+            if line.startswith('#chromsize:'):
+                chrom, length = line.strip('#chromsize:').split()
+                chromsizes[chrom] = length
+                chromlist.append(chrom)
+        chrom_lists.append(chromlist)
 
-    if len(chromosome_headers[0]) == 1:
-        chrom_lists = [set(ch[0].split(':',1)[1].strip().split(' ')) 
-                       for ch in chromosome_headers]
-
-        same = all([c==chrom_lists[0] for c in chrom_lists])
-        if not(same or force):
-            raise Exception('All headers must list the same chromosomes!')
-
-        chroms = sorted(set.union(*chrom_lists))
-        chrom_line = '#chromosomes: {}'.format(' '.join(sorted(chroms)))
-
-        if new_header[-1].startswith('#columns'):
-            new_header.insert(-1, chrom_line)
-        else:
-            new_header.append(chrom_line)
+    chroms_merged = merge_chrom_lists(*chrom_lists)
+    chrom_lines = ["#chromsize: {} {}".format(chrom, chromsizes[chrom]) 
+                        for chrom in chroms_merged]
+    new_header.extend(chrom_lines)
 
     # finally, add a sorted list of other unique fields
     other_lines = sorted(set(
         l for h in pairheaders for l in h
         if not any(l.startswith(k) 
-                   for k in keys_expected_identical + ['#chromosomes'])))
-
-    if new_header[-1].startswith('#columns'):
-        new_header = new_header[:-1] + other_lines + [new_header[-1]]
-    else:
-        new_header = new_header + other_lines
+                   for k in keys_expected_identical + ['#chromsize'])))
+    if other_lines:
+        if new_header[-1].startswith('#columns'):
+            new_header = new_header[:-1] + other_lines + [new_header[-1]]
+        else:
+            new_header = new_header + other_lines
     
     return new_header
 

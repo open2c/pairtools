@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from collections import OrderedDict
 import subprocess
 import fileinput
 import itertools
@@ -13,19 +14,27 @@ from . import _io, _pairsam_format, _headerops, cli
 
 UTIL_NAME = 'pairsam_parse'
 
+
 @cli.command()
 @click.argument(
     'sam_path', 
     type=str,
     required=False)
-
+@click.option(
+    "-c", "--chroms-path",
+    type=str,
+    required=True,
+    help='Chromosome order used to flip interchromosomal mates: '
+         'path to a chromosomes file (e.g. UCSC chrom.sizes or similar) whose '
+         'first column lists scaffold names. Any scaffolds not listed will be '
+         'ordered lexicographically following the names provided.')
 @click.option(
     "-o", "--output", 
     type=str, 
     default="", 
-    help='output file.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
-        ' By default, the output is printed into stdout.')
+    help='output file. '
+         'If the path ends with .gz, the output is bgzip-compressed. '
+         'By default, the output is printed into stdout. ')
 @click.option(
     "--assembly", 
     type=str, 
@@ -56,41 +65,43 @@ UTIL_NAME = 'pairsam_parse'
     "--store-mapq", 
     is_flag=True,
     help='If specified, add two columns with MAPQ on both sides.')
-
-def parse(sam_path, output, assembly, min_mapq, max_molecule_size, 
+def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
           drop_readid, drop_seq, drop_sam, store_mapq):
     '''parse .sam and make .pairsam.
 
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
     decompressed from bam. By default, the input is read from stdin.
     '''
-    parse_py(sam_path, output, assembly, min_mapq, max_molecule_size, 
+    parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
              drop_readid, drop_seq, drop_sam, store_mapq)
 
-def parse_py(sam_path, output, assembly, min_mapq, max_molecule_size, 
-          drop_readid, drop_seq, drop_sam, store_mapq):
+
+def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
+             drop_readid, drop_seq, drop_sam, store_mapq):
     instream = (_io.open_sam_or_bam(sam_path, mode='r') 
                 if sam_path else sys.stdin)
     outstream = (_io.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
 
     samheader, body_stream = _headerops.get_header(instream, comment_char='@')
-    chromosomes = _headerops._get_chroms_from_sam_header(samheader)
+    sam_chromsizes = _headerops.get_chromsizes_from_sam_header(samheader)
+    chromosomes = _headerops.get_chrom_order(
+        chroms_path, 
+        list(sam_chromsizes.keys()))
+
     header = _headerops.make_standard_pairsheader(
-            assembly=assembly,
-            chromosomes=chromosomes,
-            columns = _pairsam_format.COLUMNS + (
-                ['mapq1', 'mapq2'] if store_mapq else [])
-            )
+        assembly=assembly,
+        chromsizes=[(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
+        columns=_pairsam_format.COLUMNS + (['mapq1', 'mapq2'] if store_mapq else [])
+    )
     
     header = _headerops.insert_samheader(header, samheader) 
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l+'\n' for l in header))
 
-
-    streaming_classify(body_stream, outstream, min_mapq, max_molecule_size,
-                       drop_readid, drop_seq, drop_sam, store_mapq)
-
+    streaming_classify(body_stream, outstream, chromosomes, min_mapq, 
+                       max_molecule_size, drop_readid, drop_seq, drop_sam, 
+                       store_mapq)
 
     if instream != sys.stdin:
         instream.close()
@@ -296,16 +307,7 @@ def rescue_chimeric_alignment(repr_algn1, repr_algn2, supp_algns1, supp_algns2,
         return None, None, False
 
 
-def get_pair_order(chrm1, pos1, chrm2, pos2):
-    if (chrm1 < chrm2):
-        return -1
-    elif (chrm1 > chrm2):
-        return 1
-    else:
-        return int(pos1 > pos2) * 2 - 1
-
-
-def classify(sams1, sams2, min_mapq, max_molecule_size):
+def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size):
     """
     Possible pair types:
     ...
@@ -315,6 +317,7 @@ def classify(sams1, sams2, min_mapq, max_molecule_size):
     pair_type, algn1, algn2, flip_pair
 
     """
+    chrom_enum = dict(zip(chromosomes, range(len(chromosomes))))
     sam1_repr_cols = sams1[0].rstrip().split('\t')
     sam2_repr_cols = sams2[0].rstrip().split('\t')
 
@@ -392,9 +395,10 @@ def classify(sams1, sams2, min_mapq, max_molecule_size):
                 pair_type = 'CX'
                 algn1 = algn1_5
                 algn2 = algn2_5
-                flip_pair = get_pair_order(
-                    algn1['chrom'], algn1['pos'],
-                    algn2['chrom'], algn2['pos']) > 0
+                flip_pair = (
+                    (chrom_enum[algn1['chrom']], algn1['pos']) 
+                        > (chrom_enum[algn2['chrom']], algn2['pos']))
+
             else:
                 pair_type = 'CL'
                 flip_pair = is_chimeric_2
@@ -410,9 +414,9 @@ def classify(sams1, sams2, min_mapq, max_molecule_size):
                     algn2['strand'] = '-'
     else:
         pair_type = 'LL'
-        flip_pair = get_pair_order(
-            algn1['chrom'], algn1['pos'],
-            algn2['chrom'], algn2['pos']) > 0
+        flip_pair = (
+            (chrom_enum[algn1['chrom']], algn1['pos']) 
+                > (chrom_enum[algn2['chrom']], algn2['pos']))
 
     return pair_type, algn1, algn2, flip_pair
 
@@ -506,7 +510,7 @@ def write_pairsam(
     out_file.write('\n')
 
 
-def streaming_classify(instream, outstream, min_mapq, max_molecule_size, 
+def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size, 
                        drop_readid, drop_seq, drop_sam, store_mapq):
     """
 
@@ -523,6 +527,7 @@ def streaming_classify(instream, outstream, min_mapq, max_molecule_size,
 
         if not(line) or ((read_id != prev_read_id) and prev_read_id):
             pair_type, algn1, algn2, flip_pair = classify(
+                chromosomes,
                 sams1,
                 sams2,
                 min_mapq,
