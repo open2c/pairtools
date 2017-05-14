@@ -371,11 +371,21 @@ def _toposort(dag, tie_breaker):
 
 
 def merge_chrom_lists(*lsts):
+    sentinel = '!NONE!'
+    
     g = defaultdict(set)
     for lst in lsts:
+        if len(lst) == 1:
+            g[lst[0]] = {sentinel}
         for a, b in zip(lst[:-1], lst[1:]):
             g[b].add(a)
-    return list(_toposort(g.copy(), tie_breaker=min))
+    if len(g) == 0:
+        return []
+
+    chrom_list = list(_toposort(g.copy(), tie_breaker=min))
+    if sentinel in chrom_list:
+        chrom_list.remove(sentinel)
+    return chrom_list
 
 
 def _merge_samheaders(samheaders, force=False):
@@ -432,7 +442,7 @@ def _merge_samheaders(samheaders, force=False):
     return new_header
 
 
-def _merge_pairheaders(pairheaders, force):
+def _merge_pairheaders(pairheaders, force=False):
     new_header = []
 
     # first, add all keys that are expected to be the same among all headers
