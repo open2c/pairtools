@@ -88,9 +88,10 @@ def split_py(pairsam_path, output_pairs, output_sam, nproc):
 
             for col in (cols[_pairsam_format.COL_SAM1],
                         cols[_pairsam_format.COL_SAM2]):
-                for sam_entry in col.split(_pairsam_format.INTER_SAM_SEP):
-                    outstream_sam.write(sam_entry.replace(_pairsam_format.SAM_SEP,'\t'))
-                    outstream_sam.write('\n')
+                if col != '.':
+                    for sam_entry in col.split(_pairsam_format.INTER_SAM_SEP):
+                        outstream_sam.write(sam_entry.replace(_pairsam_format.SAM_SEP,'\t'))
+                        outstream_sam.write('\n')
 
     if outstream_pairs and outstream_pairs != sys.stdout:
         outstream_pairs.close()
