@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from pairsamtools import _headerops
+from pairtools import _headerops
 
 from nose.tools import assert_raises, with_setup, raises
 

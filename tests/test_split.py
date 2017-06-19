@@ -18,7 +18,7 @@ def setup_func():
         subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'split',
              mock_pairsam_path,
              '--output-pairs',
