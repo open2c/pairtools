@@ -31,7 +31,7 @@ def _read(*parts, **kwargs):
 def get_version():
     version = re.search(
         r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-        _read('pairsamtools', '__init__.py'),
+        _read('pairtools', '__init__.py'),
         re.MULTILINE).group(1)
     return version
 
@@ -49,13 +49,13 @@ install_requires = [
 
 extensions = [
     Extension(
-        "pairsamtools._dedup", ["pairsamtools/_dedup.pyx"],
+        "pairtools._dedup", ["pairtools/_dedup.pyx"],
     ),
 ]
 
 packages = find_packages()
 setup(
-    name='pairsamtools',
+    name='pairtools',
     author='Mirny Lab',
     author_email='espresso@mit.edu',
     version=get_version(),
@@ -63,7 +63,7 @@ setup(
     description='CLI tools to process mapped Hi-C data',
     long_description=get_long_description(),
     keywords=['genomics', 'bioinformatics', 'Hi-C', 'contact'],
-    url='https://github.com/mirnylab/pairsamtools',
+    url='https://github.com/mirnylab/pairtools',
     packages=find_packages(),
     ext_modules = cythonize(extensions),
     zip_safe=False,
@@ -71,7 +71,7 @@ setup(
     install_requires=install_requires,
     entry_points={
         'console_scripts': [
-             'pairsamtools = pairsamtools:cli',
+             'pairtools = pairtools:cli',
         ]
     },
     include_dirs=[numpy.get_include()]
