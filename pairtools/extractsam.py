@@ -80,7 +80,8 @@ def extractsam_py(pairsam_path, output_pairs, output_sam, nproc):
         cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
         if outstream_pairs:
             # hard-coded tab separator to follow the DCIC pairs standard
-            outstream_pairs.write('\t'.join(cols[:_pairsam_format.COL_SAM1]))
+            outstream_pairs.write('\t'.join(cols[:_pairsam_format.COL_SAM1] 
+                                            + cols[_pairsam_format.COL_SAM2+1:]))
             outstream_pairs.write('\n')
         
         if (outstream_sam 
