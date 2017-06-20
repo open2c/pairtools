@@ -19,7 +19,7 @@ def setup_func():
             ['python',
              '-m',
              'pairtools',
-             'split',
+             'extractsam',
              mock_pairsam_path,
              '--output-pairs',
              pairs_path,
@@ -36,7 +36,7 @@ def teardown_func():
     tmpdir.cleanup()
 
 @with_setup(setup_func, teardown_func)
-def test_split():
+def test_extractsam():
 
     pairsam_lines = [l.strip() for l in open(mock_pairsam_path, 'r') 
                      if l.strip()]

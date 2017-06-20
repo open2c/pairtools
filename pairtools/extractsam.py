@@ -6,7 +6,7 @@ import click
 
 from . import _io, _pairsam_format, _headerops, cli
 
-UTIL_NAME = 'pairtools_split'
+UTIL_NAME = 'pairtools_extractsam'
 
 @cli.command()
 @click.argument(
@@ -39,16 +39,17 @@ UTIL_NAME = 'pairtools_split'
     help='Number of processes to split the work between.'
     )
 
-def split(pairsam_path, output_pairs, output_sam, nproc):
-    '''split a .pairsam file into pairs and sam.
+def extractsam(pairsam_path, output_pairs, output_sam, nproc):
+    '''Extract SAM entries from a .pairsam file a form a .pairs file and a 
+    .sam file.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
     '''
-    split_py(pairsam_path, output_pairs, output_sam, nproc)
+    extractsam_py(pairsam_path, output_pairs, output_sam, nproc)
 
 
-def split_py(pairsam_path, output_pairs, output_sam, nproc):
+def extractsam_py(pairsam_path, output_pairs, output_sam, nproc):
     instream = (_io.open_bgzip(pairsam_path, mode='r', nproc=nproc) 
                 if pairsam_path else sys.stdin)
 
@@ -101,4 +102,4 @@ def split_py(pairsam_path, output_pairs, output_sam, nproc):
 
 
 if __name__ == '__main__':
-    split()
+    extractsam()
