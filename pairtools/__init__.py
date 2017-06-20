@@ -30,7 +30,7 @@ from .sort import sort
 from .merge import merge
 from .markasdup import markasdup
 from .select import select
-from .split import split
+from .extractsam import extractsam
 from .restrict import restrict
 from .parse import parse, parse_cigar, parse_algn
 from .stats import stats
