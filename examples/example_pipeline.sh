@@ -50,7 +50,7 @@ bwa mem -SP -t "${N_THREADS}" "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     pairsamtools sort
 } | {
     # Set unmapped and ambiguous reads aside
-    pairsamtools select '(PAIR_TYPE == "CX") or (PAIR_TYPE == "LL")' \
+    pairsamtools select '(pair_type == "CX") or (pair_type == "LL")' \
         --output-rest >( pairsamtools split \
             --output-pairs ${UNMAPPED_PAIRS_PATH} \
             --output-sam ${UNMAPPED_SAM_PATH} ) 
