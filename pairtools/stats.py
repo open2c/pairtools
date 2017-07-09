@@ -11,6 +11,7 @@ from collections import OrderedDict
 
 from . import _io, _pairsam_format, cli, _headerops
 
+
 UTIL_NAME = 'pairtools_stats'
 
 @cli.command()
@@ -179,7 +180,7 @@ def do_merge(output, files_to_merge):
             if len(fields) == 0:
                 continue
             if len(fields) != 2:
-                raise Exception(
+                raise _io.ParseError(
                     '{} is not a valid stats file'.format(stat_file))
             stat[fields[0]] = int(fields[1])
 

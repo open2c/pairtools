@@ -1,11 +1,12 @@
 import pipes
 
+
 def open_sam_or_bam(path, mode, nproc=8):
     '''Opens a file as a bam file is `path` ends with .bam, otherwise 
     opens it as a sam.
     '''
     if mode not in ['r','w']:
-        raise Exception("mode can be either 'r' or 'w'")
+        raise ValueError("mode can be either 'r' or 'w'")
     if path.endswith('.bam'):
         if mode =='w': 
             t = pipes.Template()
@@ -18,7 +19,7 @@ def open_sam_or_bam(path, mode, nproc=8):
             t.append('samtools view -h', '--')
             f = t.open(path, 'r')
         else:
-            raise Exception("Unknown mode : {}".format(mode))
+            raise ValueError("Unknown mode : {}".format(mode))
         return f
     else:
         return open(path, mode)
@@ -29,7 +30,7 @@ def open_bgzip(path, mode, nproc=8):
     opens it as a text.
     '''
     if mode not in ['r', 'w', 'a']:
-        raise Exception("mode can be either 'r', 'w' or 'a'")
+        raise ValueError("mode can be either 'r', 'w' or 'a'")
     if path.endswith('.gz'):
         if mode =='w': 
             t = pipes.Template()
@@ -44,9 +45,11 @@ def open_bgzip(path, mode, nproc=8):
             t.append('pbgzip -dc -n {}'.format(nproc), '--')
             f = t.open(path, 'r')
         else:
-            raise Exception("Unknown mode : {}".format(mode))
+            raise ValueError("Unknown mode : {}".format(mode))
         return f
     else:
         return open(path, mode)
 
 
+def ParseError(Exception):
+    pass
