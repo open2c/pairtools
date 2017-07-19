@@ -48,8 +48,18 @@ UTIL_NAME = 'pairsam_sort'
 
     )
 
+@click.option(
+    "--compress-program",
+    type=str,
+    default='',
+    show_default=True,
+    help='A binary to compress temporary sorted chunks. '
+    'Must decompress input when the flag -d is provided. '
+    'Suggested alternatives: gzip, lzop, lz4c, snzip.'
+     )
 
-def sort(pairsam_path, output, nproc, tmpdir, memory):
+
+def sort(pairsam_path, output, nproc, tmpdir, memory, compress_program):
     '''sort a pairs/pairsam file. 
     
     The resulting order is lexicographic along chrom1 and chrom2, numeric 
@@ -58,9 +68,9 @@ def sort(pairsam_path, output, nproc, tmpdir, memory):
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
     '''
-    sort_py(pairsam_path, output, nproc, tmpdir, memory)
+    sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program)
 
-def sort_py(pairsam_path, output, nproc, tmpdir, memory):
+def sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program):
 
     instream = (_io.open_bgzip(pairsam_path, mode='r', nproc=nproc) 
                 if pairsam_path else sys.stdin)
@@ -83,6 +93,7 @@ def sort_py(pairsam_path, output, nproc, tmpdir, memory):
         {6}
         {7}
         -S {8}
+        {9}
         '''.replace('\n',' ').format(
                 _pairsam_format.COL_C1+1, 
                 _pairsam_format.COL_C2+1, 
@@ -91,8 +102,11 @@ def sort_py(pairsam_path, output, nproc, tmpdir, memory):
                 _pairsam_format.COL_PTYPE+1,
                 _pairsam_format.PAIRSAM_SEP_ESCAPE,
                 ' --parallel={} '.format(nproc) if nproc > 1 else ' ',
-                ' -T {} '.format(tmpdir) if tmpdir else ' ',
-                memory
+                ' --temporary-directory={} '.format(tmpdir) if tmpdir else ' ',
+                memory,
+                (' --compress-program={} '.format(compress_program)
+                    if compress_program else ' '),
+
         )
     command += "'"
 
