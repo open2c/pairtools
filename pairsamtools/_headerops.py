@@ -227,7 +227,7 @@ def _add_pg_to_samheader(samheader, ID='', PN='', VN=None, CL=None, force=False)
         new_pg = {'ID':ID, 'PN':PN, 'VN':VN, 'CL':CL}
         new_pg['PP'] = br[-1]['ID']
         if len(pg_chains) > 1:
-            new_pg['ID'] = new_pg['ID'] + '-' + str(i+1)
+            new_pg['ID'] = new_pg['ID'] + '-' + str(i+1) + '.' + str(len(br)+1)
         new_pg['raw'] = _format_pg(**new_pg)
         br.append(new_pg)
 
