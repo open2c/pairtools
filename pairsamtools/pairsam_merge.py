@@ -67,8 +67,10 @@ def merge_py(pairsam_path, output, nproc):
     outstream.flush()
  
     command = r'''
-        /bin/bash -c 'sort -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
-        --merge  --field-separator=$'\''{5}'\''
+        /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort
+        -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
+        --merge  
+        --field-separator=$'\''{5}'\''
         {6}
         -S 1G
         '''.replace('\n',' ').format(
