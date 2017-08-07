@@ -165,6 +165,7 @@ def dedup_py(pairsam_path, output, output_dups,
 
     if stats_file:
         stat_f = _io.open_bgzip(stats_file, mode='a') 
+        stat_f.write('{}\t{}\n'.format('n_unmapped', n_unmapped))
         stat_f.write('{}\t{}\n'.format('n_dups', n_dups))
         stat_f.write('{}\t{}\n'.format('n_nodups', n_nodups))
         stat_f.close()
