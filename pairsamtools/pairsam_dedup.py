@@ -104,12 +104,17 @@ MAX_LEN = 10000
     type=int, 
     default=_pairsam_format.COL_S2,  
     help='Strand 2 column; default {}'.format(_pairsam_format.COL_S2))
+@click.option(
+    "--unmapped-chrom", 
+    type=str, 
+    default=_pairsam_format.UNMAPPED_CHROM,  
+    help='Placeholder for a chromosome on an unmapped side; default {}'.format(_pairsam_format.UNMAPPED_CHROM))
 
 def dedup(pairsam_path, output, output_dups,
     stats_file,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2
+    c1, c2, p1, p2, s1, s2, unmapped_chrom
     ):
     '''find and remove PCR duplicates.
 
@@ -124,7 +129,7 @@ def dedup(pairsam_path, output, output_dups,
         stats_file,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
-        c1, c2, p1, p2, s1, s2
+        c1, c2, p1, p2, s1, s2, unmapped_chrom
         )
 
 
@@ -132,7 +137,7 @@ def dedup_py(pairsam_path, output, output_dups,
     stats_file,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2
+    c1, c2, p1, p2, s1, s2, unmapped_chrom
     ):
     sep = ast.literal_eval('"""' + sep + '"""')
     send_header_to_dedup = send_header_to in ['both', 'dedup']
@@ -153,9 +158,9 @@ def dedup_py(pairsam_path, output, output_dups,
     if send_header_to_dup and outstream_dups:
         outstream_dups.writelines((l+'\n' for l in header))
 
-    n_dups, n_nodups = streaming_dedup(
+    n_unmapped, n_dups, n_nodups = streaming_dedup(
         method, max_mismatch, sep, 
-        c1, c2, p1, p2, s1, s2,
+        c1, c2, p1, p2, s1, s2, unmapped_chrom,
         body_stream, outstream, outstream_dups)
 
     if stats_file:
@@ -188,6 +193,7 @@ def ar(mylist, val):
 def streaming_dedup(
         method, max_mismatch, sep,
         c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
+        unmapped_chrom,
         instream, outstream, outstream_dups):
 
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
@@ -198,6 +204,7 @@ def streaming_dedup(
     lines = []
     chromDict = {}
     strandDict = {}
+    n_unmapped = 0
     n_dups = 0
     n_nodups = 0
 
@@ -210,19 +217,26 @@ def streaming_dedup(
                 warnings.warn("Empty line detected not at the end of the file")
                 continue    
 
-            lines.append(line)
             words = line.split(sep)
             if len(words) <= maxind:
                 raise ValueError(
                     "Error parsing line {}: ".format(line)
                     + " expected {} words, got {}".format(maxind, len(words)))
                 
-            c1.append(fetchadd(words[c1ind], chromDict))
-            c2.append(fetchadd(words[c2ind], chromDict))
-            p1.append(int(words[p1ind]))
-            p2.append(int(words[p2ind]))
-            s1.append(fetchadd(words[s1ind], strandDict))
-            s2.append(fetchadd(words[s2ind], strandDict))
+            if ((words[c1ind] == unmapped_chrom)
+                or (words[c1ind] == unmapped_chrom)):
+
+                outstream.write(line)  
+                n_unmapped += 1
+                    
+            else:
+                lines.append(line)
+                c1.append(fetchadd(words[c1ind], chromDict))
+                c2.append(fetchadd(words[c2ind], chromDict))
+                p1.append(int(words[p1ind]))
+                p2.append(int(words[p2ind]))
+                s1.append(fetchadd(words[s1ind], strandDict))
+                s2.append(fetchadd(words[s2ind], strandDict))
 
         if (not line) or (len(c1) == MAX_LEN):
             res = dd.push(ar(c1, 8), 
@@ -253,7 +267,7 @@ def streaming_dedup(
                         + "something went terribly wrong")
                 break
 
-    return n_dups, n_nodups
+    return n_unmapped, n_dups, n_nodups
 
 
 if __name__ == '__main__':
