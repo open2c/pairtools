@@ -9,6 +9,7 @@ import pipes
 import sys
 import os
 import io
+import copy
 
 from . import _io, _pairsam_format, _headerops, cli
 
@@ -71,23 +72,41 @@ UTIL_NAME = 'pairsam_parse'
     "--store-unrescuable-chimeras", 
     is_flag=True,
     help='If specified, do not mask unrescuable chimeras and report the 5\'-most alignments.')
+@click.option(
+    "--store-unrescuable-chimeras", 
+    is_flag=True,
+    help='If specified, do not mask unrescuable chimeras and report the 5\'-most alignments.')
+@click.option(
+    "--output-parsed-alignments", 
+    type=str, 
+    default="", 
+    help='output file for all parsed alignments, including chimeras. '
+        )
 def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
-          drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras):
+          drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras,
+          output_parsed_alignments):
     '''parse .sam and make .pairsam.
 
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
     decompressed from bam. By default, the input is read from stdin.
     '''
     parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
-             drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras)
+             drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras,
+             output_parsed_alignments)
 
 
 def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
-             drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras):
+             drop_readid, drop_seq, drop_sam, store_mapq, 
+             store_unrescuable_chimeras, output_parsed_alignments):
     instream = (_io.open_sam_or_bam(sam_path, mode='r') 
                 if sam_path else sys.stdin)
     outstream = (_io.open_bgzip(output, mode='w') 
                  if output else sys.stdout)
+    out_alignments_stream = (_io.open_bgzip(output_parsed_alignments, mode='w') 
+                 if output_parsed_alignments else None)
+    if out_alignments_stream:
+        out_alignments_stream.write('side\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')
+
 
     samheader, body_stream = _headerops.get_header(instream, comment_char='@')
     sam_chromsizes = _headerops.get_chromsizes_from_sam_header(samheader)
@@ -107,7 +126,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
 
     streaming_classify(body_stream, outstream, chromosomes, min_mapq, 
                        max_molecule_size, drop_readid, drop_seq, drop_sam, 
-                       store_mapq, store_unrescuable_chimeras)
+                       store_mapq, store_unrescuable_chimeras, out_alignments_stream)
 
     if instream != sys.stdin:
         instream.close()
@@ -152,6 +171,7 @@ def parse_cigar(cigar):
     return {
         'clip5': clip5,
         'clip3': clip3,
+        'cigar_str': cigar,
         'algn_ref_span': algn_ref_span,
         'algn_read_span': algn_read_span,
         'read_len': read_len,
@@ -200,33 +220,36 @@ def parse_supp(samcols, min_mapq):
         if not col.startswith('SA:Z:'):
             continue
 
-        SAcols = col[5:].split(',')
-        mapq = int(SAcols[4])
-        is_unique = mapq >= min_mapq
+        for SA in col[5:].split(';'):
+            if not SA:
+                continue
+            SAcols = SA.split(',')
+            mapq = int(SAcols[4])
+            is_unique = (mapq >= min_mapq)
 
-        chrom = SAcols[0] if is_unique else _pairsam_format.UNMAPPED_CHROM
-        strand = SAcols[2] if is_unique else _pairsam_format.UNMAPPED_STRAND
+            chrom = SAcols[0] if is_unique else _pairsam_format.UNMAPPED_CHROM
+            strand = SAcols[2] if is_unique else _pairsam_format.UNMAPPED_STRAND
 
-        cigar = parse_cigar(SAcols[3])
+            cigar = parse_cigar(SAcols[3])
 
-        pos = _pairsam_format.UNMAPPED_POS
-        if is_unique:
-            if strand == '+':
-                pos = int(SAcols[1])
-            else:
-                pos = int(SAcols[1]) + cigar['algn_ref_span']
+            pos = _pairsam_format.UNMAPPED_POS
+            if is_unique:
+                if strand == '+':
+                    pos = int(SAcols[1])
+                else:
+                    pos = int(SAcols[1]) + cigar['algn_ref_span']
 
-        supp_algns.append({
-            'chrom': chrom,
-            'pos': pos,
-            'strand': strand,
-            'mapq': mapq,
-            'is_mapped': True,
-            'is_unique': is_unique,
-            'is_linear': None,
-            'cigar': cigar,
-            'dist_to_5': cigar['clip5'] if strand == '+' else cigar['clip3'],
-        })
+            supp_algns.append({
+                'chrom': chrom,
+                'pos': pos,
+                'strand': strand,
+                'mapq': mapq,
+                'is_mapped': True,
+                'is_unique': is_unique,
+                'is_linear': None,
+                'cigar': cigar,
+                'dist_to_5': cigar['clip5'] if strand == '+' else cigar['clip3'],
+            })
 
     return supp_algns
 
@@ -306,7 +329,7 @@ def rescue_chimeric_alignment(repr_algn1, repr_algn2, supp_algns1, supp_algns2,
     return can_rescue
 
 
-def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size, 
+def parse_sams_into_pair(chromosomes, sams1, sams2, min_mapq, max_molecule_size, 
              store_unrescuable_chimeras):
     """
     Possible pair types:
@@ -332,12 +355,6 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
     is_chimeric_2 = not algn2['is_linear']
 
 
-    # First, the pair is flipped according to the type of mapping on its sides.
-    # Later, we will check it is mapped on both sides and, if so, flip the sides
-    # according to these coordinates.
-
-    flip_pair = (is_null_1, is_multi_1, is_chimeric_1) < (is_null_2, is_multi_2, is_chimeric_2)
-
     side_type_1 = ('N' if is_null_1 
                        else ('M' if is_multi_1 
                                  else ('C' if is_chimeric_1
@@ -346,6 +363,12 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
                        else ('M' if is_multi_2 
                                  else ('C' if is_chimeric_2
                                            else 'L')))
+
+    # First, the pair is flipped according to the type of mapping on its sides.
+    # Later, we will check it is mapped on both sides and, if so, flip the sides
+    # according to these coordinates.
+
+    flip_pair = (is_null_1, is_multi_1, is_chimeric_1) < (is_null_2, is_multi_2, is_chimeric_2)
 
     pair_type = (side_type_2+side_type_1) if flip_pair else (side_type_1+side_type_2)
 
@@ -359,14 +382,20 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
         algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
 
     # Parse chimeras
+
+    all_algns1 = [algn1]
+    all_algns2 = [algn2]
     
     if ('C' in pair_type): 
-        if store_unrescuable_chimeras or (pair_type == 'CL'):
+        if (pair_type == 'CL') or store_unrescuable_chimeras:
             supp_algns1 = parse_supp(sam1_repr_cols, min_mapq)
             supp_algns2 = parse_supp(sam2_repr_cols, min_mapq)
 
-            algn1_5 = min([algn1] + supp_algns1, key=lambda x:x['dist_to_5'])
-            algn2_5 = min([algn2] + supp_algns2, key=lambda x:x['dist_to_5'])
+            all_algns1 += supp_algns1
+            all_algns2 += supp_algns2
+
+            algn1_5 = min(all_algns1, key=lambda x:x['dist_to_5'])
+            algn2_5 = min(all_algns2, key=lambda x:x['dist_to_5'])
     
         is_rescued = False
         if (pair_type == 'CL'):
@@ -376,15 +405,17 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
            if is_rescued:
                pair_type = 'CX'
 
-        if (store_unrescuable_chimeras or is_rescued):
+        if (is_rescued or store_unrescuable_chimeras):
             algn1 = algn1_5
             algn2 = algn2_5
         else:
             if is_chimeric_1:
+                algn1 = copy.deepcopy(algn1)
                 algn1['chrom'] = _pairsam_format.UNMAPPED_CHROM
                 algn1['pos'] = _pairsam_format.UNMAPPED_POS
                 algn1['strand'] = _pairsam_format.UNMAPPED_STRAND
             if is_chimeric_2:
+                algn2 = copy.deepcopy(algn2)
                 algn2['chrom'] = _pairsam_format.UNMAPPED_CHROM
                 algn2['pos'] = _pairsam_format.UNMAPPED_POS
                 algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
@@ -400,7 +431,7 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
                 > (chrom_enum[algn2['chrom']], algn2['pos']))
 
 
-    return pair_type, algn1, algn2, flip_pair
+    return pair_type, algn1, algn2, flip_pair, all_algns1, all_algns2
 
 
 def push_sam(line, drop_seq, sams1, sams2):
@@ -433,6 +464,30 @@ def push_sam(line, drop_seq, sams1, sams2):
             sams2.append(line)
     return
 
+
+def write_all_algnments(all_algns1, all_algns2, out_file):
+    for side_idx, all_algns in enumerate((all_algns1, all_algns2)):
+        out_file.write(str(side_idx+1))
+        out_file.write('\t')
+        for algn in sorted(all_algns, key=lambda x: x['dist_to_5']):
+            out_file.write(algn['chrom'])
+            out_file.write('\t')
+            out_file.write(str(algn['pos']))
+            out_file.write('\t')
+            out_file.write(algn['strand'])
+            out_file.write('\t')
+            out_file.write(str(algn['mapq']))
+            out_file.write('\t')
+            out_file.write(str(algn['cigar']['cigar_str']))
+            out_file.write('\t')
+            out_file.write(str(algn['dist_to_5']))
+            out_file.write('\t')
+            out_file.write(str(algn['dist_to_5']+algn['cigar']['algn_read_span']))
+            out_file.write('\t')
+            out_file.write(str(algn['cigar']['matched_bp']))
+            out_file.write('\t')
+
+        out_file.write('\n')
 
 def write_pairsam(
         algn1, algn2, read_id, pair_type, sams1, sams2, out_file, 
@@ -493,7 +548,8 @@ def write_pairsam(
 
 
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size, 
-                       drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras):
+                       drop_readid, drop_seq, drop_sam, store_mapq, 
+                       store_unrescuable_chimeras, out_alignments_stream):
     """
 
     """
@@ -502,13 +558,14 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     sams1 = []
     sams2 = []
     line = ''
+    
     while line is not None:
         line = next(instream, None)
 
         read_id = line.split('\t', 1)[0] if line else None
 
         if not(line) or ((read_id != prev_read_id) and prev_read_id):
-            pair_type, algn1, algn2, flip_pair = classify(
+            pair_type, algn1, algn2, flip_pair, all_algns1, all_algns2 = parse_sams_into_pair(
                 chromosomes,
                 sams1,
                 sams2,
@@ -535,6 +592,8 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                     drop_readid,
                     drop_sam,
                     store_mapq)
+            if out_alignments_stream:
+                write_all_algnments(all_algns1, all_algns2, out_alignments_stream)
             
             sams1.clear()
             sams2.clear()
