@@ -331,6 +331,11 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
     is_chimeric_1 = not algn1['is_linear']
     is_chimeric_2 = not algn2['is_linear']
 
+
+    # First, the pair is flipped according to the type of mapping on its sides.
+    # Later, we will check it is mapped on both sides and, if so, flip the sides
+    # according to these coordinates.
+
     flip_pair = (is_null_1, is_multi_1, is_chimeric_1) < (is_null_2, is_multi_2, is_chimeric_2)
 
     side_type_1 = ('N' if is_null_1 
@@ -353,8 +358,8 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
         algn2['pos'] = _pairsam_format.UNMAPPED_POS
         algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
 
-    # TODO: replace spec values with global constants
-
+    # Parse chimeras
+    
     if ('C' in pair_type): 
         if store_unrescuable_chimeras or (pair_type == 'CL'):
             supp_algns1 = parse_supp(sam1_repr_cols, min_mapq)
@@ -384,6 +389,8 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
                 algn2['pos'] = _pairsam_format.UNMAPPED_POS
                 algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
         
+    # If a pair has coordinates on both sides, it must be flipped according to
+    # its genomic coordinates.
 
     if ((algn1['chrom'] != _pairsam_format.UNMAPPED_CHROM)
         and (algn1['chrom'] != _pairsam_format.UNMAPPED_CHROM)):
