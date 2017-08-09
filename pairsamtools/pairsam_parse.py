@@ -80,7 +80,11 @@ UTIL_NAME = 'pairsam_parse'
     "--output-parsed-alignments", 
     type=str, 
     default="", 
-    help='output file for all parsed alignments, including chimeras. '
+    help='output file for all parsed alignments, including chimeras.'
+        ' Useful for debugging and analysis of chimeras.'
+        ' If file exists, it will be open in the append mode.'
+        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' By default, not used.')
         )
 def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
           drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras,
