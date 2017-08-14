@@ -309,7 +309,7 @@ def rescue_chimeric_alignment(repr_algn1, repr_algn2, supp_algns1, supp_algns2,
         return None, None, False
 
 
-def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size):
+def classify(chrom_enum, sams1, sams2, min_mapq, max_molecule_size):
     """
     Possible pair types:
     ...
@@ -319,7 +319,6 @@ def classify(chromosomes, sams1, sams2, min_mapq, max_molecule_size):
     pair_type, algn1, algn2, flip_pair
 
     """
-    chrom_enum = dict(zip(chromosomes, range(len(chromosomes))))
     sam1_repr_cols = sams1[0].rstrip().split('\t')
     sam2_repr_cols = sams2[0].rstrip().split('\t')
 
@@ -517,7 +516,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     """
 
     """
-
+    chrom_enum = dict(zip(chromosomes, range(len(chromosomes))))
     prev_read_id = ''
     sams1 = []
     sams2 = []
@@ -529,7 +528,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 
         if not(line) or ((read_id != prev_read_id) and prev_read_id):
             pair_type, algn1, algn2, flip_pair = classify(
-                chromosomes,
+                chrom_enum,
                 sams1,
                 sams2,
                 min_mapq,
