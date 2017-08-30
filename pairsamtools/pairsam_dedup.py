@@ -225,7 +225,7 @@ def streaming_dedup(
                     + " expected {} words, got {}".format(maxind, len(words)))
                 
             if ((words[c1ind] == unmapped_chrom)
-                or (words[c1ind] == unmapped_chrom)):
+                or (words[c2ind] == unmapped_chrom)):
 
                 outstream.write(line)  
                 n_unmapped += 1
