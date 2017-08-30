@@ -71,7 +71,7 @@ def select(
 
     \b
     Examples:
-    pairsam select '(pair_type=="LL") or (pair_type=="CC")'
+    pairsam select '(pair_type=="LL") or (pair_type=="CX")'
     pairsam select 'chrom1==chrom2'
     pairsam select 'COLS[1]==COLS[3]'
     pairsam select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
