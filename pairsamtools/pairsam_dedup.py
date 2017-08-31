@@ -15,8 +15,7 @@ UTIL_NAME = 'pairsam_dedup'
 
 # you don't need to load more than 10k lines at a time b/c you get out of the 
 # CPU cache, so this parameter is not adjustable
-MAX_LEN = 10000 
-
+MAX_LEN = 10000
 
 @cli.command()
 @click.argument(
@@ -196,7 +195,6 @@ def streaming_dedup(
         c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
         unmapped_chrom,
         instream, outstream, outstream_dups):
-
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
 
     dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False)
@@ -208,6 +206,7 @@ def streaming_dedup(
     n_unmapped = 0
     n_dups = 0
     n_nodups = 0
+    curMaxLen = max(MAX_LEN, dd.getLen())
 
     while True: 
         line = next(instream, None)
@@ -238,8 +237,8 @@ def streaming_dedup(
                 p2.append(int(words[p2ind]))
                 s1.append(fetchadd(words[s1ind], strandDict))
                 s2.append(fetchadd(words[s2ind], strandDict))
-
-        if (not line) or (len(c1) == MAX_LEN):
+                
+        if (not line) or (len(c1) == curMaxLen):
             res = dd.push(ar(c1, 8), 
                           ar(c2, 8), 
                           ar(p1, 32), 

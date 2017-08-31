@@ -93,6 +93,7 @@ def mark_duplicates(
         raise ValueError('method should be "sum" or "max"')
     
     while True:
+        assert False
         if low == N:
             break
 
@@ -112,10 +113,13 @@ def mark_duplicates(
             continue
 
         # if we jumped too far, continue
-        if (c1[high] != c1[low]) or (p1[high] - p1[low] > max_mismatch):
+        if (c1[high] != c1[low]) or (p1[high] - p1[low] > max_mismatch) or (p1[high] < p1[low]) or (c2[high] != c2[low]):
             low += 1
             high = low + 1  # restart high
             continue
+        
+        
+
 
         if methodid == 0: 
             extraCondition = (max(abs(p1[low] - p1[high]), 
@@ -230,7 +234,8 @@ cdef class OnlineDuplicateDetector(object):
 
             # if we jumped too far, continue
             if ((self.c1[self.high] != self.c1[self.low]) or 
-                (self.p1[self.high] - self.p1[self.low] > self.max_mismatch)):
+                (self.p1[self.high] - self.p1[self.low] > self.max_mismatch)   or 
+                (self.p1[self.high] - self.p1[self.low] < 0  )):
                 self.low += 1
                 self.high = self.low + 1  # restart high
                 continue
@@ -274,3 +279,7 @@ cdef class OnlineDuplicateDetector(object):
             
     def finish(self):
         return self._run(finish=True)
+    
+    def getLen(self):
+        print(self.N)
+        return int(self.N)
