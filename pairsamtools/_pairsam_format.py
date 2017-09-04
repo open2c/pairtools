@@ -21,3 +21,5 @@ COLUMNS = ['readID', 'chrom1', 'pos1', 'chrom2', 'pos2',
            'strand1', 'strand2', 'pair_type', 'sam1', 'sam2']
 
 UNMAPPED_CHROM = '!'
+UNMAPPED_POS = 0
+UNMAPPED_STRAND = '-'

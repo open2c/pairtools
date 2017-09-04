@@ -15,7 +15,9 @@ def test_python_version():
 
 def test_parse_cigar():
     assert (parse_cigar('*') == 
-        {'read_len': 0, 
+        {
+         'cigar_str' : '*',
+         'read_len': 0, 
          'matched_bp': 0, 
          'algn_ref_span': 0, 
          'algn_read_span': 0, 
@@ -23,7 +25,9 @@ def test_parse_cigar():
          'clip3': 0})
 
     assert (parse_cigar('50M') == 
-        {'read_len': 50, 
+        {
+         'cigar_str' : '50M',
+         'read_len': 50, 
          'matched_bp': 50, 
          'algn_ref_span': 50, 
          'algn_read_span': 50, 
@@ -31,7 +35,9 @@ def test_parse_cigar():
          'clip3': 0})
 
     assert (parse_cigar('40M10S') == 
-        {'read_len': 50, 
+        {
+         'cigar_str' : '40M10S',
+         'read_len': 50, 
          'matched_bp': 40, 
          'algn_ref_span': 40, 
          'algn_read_span': 40, 
@@ -39,7 +45,9 @@ def test_parse_cigar():
          'clip3': 10})
 
     assert (parse_cigar('10S40M') == 
-        {'read_len': 50, 
+        {
+         'cigar_str' : '10S40M',
+         'read_len': 50, 
          'matched_bp': 40, 
          'algn_ref_span': 40, 
          'algn_read_span': 40, 
@@ -47,7 +55,9 @@ def test_parse_cigar():
          'clip3': 0})
 
     assert (parse_cigar('10S30M10S') == 
-        {'read_len': 50, 
+        {
+         'cigar_str' : '10S30M10S',
+         'read_len': 50, 
          'matched_bp': 30, 
          'algn_ref_span': 30, 
          'algn_read_span': 30, 
@@ -55,7 +65,9 @@ def test_parse_cigar():
          'clip3': 10})
 
     assert (parse_cigar('30M10I10M') == 
-        {'read_len': 50, 
+        {
+         'cigar_str' : '30M10I10M',
+         'read_len': 50, 
          'matched_bp': 40, 
          'algn_ref_span': 40, 
          'algn_read_span': 50, 
@@ -63,7 +75,9 @@ def test_parse_cigar():
          'clip3': 0})
 
     assert (parse_cigar('30M10D10M10S') == 
-        {'read_len': 50, 
+        {
+         'cigar_str' : '30M10D10M10S',
+         'read_len': 50, 
          'matched_bp': 40, 
          'algn_ref_span': 50, 
          'algn_read_span': 40, 
@@ -87,7 +101,9 @@ def test_parse_algn():
          'is_unique': True, 
          'is_mapped': True, 
          'is_linear': True, 
-         'cigar': {'algn_ref_span': 90, 
+         'cigar': {
+                   'cigar_str' : '90M11S',
+                   'algn_ref_span': 90, 
                    'algn_read_span': 90,
                    'matched_bp': 90, 
                    'clip3': 11, 
@@ -106,7 +122,9 @@ def test_parse_algn():
          'is_unique': True, 
          'is_mapped': True, 
          'is_linear': True, 
-         'cigar': {'algn_ref_span': 50, 
+         'cigar': {
+                   'cigar_str' : '50M',
+                   'algn_ref_span': 50, 
                    'algn_read_span': 50,
                    'matched_bp': 50, 
                    'clip3': 0,
@@ -126,7 +144,9 @@ def test_parse_algn():
          'is_unique': False, 
          'is_mapped': False, 
          'is_linear': True, 
-         'cigar': {'algn_ref_span': 0, 
+         'cigar': {
+                   'cigar_str' : '*',
+                   'algn_ref_span': 0, 
                    'algn_read_span': 0,
                    'matched_bp': 0, 
                    'clip3': 0,
