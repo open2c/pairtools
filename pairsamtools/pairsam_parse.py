@@ -333,7 +333,7 @@ def rescue_chimeric_alignment(repr_algn1, repr_algn2, supp_algns1, supp_algns2,
     return can_rescue
 
 
-def parse_sams_into_pair(chromosomes, sams1, sams2, min_mapq, max_molecule_size, 
+def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size, 
              store_unrescuable_chimeras):
     """
     Possible pair types:
@@ -344,7 +344,6 @@ def parse_sams_into_pair(chromosomes, sams1, sams2, min_mapq, max_molecule_size,
     pair_type, algn1, algn2, flip_pair
 
     """
-    chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes), range(len(chromosomes))))
     sam1_repr_cols = sams1[0].rstrip().split('\t')
     sam2_repr_cols = sams2[0].rstrip().split('\t')
 
@@ -557,7 +556,8 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     """
 
     """
-    chrom_enum = dict(zip(chromosomes, range(len(chromosomes))))
+    chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes), 
+                          range(len(chromosomes))))
     prev_read_id = ''
     sams1 = []
     sams2 = []
@@ -570,7 +570,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 
         if not(line) or ((read_id != prev_read_id) and prev_read_id):
             pair_type, algn1, algn2, flip_pair, all_algns1, all_algns2 = parse_sams_into_pair(
-                chromosomes,
+                chrom_enum,
                 sams1,
                 sams2,
                 min_mapq,
