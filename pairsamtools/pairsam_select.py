@@ -135,7 +135,7 @@ def select_py(
     match_func = compile(condition, '<string>', 'eval')
 
     for line in body_stream:
-        COLS = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
+        COLS = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
         if eval(match_func):
             outstream.write(line)
         elif outstream_rest:
