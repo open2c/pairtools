@@ -5,7 +5,7 @@ import math
 import subprocess
 import click
 
-from . import _io, _pairsam_format, _headerops, cli
+from . import _fileio, _pairsam_format, _headerops, cli
 
 UTIL_NAME = 'pairsam_merge'
 
@@ -50,12 +50,12 @@ def merge(pairsam_path, output, nproc):
 def merge_py(pairsam_path, output, nproc):
     paths = sum([glob.glob(mask) for mask in pairsam_path], [])
 
-    outstream = (_io.open_bgzip(output, mode='w', nproc=nproc) 
+    outstream = (_fileio.auto_open(output, mode='w', nproc=nproc) 
                  if output else sys.stdout)
 
     headers = []
     for path in paths:
-        f = _io.open_bgzip(path, mode='r')
+        f = _fileio.auto_open(path, mode='r')
         h, _ = _headerops.get_header(f)
         headers.append(h)
         f.close()

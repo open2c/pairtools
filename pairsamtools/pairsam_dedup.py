@@ -8,7 +8,7 @@ import click
 
 import numpy as np
 
-from . import _dedup, _io, _pairsam_format, _headerops, cli
+from . import _dedup, _fileio, _pairsam_format, _headerops, cli
 
 
 UTIL_NAME = 'pairsam_dedup'
@@ -142,11 +142,11 @@ def dedup_py(pairsam_path, output, output_dups,
     send_header_to_dedup = send_header_to in ['both', 'dedup']
     send_header_to_dup = send_header_to in ['both', 'dups']
 
-    instream = (_io.open_bgzip(pairsam_path, mode='r') 
+    instream = (_fileio.auto_open(pairsam_path, mode='r') 
                 if pairsam_path else sys.stdin)
-    outstream = (_io.open_bgzip(output, mode='w') 
+    outstream = (_fileio.auto_open(output, mode='w') 
                  if output else sys.stdout)
-    outstream_dups = (_io.open_bgzip(output_dups, mode='w') 
+    outstream_dups = (_fileio.auto_open(output_dups, mode='w') 
                       if output_dups else None)
 
     header, body_stream = _headerops.get_header(instream)
@@ -163,7 +163,7 @@ def dedup_py(pairsam_path, output, output_dups,
         body_stream, outstream, outstream_dups)
 
     if stats_file:
-        stat_f = _io.open_bgzip(stats_file, mode='a') 
+        stat_f = _fileio.auto_open(stats_file, mode='a') 
         stat_f.write('{}\t{}\n'.format('n_unmapped', n_unmapped))
         stat_f.write('{}\t{}\n'.format('n_dups', n_dups))
         stat_f.write('{}\t{}\n'.format('n_nodups', n_nodups))

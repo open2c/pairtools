@@ -11,7 +11,7 @@ import os
 import io
 import copy
 
-from . import _io, _pairsam_format, _headerops, cli
+from . import _fileio, _pairsam_format, _headerops, cli
 
 UTIL_NAME = 'pairsam_parse'
 
@@ -102,11 +102,11 @@ def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
 def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
              drop_readid, drop_seq, drop_sam, store_mapq, 
              store_unrescuable_chimeras, output_parsed_alignments):
-    instream = (_io.open_sam_or_bam(sam_path, mode='r') 
+    instream = (_fileio.auto_open(sam_path, mode='r') 
                 if sam_path else sys.stdin)
-    outstream = (_io.open_bgzip(output, mode='w') 
+    outstream = (_fileio.auto_open(output, mode='w') 
                  if output else sys.stdout)
-    out_alignments_stream = (_io.open_bgzip(output_parsed_alignments, mode='w') 
+    out_alignments_stream = (_fileio.auto_open(output_parsed_alignments, mode='w') 
                  if output_parsed_alignments else None)
     if out_alignments_stream:
         out_alignments_stream.write('side\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')

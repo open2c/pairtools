@@ -4,7 +4,7 @@ import sys
 import pipes
 import click
 
-from . import _io, _pairsam_format, cli, _headerops
+from . import _fileio, _pairsam_format, cli, _headerops
 
 UTIL_NAME = 'pairsam_markasdup'
 
@@ -30,9 +30,9 @@ def markasdup(pairsam_path, output):
     markasdup_py(pairsam_path, output)
 
 def markasdup_py(pairsam_path, output):
-    instream = (_io.open_bgzip(pairsam_path, mode='r') 
+    instream = (_fileio.auto_open(pairsam_path, mode='r') 
                 if pairsam_path else sys.stdin)
-    outstream = (_io.open_bgzip(output, mode='w') 
+    outstream = (_fileio.auto_open(output, mode='w') 
                  if output else sys.stdout)
  
 

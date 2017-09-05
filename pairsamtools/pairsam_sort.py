@@ -5,7 +5,7 @@ import sys
 import click
 import subprocess
 
-from . import _io, _pairsam_format, cli, _headerops
+from . import _fileio, _pairsam_format, cli, _headerops
 
 UTIL_NAME = 'pairsam_sort'
 
@@ -72,9 +72,9 @@ def sort(pairsam_path, output, nproc, tmpdir, memory, compress_program):
 
 def sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program):
 
-    instream = (_io.open_bgzip(pairsam_path, mode='r', nproc=nproc) 
+    instream = (_fileio.auto_open(pairsam_path, mode='r', nproc=nproc) 
                 if pairsam_path else sys.stdin)
-    outstream = (_io.open_bgzip(output, mode='w', nproc=nproc) 
+    outstream = (_fileio.auto_open(output, mode='w', nproc=nproc) 
                  if output else sys.stdout)
 
     header, body_stream = _headerops.get_header(instream)
