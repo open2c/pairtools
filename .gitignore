@@ -90,3 +90,6 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# cython compiled C extension
+_*.c
