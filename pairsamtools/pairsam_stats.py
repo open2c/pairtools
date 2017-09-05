@@ -179,7 +179,7 @@ def do_merge(output, files_to_merge):
             if len(fields) == 0:
                 continue
             if len(fields) != 2:
-                raise Exception(
+                raise _fileio.ParseError(
                     '{} is not a valid stats file'.format(stat_file))
             stat[fields[0]] = int(fields[1])
 

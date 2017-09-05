@@ -2,6 +2,10 @@ import shutil
 import pipes
 
 
+class ParseError(Exception):
+    pass
+
+
 def auto_open(path, mode, nproc=1, command=None):
     '''Guess the file format from the extension and use the corresponding binary 
     to open it for reading or writing. If the extension is not known, open the
@@ -29,7 +33,7 @@ def auto_open(path, mode, nproc=1, command=None):
             t.append(command, '--')
             f = t.open(path, 'r')
         else:
-            raise Exception("Unknown mode : {}".format(mode))
+            raise ValueError("Unknown mode : {}".format(mode))
         return f
     elif path.endswith('.bam'):
         if mode =='w': 
@@ -43,7 +47,7 @@ def auto_open(path, mode, nproc=1, command=None):
             t.append('samtools view -h', '--')
             f = t.open(path, 'r')
         else:
-            raise Exception("Unknown mode for .bam : {}".format(mode))
+            raise ValueError("Unknown mode for .bam : {}".format(mode))
         return f
     elif path.endswith('.gz'):
         if mode =='w': 
@@ -59,7 +63,7 @@ def auto_open(path, mode, nproc=1, command=None):
             t.append('pbgzip -dc -n {}'.format(nproc), '--')
             f = t.open(path, 'r')
         else:
-            raise Exception("Unknown mode for .gz : {}".format(mode))
+            raise ValueError("Unknown mode for .gz : {}".format(mode))
         return f
     elif path.endswith('.lz4'):
         if mode =='w': 
@@ -75,7 +79,7 @@ def auto_open(path, mode, nproc=1, command=None):
             t.append('lz4c -cz', '--')
             f = t.open(path, 'r')
         else:
-            raise Exception("Unknown mode : {}".format(mode))
+            raise ValueError("Unknown mode : {}".format(mode))
         return f
     else:
         return open(path, mode)

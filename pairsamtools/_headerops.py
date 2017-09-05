@@ -4,6 +4,7 @@ import copy
 import itertools
 
 from . import __version__, _pairsam_format
+from ._fileio import ParseError
 
 
 PAIRS_FORMAT_VERSION = '1.0.0'
@@ -33,7 +34,7 @@ def get_header(instream, comment_char='#'):
     '''
     header = []
     if not comment_char:
-        raise Exception('Please, provide a comment char!')
+        raise ValueError('Please, provide a comment char!')
     line = None
     for line in instream:
         if line.startswith(comment_char):
@@ -282,7 +283,7 @@ def _parse_pg_chains(header, force=False):
                         break
 
                     else:
-                        raise Exception(
+                        raise ParseError(
                             'Multiple @PG records with the IDs identical to the PP field of another record:\n'
                             + '\n'.join([br[-1]['raw'] for br in matching_chains])
                             + '\nvs\n'
@@ -300,7 +301,7 @@ def _parse_pg_chains(header, force=False):
                 parsed_pgs.pop(i)
                 break
             else:
-                raise Exception(
+                raise ParseError(
                     'Cannot find the parental @PG record for the @PG records:\n'
                     + '\n'.join([pg['raw'] for pg in parsed_pgs])
                     )
@@ -394,7 +395,7 @@ def _merge_samheaders(samheaders, force=False):
     HDs = set.union(*[set(line for line in samheader if line.startswith('@HD'))
                       for samheader in samheaders])
     if len(HDs) > 1 and not force:
-        raise Exception('More than one unique @HD line is found in samheaders!')
+        raise ParseError('More than one unique @HD line is found in samheaders!')
     HDs = [list(HDs)[0]] if HDs else []
 
     # second, confirm that all files had the same SQ lines
@@ -407,7 +408,7 @@ def _merge_samheaders(samheaders, force=False):
                     for samheader in SQs])
 
     if not SQs_same and not(force):
-        raise Exception('The SQ (sequence) lines of the sam headers are not identical')
+        raise ParseError('The SQ (sequence) lines of the sam headers are not identical')
     SQs = [line for line in samheaders[0] if line.startswith('@SQ')]
 
     # third, append _all_ PG chains, adding a unique index according to the 
@@ -459,7 +460,7 @@ def _merge_pairheaders(pairheaders, force=False):
                  for header in pairheaders]
         same = all([l == lines[0] for l in lines])
         if not (same or force):
-            raise Exception(
+            raise ParseError(
                 'The following header entries must be the same '
                 'the merged files: {}'.format(k))
         new_header += lines[0]

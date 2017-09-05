@@ -54,9 +54,9 @@ def split_py(pairsam_path, output_pairs, output_sam, nproc):
 
     # Output streams
     if (not output_pairs) and (not output_sam):
-        raise Exception('At least one output (pairs and/or sam) must be specified!')
+        raise ValueError('At least one output (pairs and/or sam) must be specified!')
     if (output_pairs == '-') and (output_sam == '-'):
-        raise Exception('Only one output (pairs or sam) can be printed in stdout!')
+        raise ValueError('Only one output (pairs or sam) can be printed in stdout!')
 
     outstream_pairs = (sys.stdout if (output_pairs=='-')
                   else _fileio.auto_open(output_pairs, mode='w', nproc=nproc) if output_pairs
