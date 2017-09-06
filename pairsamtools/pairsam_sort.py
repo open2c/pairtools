@@ -5,7 +5,7 @@ import sys
 import click
 import subprocess
 
-from . import _fileio, _pairsam_format, cli, _headerops
+from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
 UTIL_NAME = 'pairsam_sort'
 
@@ -21,15 +21,15 @@ UTIL_NAME = 'pairsam_sort'
     type=str, 
     default="", 
     help='output pairsam file.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
-        ' By default, the output is printed into stdout.')
+        ' If the path ends with .gz or .lz4, the output is compressed by pbgzip '
+        'or lz4, correspondingly. By default, the output is printed into stdout.')
 
 @click.option(
     "--nproc", 
     type=int, 
     default=8, 
     show_default=True,
-    help='Number of processes to split the work between.'
+    help='Number of processes to split the sorting work between.'
     )
 
 @click.option(
@@ -58,23 +58,29 @@ UTIL_NAME = 'pairsam_sort'
     'Suggested alternatives: gzip, lzop, lz4c, snzip.'
      )
 
+@common_io_options
 
-def sort(pairsam_path, output, nproc, tmpdir, memory, compress_program):
+def sort(pairsam_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
     '''sort a pairs/pairsam file. 
     
     The resulting order is lexicographic along chrom1 and chrom2, numeric 
     along pos1 and pos2 and lexicographic along pair_type.
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
-    gzip-decompressed. By default, the input is read from stdin.
+    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the 
+    input is decompressed by pbgzip or lz4c, correspondingly. By default, the 
+    input is read as text from stdin.
     '''
-    sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program)
+    sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program, **kwargs)
 
-def sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program):
+def sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
 
-    instream = (_fileio.auto_open(pairsam_path, mode='r', nproc=nproc) 
+    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+                                  nproc=kwargs.get('nproc_in'),
+                                  command=kwargs.get('cmd_in', None)) 
                 if pairsam_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w', nproc=nproc) 
+    outstream = (_fileio.auto_open(output, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
 
     header, body_stream = _headerops.get_header(instream)
