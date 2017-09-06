@@ -46,8 +46,9 @@ def common_io_options(func):
         '--cmd-in',
         type=str, 
         default=None, 
-        help='A command to decompress the input. '
+        help='A command to decompress the input file. '
              'If provided, fully overrides the auto-guessed command. '
+             'Does not work with stdin. '
              'Must read input from stdin and print output into stdout. '
              'EXAMPLE: pbgzip -dc -n 3'
         )
@@ -55,8 +56,9 @@ def common_io_options(func):
         '--cmd-out',
         type=str, 
         default=None, 
-        help='A command to compress the output. '
+        help='A command to compress the output file. '
              'If provided, fully overrides the auto-guessed command. '
+             'Does not work with stdout. '
              'Must read input from stdin and print output into stdout. '
              'EXAMPLE: pbgzip -c -n 8'
         )
