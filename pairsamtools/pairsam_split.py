@@ -4,7 +4,7 @@ import sys
 import pipes
 import click
 
-from . import _fileio, _pairsam_format, _headerops, cli
+from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
 
 UTIL_NAME = 'pairsam_split'
 
@@ -19,7 +19,7 @@ UTIL_NAME = 'pairsam_split'
     type=str, 
     default="", 
     help='output pairs file.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' If -, pairs are printed to stdout.'
         ' If not specified, pairs are dropped.')
 @click.option(
@@ -31,25 +31,22 @@ UTIL_NAME = 'pairsam_split'
         ' If -, sam entries are printed to stdout.'
         ' If not specified, sam entries are dropped.')
 
-@click.option(
-    "--nproc", 
-    type=int, 
-    default=8, 
-    show_default=True,
-    help='Number of processes to split the work between.'
-    )
+@common_io_options
 
-def split(pairsam_path, output_pairs, output_sam, nproc):
+def split(pairsam_path, output_pairs, output_sam, **kwargs):
     '''split a .pairsam file into pairs and sam.
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
-    gzip-decompressed. By default, the input is read from stdin.
+    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the
+    input is decompressed by pbgzip or lz4c. By default, the input is read from 
+    stdin.
     '''
-    split_py(pairsam_path, output_pairs, output_sam, nproc)
+    split_py(pairsam_path, output_pairs, output_sam, **kwargs)
 
 
-def split_py(pairsam_path, output_pairs, output_sam, nproc):
-    instream = (_fileio.auto_open(pairsam_path, mode='r', nproc=nproc) 
+def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
+    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+                                  nproc=kwargs.get('nproc_in'),
+                                  command=kwargs.get('cmd_in', None)) 
                 if pairsam_path else sys.stdin)
 
     # Output streams
@@ -59,11 +56,15 @@ def split_py(pairsam_path, output_pairs, output_sam, nproc):
         raise ValueError('Only one output (pairs or sam) can be printed in stdout!')
 
     outstream_pairs = (sys.stdout if (output_pairs=='-')
-                  else _fileio.auto_open(output_pairs, mode='w', nproc=nproc) if output_pairs
-                  else None)
+                       else (_fileio.auto_open(output_pairs, mode='w', 
+                                               nproc=kwargs.get('nproc_out'),
+                                               command=kwargs.get('cmd_out', None)) 
+                             if output_pairs else None))
     outstream_sam = (sys.stdout if (output_sam=='-')
-                else _fileio.auto_open(output_sam, mode='w', nproc=nproc) if output_sam
-                else None)
+                     else (_fileio.auto_open(output_sam, mode='w',
+                                             nproc=kwargs.get('nproc_out'),
+                                             command=kwargs.get('cmd_out', None))
+                           if output_sam else None))
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
@@ -76,7 +77,7 @@ def split_py(pairsam_path, output_pairs, output_sam, nproc):
 
     # Split
     for line in body_stream:
-        cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
         if outstream_pairs:
             # hard-coded tab separator to follow the DCIC pairs standard
             outstream_pairs.write('\t'.join(cols[:_pairsam_format.COL_SAM1]))
