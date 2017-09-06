@@ -21,16 +21,91 @@ UTIL_NAME = 'pairsam_merge'
     type=str, 
     default="", 
     help='output file.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz/.lz4, the output is compressed by pbgzip/lz4c.'
         ' By default, the output is printed into stdout.')
+
+@click.option(
+    "--max-nmerge", 
+    type=int, 
+    default=8, 
+    show_default=True,
+    help='The maximal number of inputs merged at once. For more, store '
+         'merged intermediates in temporary files.'
+    )
+
+@click.option(
+    "--tmpdir", 
+    type=str, 
+    default='', 
+    help='Custom temporary folder for merged intermediates.'
+    )
+
+@click.option(
+    "--memory", 
+    type=str, 
+    default='2G', 
+    show_default=True,
+    help='The amount of memory used by default.',
+
+    )
+
+@click.option(
+    "--compress-program",
+    type=str,
+    default='',
+    show_default=True,
+    help='A binary to compress temporary merged chunks. '
+    'Must decompress input when the flag -d is provided. '
+    'Suggested alternatives: lz4c, gzip, lzop, snzip. '
+    'NOTE: fails silently if the command syntax is wrong. '
+     )
+
 @click.option(
     "--nproc", 
     type=int, 
     default=8, 
-    help='Number of threads per process.',
+    help='Number of threads for merging.',
     show_default=True,
     )
-def merge(pairsam_path, output, nproc):
+
+@click.option(
+    '--nproc-in',
+    type=int, 
+    default=1, 
+    show_default=True,
+    help='Number of processes used by the auto-guessed input decompressing command.'
+    )
+@click.option(
+    '--nproc-out',
+    type=int, 
+    default=8, 
+    show_default=True,
+    help='Number of processes used by the auto-guessed output compressing command.'
+    )
+@click.option(
+    '--cmd-in',
+    type=str, 
+    default=None, 
+    help='A command to decompress the input. '
+         'If provided, fully overrides the auto-guessed command. '
+         'Does not work with stdin. '
+         'Must read input from stdin and print output into stdout. '
+         'EXAMPLE: pbgzip -dc -n 3'
+    )
+@click.option(
+    '--cmd-out',
+    type=str, 
+    default=None, 
+    help='A command to compress the output. '
+         'If provided, fully overrides the auto-guessed command. '
+         'Does not work with stdout. '
+         'Must read input from stdin and print output into stdout. '
+         'EXAMPLE: pbgzip -c -n 8'
+    )
+
+# Using custom IO options
+
+def merge(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
     """merge sorted pairs/pairsam files. 
 
     Merge triu-flipped sorted pairs/pairsam files. If present, the @SQ records 
@@ -41,21 +116,26 @@ def merge(pairsam_path, output, nproc):
     The other unique SAM and non-SAM header lines are copied into the output header.
 
     PAIRSAM_PATH : upper-triangular flipped sorted pairs/pairsam files to merge
-    or a group/groups of .pairsam files specified by a wildcard
+    or a group/groups of .pairsam files specified by a wildcard. For paths ending
+    in .gz/.lz4, the files are decompressed by pbgzip/lz4c.
     
     """
-    merge_py(pairsam_path, output, nproc)
+    merge_py(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs)
 
 
-def merge_py(pairsam_path, output, nproc):
+def merge_py(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
     paths = sum([glob.glob(mask) for mask in pairsam_path], [])
 
-    outstream = (_fileio.auto_open(output, mode='w', nproc=nproc) 
+    outstream = (_fileio.auto_open(output, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
 
     headers = []
     for path in paths:
-        f = _fileio.auto_open(path, mode='r')
+        f = _fileio.auto_open(path, mode='r', 
+                              nproc=kwargs.get('nproc_in'),
+                              command=kwargs.get('cmd_in', None)) 
         h, _ = _headerops.get_header(f)
         headers.append(h)
         f.close()
@@ -72,7 +152,10 @@ def merge_py(pairsam_path, output, nproc):
         --merge  
         --field-separator=$'\''{5}'\''
         {6}
-        -S 1G
+        {7}
+        {8}
+        -S {9}
+        {10}
         '''.replace('\n',' ').format(
                 _pairsam_format.COL_C1+1, 
                 _pairsam_format.COL_C2+1, 
@@ -81,10 +164,19 @@ def merge_py(pairsam_path, output, nproc):
                 _pairsam_format.COL_PTYPE+1,
                 _pairsam_format.PAIRSAM_SEP_ESCAPE,
                 ' --parallel={} '.format(nproc) if nproc > 1 else ' ',
+                ' --batch-size={} '.format(max_nmerge) if max_nmerge else ' ',
+                ' --temporary-directory={} '.format(tmpdir) if tmpdir else ' ',
+                memory,
+                (' --compress-program={} '.format(compress_program)
+                    if compress_program else ' '),
                 )
     for path in paths:
-        if path.endswith('.gz'):
-            command += r''' <(pbgzip -dc -n {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(nproc, path)
+        if kwargs.get('cmd_in', None):
+            command += r''' <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path, kwargs['cmd_in'])
+        elif path.endswith('.gz'):
+            command += r''' <(pbgzip -dc -n {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(kwargs['nproc_in'], path)
+        elif path.endswith('.lz4'):
+            command += r''' <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path)
         else:
             command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(path)
     command += "'"
