@@ -7,7 +7,7 @@ import subprocess
 
 import numpy as np
 
-from . import _fileio, _pairsam_format, cli, _headerops
+from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
 UTIL_NAME = 'pairsam_restrict'
 
@@ -30,22 +30,28 @@ UTIL_NAME = 'pairsam_restrict'
     type=str, 
     default="", 
     help='output pairsam file.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz/.lz4, the output is compressed by pbgzip/lz4c.'
         ' By default, the output is printed into stdout.')
 
+@common_io_options
 
-def restrict(pairsam_path, frags, output):
+def restrict(pairsam_path, frags, output, **kwargs):
     '''appends positions of restriction fragments to a pairs/pairsam file. 
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
-    gzip-decompressed. By default, the input is read from stdin.
+    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz/.lz4, the 
+    input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
     '''
-    restrict_py(pairsam_path, frags, output)
+    restrict_py(pairsam_path, frags, output, **kwargs)
 
-def restrict_py(pairsam_path, frags, output):
-    instream = (_fileio.auto_open(pairsam_path, mode='r') 
+def restrict_py(pairsam_path, frags, output, **kwargs):
+    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+                                  nproc=kwargs.get('nproc_in'),
+                                  command=kwargs.get('cmd_in', None)) 
                 if pairsam_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w') 
+
+    outstream = (_fileio.auto_open(output, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
 
 
@@ -67,7 +73,7 @@ def restrict_py(pairsam_path, frags, output):
 
 
     for line in body_stream:
-        cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
         chrom1, pos1 = cols[_pairsam_format.COL_C1], int(cols[_pairsam_format.COL_P1])
         rfrag_idx1, rfrag_start1, rfrag_end1 = find_rfrag(rfrags, chrom1, pos1)
         chrom2, pos2 = cols[_pairsam_format.COL_C2], int(cols[_pairsam_format.COL_P2])
