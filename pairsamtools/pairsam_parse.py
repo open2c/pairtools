@@ -73,10 +73,6 @@ UTIL_NAME = 'pairsam_parse'
     is_flag=True,
     help='If specified, do not mask unrescuable chimeras and report the 5\'-most alignments.')
 @click.option(
-    "--store-unrescuable-chimeras", 
-    is_flag=True,
-    help='If specified, do not mask unrescuable chimeras and report the 5\'-most alignments.')
-@click.option(
     "--output-parsed-alignments", 
     type=str, 
     default="", 
