@@ -15,6 +15,7 @@ __version__ = '0.0.1-dev'
 
 
 import click
+import functools
 
 CONTEXT_SETTINGS = {
     'help_option_names': ['-h', '--help'],
@@ -24,6 +25,45 @@ CONTEXT_SETTINGS = {
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     pass
+
+
+def common_io_options(func):
+    @click.option(
+        '--nproc-in',
+        type=int, 
+        default=3, 
+        show_default=True,
+        help='Number of processes used by the auto-guessed input decompressing command.'
+        )
+    @click.option(
+        '--nproc-out',
+        type=int, 
+        default=8, 
+        show_default=True,
+        help='Number of processes used by the auto-guessed output compressing command.'
+        )
+    @click.option(
+        '--cmd-in',
+        type=str, 
+        default=None, 
+        help='A command to decompress the input. '
+             'If provided, fully overrides the auto-guessed command. '
+             'Must read input from stdin and print output into stdout. '
+             'EXAMPLE: pbgzip -dc -n 3'
+        )
+    @click.option(
+        '--cmd-out',
+        type=str, 
+        default=None, 
+        help='A command to compress the output. '
+             'If provided, fully overrides the auto-guessed command. '
+             'Must read input from stdin and print output into stdout. '
+             'EXAMPLE: pbgzip -c -n 8'
+        )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
 
 from .pairsam_dedup import dedup
 from .pairsam_sort import sort
