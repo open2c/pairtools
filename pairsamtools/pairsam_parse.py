@@ -452,29 +452,30 @@ def push_sam(line, drop_seq, sams1, sams2):
 
     """
 
+    sam = line.rstrip()
     if drop_seq:
-        split_line = line.split('\t')
-        split_line[9] = '*'
-        split_line[10] = '*'
-        line = '\t'.join(split_line)
+        split_sam = sam.split('\t')
+        split_sam[9] = '*'
+        split_sam[10] = '*'
+        sam = '\t'.join(split_sam)
 
-        flag = split_line[1]
+        flag = split_sam[1]
         flag = int(flag)
     else:
-        _, flag, _ = line.split('\t', 2)
+        _, flag, _ = sam.split('\t', 2)
         flag = int(flag)
 
 
     if ((flag & 0x40) != 0):
         if ((flag & 0x800) == 0):
-            sams1.insert(0, line)
+            sams1.insert(0, sam)
         else:
-            sams1.append(line)
+            sams1.append(sam)
     else:
         if ((flag & 0x800) == 0):
-            sams2.insert(0, line)
+            sams2.insert(0, sam)
         else:
-            sams2.append(line)
+            sams2.append(sam)
     return
 
 
@@ -535,7 +536,7 @@ def write_pairsam(
         out_file.write('.')
     else:
         for i, sam in enumerate(sams1):
-            out_file.write(sam[:-1].replace('\t', _pairsam_format.SAM_SEP))
+            out_file.write(sam.replace('\t', _pairsam_format.SAM_SEP))
             out_file.write(_pairsam_format.SAM_SEP + 'Yt:Z:')
             out_file.write(pair_type)
             if i < len(sams1) -1:
@@ -545,7 +546,7 @@ def write_pairsam(
         out_file.write('.')
     else:
         for i, sam in enumerate(sams2):
-            out_file.write(sam[:-1].replace('\t', _pairsam_format.SAM_SEP))
+            out_file.write(sam.replace('\t', _pairsam_format.SAM_SEP))
             out_file.write(_pairsam_format.SAM_SEP + 'Yt:Z:')
             out_file.write(pair_type)
             if i < len(sams2) -1:
