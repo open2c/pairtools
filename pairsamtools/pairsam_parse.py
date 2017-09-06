@@ -11,7 +11,7 @@ import os
 import io
 import copy
 
-from . import _fileio, _pairsam_format, _headerops, cli
+from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
 
 UTIL_NAME = 'pairsam_parse'
 
@@ -34,7 +34,7 @@ UTIL_NAME = 'pairsam_parse'
     type=str, 
     default="", 
     help='output file. '
-         'If the path ends with .gz, the output is bgzip-compressed. '
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4-compressed.'
          'By default, the output is printed into stdout. ')
 @click.option(
     "--assembly", 
@@ -83,12 +83,15 @@ UTIL_NAME = 'pairsam_parse'
     help='output file for all parsed alignments, including chimeras.'
         ' Useful for debugging and rnalysis of chimeras.'
         ' If file exists, it will be open in the append mode.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4-compressed.'
         ' By default, not used.'
         )
+
+@common_io_options
+
 def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
           drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras,
-          output_parsed_alignments):
+          output_parsed_alignments, **kwargs):
     '''parse .sam and make .pairsam.
 
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
@@ -96,18 +99,25 @@ def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
     '''
     parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
              drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras,
-             output_parsed_alignments)
+             output_parsed_alignments, **kwargs)
 
 
 def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
              drop_readid, drop_seq, drop_sam, store_mapq, 
-             store_unrescuable_chimeras, output_parsed_alignments):
-    instream = (_fileio.auto_open(sam_path, mode='r') 
+             store_unrescuable_chimeras, output_parsed_alignments, **kwargs):
+    instream = (_fileio.auto_open(sam_path, mode='r', 
+                                  nproc=kwargs.get('nproc_in'),
+                                  command=kwargs.get('cmd_in', None)) 
                 if sam_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w') 
+    outstream = (_fileio.auto_open(output, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
-    out_alignments_stream = (_fileio.auto_open(output_parsed_alignments, mode='w') 
+    out_alignments_stream = (_fileio.auto_open(output_parsed_alignments, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output_parsed_alignments else None)
+
     if out_alignments_stream:
         out_alignments_stream.write('side\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')
 
