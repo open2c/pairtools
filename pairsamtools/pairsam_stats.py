@@ -46,7 +46,7 @@ def stats(input_path, output, merge, **kwargs):
     If --merge is specified, then INPUT_PATH is interpreted as an arbitrary number 
     of stats files to merge.
     
-    The files with paths ending with .gz are gzip-decompressed. 
+    The files with paths ending with .gz/.lz4 are decompressed by pbgzip/lz4c. 
     '''
     stats_py(input_path, output, merge, **kwargs)
 
