@@ -8,7 +8,7 @@ import click
 
 import numpy as np
 
-from . import _dedup, _fileio, _pairsam_format, _headerops, cli
+from . import _dedup, _fileio, _pairsam_format, _headerops, cli, common_io_options
 
 
 UTIL_NAME = 'pairsam_dedup'
@@ -27,14 +27,14 @@ MAX_LEN = 10000
     type=str, 
     default="", 
     help='output file for pairs after duplicate removal.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' By default, the output is printed into stdout.')
 @click.option(
     "--output-dups",
     type=str, 
     default="", 
     help='output file for duplicates. '
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' By default, duplicates are dropped.')
 @click.option(
     "--stats-file", 
@@ -42,7 +42,7 @@ MAX_LEN = 10000
     default="", 
     help='output file for duplicate statistics. '
         ' If file exists, it will be open in the append mode.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' By default, statistics are not printed.')
 @click.option(
     "--max-mismatch",
@@ -109,11 +109,13 @@ MAX_LEN = 10000
     default=_pairsam_format.UNMAPPED_CHROM,  
     help='Placeholder for a chromosome on an unmapped side; default {}'.format(_pairsam_format.UNMAPPED_CHROM))
 
+@common_io_options
+
 def dedup(pairsam_path, output, output_dups,
     stats_file,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom
+    c1, c2, p1, p2, s1, s2, unmapped_chrom, **kwargs
     ):
     '''find and remove PCR duplicates.
 
@@ -121,14 +123,15 @@ def dedup(pairsam_path, output, output_dups,
     file. Allow for a +/-N bp mismatch at each side of duplicated molecules.
 
     PAIRSAM_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the
-    path ends with .gz, the input is gzip-decompressed. By default, the input 
-    is read from stdin.
+    path ends with .gz/.lz4, the input is decompressed by pbgzip/lz4c. 
+    By default, the input is read from stdin.
     '''
     dedup_py(pairsam_path, output, output_dups,
         stats_file,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
-        c1, c2, p1, p2, s1, s2, unmapped_chrom
+        c1, c2, p1, p2, s1, s2, unmapped_chrom, 
+        **kwargs
         )
 
 
@@ -136,17 +139,24 @@ def dedup_py(pairsam_path, output, output_dups,
     stats_file,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom
+    c1, c2, p1, p2, s1, s2, unmapped_chrom,
+    **kwargs
     ):
     sep = ast.literal_eval('"""' + sep + '"""')
     send_header_to_dedup = send_header_to in ['both', 'dedup']
     send_header_to_dup = send_header_to in ['both', 'dups']
 
-    instream = (_fileio.auto_open(pairsam_path, mode='r') 
+    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+                                  nproc=kwargs.get('nproc_in'),
+                                  command=kwargs.get('cmd_in', None)) 
                 if pairsam_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w') 
+    outstream = (_fileio.auto_open(output, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
-    outstream_dups = (_fileio.auto_open(output_dups, mode='w') 
+    outstream_dups = (_fileio.auto_open(output_dups, mode='w', 
+                                        nproc=kwargs.get('nproc_out'),
+                                        command=kwargs.get('cmd_out', None)) 
                       if output_dups else None)
 
     header, body_stream = _headerops.get_header(instream)
@@ -163,7 +173,9 @@ def dedup_py(pairsam_path, output, output_dups,
         body_stream, outstream, outstream_dups)
 
     if stats_file:
-        stat_f = _fileio.auto_open(stats_file, mode='a') 
+        stat_f = _fileio.auto_open(stats_file, mode='a',
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None))
         stat_f.write('{}\t{}\n'.format('n_unmapped', n_unmapped))
         stat_f.write('{}\t{}\n'.format('n_dups', n_dups))
         stat_f.write('{}\t{}\n'.format('n_nodups', n_nodups))
