@@ -4,7 +4,7 @@ import sys
 import pipes
 import click
 
-from . import _fileio, _pairsam_format, cli, _headerops
+from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
 UTIL_NAME = 'pairsam_markasdup'
 
@@ -18,31 +18,35 @@ UTIL_NAME = 'pairsam_markasdup'
     type=str, 
     default="", 
     help='output .pairsam file.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' By default, the output is printed into stdout.')
 
-def markasdup(pairsam_path, output):
+@common_io_options
+
+def markasdup(pairsam_path, output, **kwargs):
     '''tag all pairsam entries with a duplicate tag.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
     gzip-decompressed. By default, the input is read from stdin.
     '''
-    markasdup_py(pairsam_path, output)
+    markasdup_py(pairsam_path, output, **kwargs)
 
-def markasdup_py(pairsam_path, output):
-    instream = (_fileio.auto_open(pairsam_path, mode='r') 
+def markasdup_py(pairsam_path, output, **kwargs):
+    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+                                  nproc=kwargs.get('nproc_in'),
+                                  command=kwargs.get('cmd_in', None)) 
                 if pairsam_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w') 
+    outstream = (_fileio.auto_open(output, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
- 
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l+'\n' for l in header))
 
-
     for line in body_stream:
-        cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
         cols[_pairsam_format.COL_PTYPE] = 'DD'
         
         if (len(cols) > _pairsam_format.COL_SAM1) and (len(cols) > _pairsam_format.COL_SAM2):
