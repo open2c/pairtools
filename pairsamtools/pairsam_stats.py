@@ -9,7 +9,7 @@ import numpy as np
 
 from collections import OrderedDict
 
-from . import _fileio, _pairsam_format, cli, _headerops
+from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
 UTIL_NAME = 'pairsam_stats'
 
@@ -36,8 +36,9 @@ UTIL_NAME = 'pairsam_stats'
         ' the end of the file.',
     )
 
+@common_io_options
 
-def stats(input_path, output, merge):
+def stats(input_path, output, merge, **kwargs):
     '''Calculate various statistics of a pairs/pairsam file. 
 
     INPUT_PATH : by default, a .pairsam file to calculate statistics.
@@ -47,16 +48,20 @@ def stats(input_path, output, merge):
     
     The files with paths ending with .gz are gzip-decompressed. 
     '''
-    stats_py(input_path, output, merge)
+    stats_py(input_path, output, merge, **kwargs)
 
-def stats_py(input_path, output, merge):
+def stats_py(input_path, output, merge, **kwargs):
     if merge:
-        do_merge(output, input_path)
+        do_merge(output, input_path, **kwargs)
         return
 
-    instream = (_fileio.auto_open(input_path[0], mode='r') 
+    instream = (_fileio.auto_open(input_path[0], mode='r', 
+                                  nproc=kwargs.get('nproc_in'),
+                                  command=kwargs.get('cmd_in', None)) 
                 if input_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w') 
+    outstream = (_fileio.auto_open(output, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
 
 
@@ -94,7 +99,7 @@ def stats_py(input_path, output, merge):
 
     # Collecting statistics
     for line in body_stream:
-        cols = line[:-1].split(_pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
         chrom1, pos1, strand1 = (
                 cols[_pairsam_format.COL_C1], 
                 int(cols[_pairsam_format.COL_P1]),
@@ -167,12 +172,14 @@ def stats_py(input_path, output, merge):
         outstream.close()
 
 
-def do_merge(output, files_to_merge):
+def do_merge(output, files_to_merge, **kwargs):
 
     # Parse all stats files.
     stats = []
     for stat_file in files_to_merge:
-        f = _fileio.auto_open(stat_file,'r')
+        f = _fileio.auto_open(stat_file, mode='r', 
+                              nproc=kwargs.get('nproc_in'),
+                              command=kwargs.get('cmd_in', None)) 
         stat = OrderedDict()
         for l in f:
             fields = l.strip().split('\t') 
@@ -204,9 +211,9 @@ def do_merge(output, files_to_merge):
 
 
     # Save merged stats.
-    outstream = (_fileio.auto_open(output, mode='w') 
-                 if output else sys.stdout)
-
+    outstream = _fileio.auto_open(output, mode='w', 
+                                  nproc=kwargs.get('nproc_out'),
+                                  command=kwargs.get('cmd_out', None))
     for k,v in out_stats.items():
         outstream.write('{}\t{}\n'.format(k,v))
         
