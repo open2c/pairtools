@@ -131,6 +131,18 @@ def merge_py(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program,
                                    command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
 
+    # if there is only one input, bypass merging and do not modify the header
+    if len(paths) == 1:
+        instream = _fileio.auto_open(paths[0], mode='r', 
+                              nproc=kwargs.get('nproc_in'),
+                              command=kwargs.get('cmd_in', None)) 
+        for line in instream:
+            outstream.write(line)
+        if outstream != sys.stdout:
+            outstream.close()
+
+        return
+
     headers = []
     for path in paths:
         f = _fileio.auto_open(path, mode='r', 
