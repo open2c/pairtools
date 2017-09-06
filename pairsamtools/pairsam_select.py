@@ -2,7 +2,7 @@ import sys
 import click
 import re, fnmatch
 
-from . import _fileio, _pairsam_format, cli, _headerops
+from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
 UTIL_NAME = 'pairsam_select'
 
@@ -23,7 +23,7 @@ UTIL_NAME = 'pairsam_select'
     type=str, 
     default="", 
     help='output file.'
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' By default, the output is printed into stdout.')
 
 @click.option(
@@ -31,7 +31,7 @@ UTIL_NAME = 'pairsam_select'
     type=str, 
     default="", 
     help='output file for pairs of other types. '
-        ' If the path ends with .gz, the output is bgzip-compressed.'
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' By default, such pairs are dropped.')
 
 @click.option(
@@ -41,8 +41,10 @@ UTIL_NAME = 'pairsam_select'
     help="Which of the outputs should receive header and comment lines",
     show_default=True)
 
+@common_io_options
+
 def select(
-    condition, pairsam_path, output, output_rest, send_comments_to
+    condition, pairsam_path, output, output_rest, send_comments_to, **kwargs
     ):
     '''select pairsam entries.
 
@@ -55,8 +57,8 @@ def select(
     CONDITION with single quotes, and use double quotes for string variables
     inside CONDITION.
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
-    gzip-decompressed. By default, the input is read from stdin.
+    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the
+    input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
 
     The following functions can be used in CONDITION besides the standard Python functions:
 
@@ -80,17 +82,24 @@ def select(
 
     '''
     select_py(
-        condition, pairsam_path, output, output_rest, send_comments_to
+        condition, pairsam_path, output, output_rest, send_comments_to, **kwargs
     )
     
 def select_py(
-    condition, pairsam_path, output, output_rest, send_comments_to
+    condition, pairsam_path, output, output_rest, send_comments_to, **kwargs
     ):
-    instream = (_fileio.auto_open(pairsam_path, mode='r') 
+
+    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+                                  nproc=kwargs.get('nproc_in'),
+                                  command=kwargs.get('cmd_in', None)) 
                 if pairsam_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w') 
+    outstream = (_fileio.auto_open(output, mode='w', 
+                                   nproc=kwargs.get('nproc_out'),
+                                   command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
-    outstream_rest = (_fileio.auto_open(output_rest, mode='w') 
+    outstream_rest = (_fileio.auto_open(output_rest, mode='w', 
+                                        nproc=kwargs.get('nproc_out'),
+                                        command=kwargs.get('cmd_out', None)) 
                       if output_rest else None)
 
     wildcard_library = {}
