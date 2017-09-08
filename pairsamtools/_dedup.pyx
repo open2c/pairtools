@@ -281,5 +281,4 @@ cdef class OnlineDuplicateDetector(object):
         return self._run(finish=True)
     
     def getLen(self):
-        print(self.N)
         return int(self.N)
