@@ -11,8 +11,8 @@ PAIRS_FORMAT_VERSION = '1.0.0'
 
 
 def get_header(instream, comment_char='#'):
-    '''Returns a header from the stream and an iterator for the remaining
-    lines.
+    '''Returns a header from the stream and an the reaminder of the stream
+    with the actual data.
 
     Parameters
     ----------
@@ -25,27 +25,32 @@ def get_header(instream, comment_char='#'):
 
     Returns
     -------
-    header : list of str
+    header : list
         The header lines, stripped of terminal spaces and newline characters.
 
-    line_iterator : an iterator of str
-        An iterator over the residual lines of the input.
+    remainder_stream : stream/file-like object
+        Stream with the remaining lines.
     
     '''
     header = []
     if not comment_char:
         raise ValueError('Please, provide a comment char!')
-    line = None
-    for line in instream:
-        if line.startswith(comment_char):
-            header.append(line.strip())
-        else:
-            break
-
-    if line:
-        return header, itertools.chain([line], instream)
-    else:
-        return header, instream
+    comment_byte = comment_char.encode()
+    # get peekable buffer for the instream
+    inbuffer = instream.buffer
+    current_peek = inbuffer.peek()
+    while current_peek.startswith(comment_byte):
+        # consuming a line from buffer guarantees
+        # that the remainder of the buffer starts 
+        # with the beginning of the line.
+        line = inbuffer.readline()
+        # append line to header, since it does start with header
+        header.append(line.decode().strip())
+        # peek into the remainder of the instream
+        current_peek = inbuffer.peek()
+    # apparently, next line does not start with the comment
+    # return header and the instream, advanced to the beginning of the data
+    return header, instream
 
 
 def extract_fields(header, field_name, save_rest=False):
