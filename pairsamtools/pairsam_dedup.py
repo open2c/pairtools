@@ -3,6 +3,7 @@
 import sys
 import ast 
 import warnings
+import pathlib
 
 import click
 
@@ -34,11 +35,20 @@ MAX_LEN = 10000
     "--output-dups",
     type=str, 
     default="", 
-    help='output file for duplicates. '
+    help='output file for duplicated pairs. '
         ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
-        ' By default, duplicates are dropped.')
+        ' If the path is the same as in --output or -, output duplicates together '
+        ' with deduped pairs. By default, duplicates are dropped.')
 @click.option(
-    "--stats-file", 
+    "--output-unmapped",
+    type=str, 
+    default="", 
+    help='output file for unmapped pairs. '
+        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path is the same as in --output or -, output unmapped pairs together '
+        ' with deduped pairs. By default, unmapped pairs are dropped.')
+@click.option(
+    "--output-stats", 
     type=str, 
     default="", 
     help='output file for duplicate statistics. '
@@ -117,8 +127,8 @@ MAX_LEN = 10000
 
 @common_io_options
 
-def dedup(pairsam_path, output, output_dups,
-    stats_file,
+def dedup(pairsam_path, output, output_dups, output_unmapped,
+    output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, **kwargs
@@ -132,8 +142,8 @@ def dedup(pairsam_path, output, output_dups,
     path ends with .gz/.lz4, the input is decompressed by pbgzip/lz4c. 
     By default, the input is read from stdin.
     '''
-    dedup_py(pairsam_path, output, output_dups,
-        stats_file,
+    dedup_py(pairsam_path, output, output_dups, output_unmapped,
+        output_stats,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
         c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups,
@@ -141,8 +151,9 @@ def dedup(pairsam_path, output, output_dups,
         )
 
 
-def dedup_py(pairsam_path, output, output_dups,
-    stats_file,
+def dedup_py(
+    pairsam_path, output, output_dups, output_unmapped,
+    output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups,
@@ -160,26 +171,45 @@ def dedup_py(pairsam_path, output, output_dups,
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
-    outstream_dups = (_fileio.auto_open(output_dups, mode='w', 
-                                        nproc=kwargs.get('nproc_out'),
-                                        command=kwargs.get('cmd_out', None)) 
-                      if output_dups else None)
+
+    if not output_dups:
+        outstream_dups = None
+    elif (output_dups == '-' or 
+          (pathlib.Path(output_dups).absolute() == pathlib.Path(output).absolute())):
+        outstream_dups = outstream
+    else:
+        outstream_dups = _fileio.auto_open(output_dups, mode='w', 
+                                            nproc=kwargs.get('nproc_out'),
+                                            command=kwargs.get('cmd_out', None)) 
+        
+    if not output_unmapped:
+        outstream_unmapped = None
+    elif (output_unmapped == '-' or 
+        (pathlib.Path(output_unmapped).absolute() == pathlib.Path(output).absolute())):
+        outstream_unmapped = outstream
+    else:
+        outstream_unmapped = _fileio.auto_open(output_unmapped, mode='w', 
+                                            nproc=kwargs.get('nproc_out'),
+                                            command=kwargs.get('cmd_out', None))
+                             
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
 
     if send_header_to_dedup:
         outstream.writelines((l+'\n' for l in header))
-    if send_header_to_dup and outstream_dups:
+    if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
         outstream_dups.writelines((l+'\n' for l in header))
+    if outstream_unmapped and (outstream_unmapped != outstream):
+        outstream_unmapped.writelines((l+'\n' for l in header))
 
     n_unmapped, n_dups, n_nodups = streaming_dedup(
         method, max_mismatch, sep, 
         c1, c2, p1, p2, s1, s2, unmapped_chrom,
-        body_stream, outstream, outstream_dups, mark_dups)
+        body_stream, outstream, outstream_dups, outstream_unmapped, mark_dups)
 
-    if stats_file:
-        stat_f = _fileio.auto_open(stats_file, mode='a',
+    if output_stats:
+        stat_f = _fileio.auto_open(output_stats, mode='a',
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None))
         stat_f.write('{}\t{}\n'.format('n_unmapped', n_unmapped))
@@ -193,9 +223,11 @@ def dedup_py(pairsam_path, output, output_dups,
     if outstream != sys.stdout:
         outstream.close()
 
-    if outstream_dups:
+    if outstream_dups and (outstream_dups != outstream):
         outstream_dups.close()
 
+    if outstream_unmapped and (outstream_unmapped != outstream):
+        outstream_unmapped.close()
 
 def fetchadd(key, mydict):
     key = key.strip()
@@ -212,7 +244,8 @@ def streaming_dedup(
         method, max_mismatch, sep,
         c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
         unmapped_chrom,
-        instream, outstream, outstream_dups, mark_dups):
+        instream, outstream, outstream_dups, outstream_unmapped,
+        mark_dups):
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
 
     dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False)
@@ -245,7 +278,8 @@ def streaming_dedup(
             if ((cols[c1ind] == unmapped_chrom)
                 or (cols[c2ind] == unmapped_chrom)):
 
-                outstream.write(line)  
+                if outstream_unmapped:
+                    outstream_unmapped.write(line)  
                 n_unmapped += 1
                     
             else:

@@ -11,6 +11,7 @@ mock_pairsam_path = os.path.join(testdir, 'data', 'mock.4dedup.pairsam')
 tmpdir = tempfile.TemporaryDirectory()
 tmpdir_name = tmpdir.name
 dedup_path = os.path.join(tmpdir_name, 'dedup.pairsam')
+unmapped_path = os.path.join(tmpdir_name, 'unmapped.pairsam')
 dups_path = os.path.join(tmpdir_name, 'dups.pairsam')
 
 max_mismatch = 3
@@ -26,6 +27,8 @@ def setup_func():
              dedup_path,
              '--output-dups',
              dups_path,
+             '--output-unmapped',
+             unmapped_path,
              '--max-mismatch',
              str(max_mismatch)
              ],
@@ -41,32 +44,24 @@ def teardown_func():
 @with_setup(setup_func, teardown_func)
 def test_mock_pairsam():
 
-    pairsam_body = [l.strip() for l in open(mock_pairsam_path, 'r') 
-                      if not l.startswith('#') and l.strip()]
-    output_body  = [l.strip() for l in open(dedup_path, 'r')
+    pairsam_pairs = [l.strip().split('\t') for l in open(mock_pairsam_path, 'r') 
+                     if not l.startswith('#') and l.strip()]
+    dedup_pairs  = [l.strip().split('\t') for l in open(dedup_path, 'r')
                     if not l.startswith('#') and l.strip()]
-    output_dups_body  = [l.strip() for l in open(dups_path, 'r')
-                         if not l.startswith('#') and l.strip()]
+    unmapped_pairs  = [l.strip().split('\t') for l in open(unmapped_path, 'r')
+                       if not l.startswith('#') and l.strip()]
+    dup_pairs  = [l.strip().split('\t') for l in open(dups_path, 'r')
+                   if not l.startswith('#') and l.strip()]
 
     # check that at least a few pairs remained in deduped and dup files
-    assert len(output_body) > 0
-    assert len(output_dups_body) > 0
+    assert len(dedup_pairs) > 0
+    assert len(dup_pairs) > 0
+    assert len(unmapped_pairs) > 0
 
     # check that all pairsam entries survived deduping:
 
-    assert len(output_body) + len(output_dups_body) == len(pairsam_body)
-
-
-    unmapped_dedup_pairs = [l.split('\t') for l in output_body]
-    dedup_pairs = [p for p in unmapped_dedup_pairs
-                   if ((p[1] != '!') and (p[3] != '!')) 
-    ]
-    unmapped_pairs = [p for p in unmapped_dedup_pairs
-                      if ((p[1] == '!') or (p[3] == '!'))
-    ]
-
-    dup_pairs   = [l.split('\t') for l in output_dups_body]
-
+    assert (len(dedup_pairs) + len(unmapped_pairs)
+            + len(dup_pairs) == len(pairsam_pairs))
 
     def pairs_overlap(pair1, pair2, max_mismatch):
         overlap = (
