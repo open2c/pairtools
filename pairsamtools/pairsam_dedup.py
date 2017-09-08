@@ -9,6 +9,7 @@ import click
 import numpy as np
 
 from . import _dedup, _fileio, _pairsam_format, _headerops, cli, common_io_options
+from .pairsam_markasdup import mark_split_pair_as_dup
 
 
 UTIL_NAME = 'pairsam_dedup'
@@ -108,6 +109,11 @@ MAX_LEN = 10000
     type=str, 
     default=_pairsam_format.UNMAPPED_CHROM,  
     help='Placeholder for a chromosome on an unmapped side; default {}'.format(_pairsam_format.UNMAPPED_CHROM))
+@click.option(
+    "--mark-dups", 
+    is_flag=True,
+    help='If specified, duplicate pairs are marked as DD in "pair_type" and '
+         'as a duplicate in the sam entries.')
 
 @common_io_options
 
@@ -115,7 +121,7 @@ def dedup(pairsam_path, output, output_dups,
     stats_file,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom, **kwargs
+    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, **kwargs
     ):
     '''find and remove PCR duplicates.
 
@@ -130,7 +136,7 @@ def dedup(pairsam_path, output, output_dups,
         stats_file,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
-        c1, c2, p1, p2, s1, s2, unmapped_chrom, 
+        c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups,
         **kwargs
         )
 
@@ -139,7 +145,7 @@ def dedup_py(pairsam_path, output, output_dups,
     stats_file,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom,
+    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups,
     **kwargs
     ):
     sep = ast.literal_eval('"""' + sep + '"""')
@@ -170,7 +176,7 @@ def dedup_py(pairsam_path, output, output_dups,
     n_unmapped, n_dups, n_nodups = streaming_dedup(
         method, max_mismatch, sep, 
         c1, c2, p1, p2, s1, s2, unmapped_chrom,
-        body_stream, outstream, outstream_dups)
+        body_stream, outstream, outstream_dups, mark_dups)
 
     if stats_file:
         stat_f = _fileio.auto_open(stats_file, mode='a',
@@ -206,13 +212,14 @@ def streaming_dedup(
         method, max_mismatch, sep,
         c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
         unmapped_chrom,
-        instream, outstream, outstream_dups):
+        instream, outstream, outstream_dups, mark_dups):
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
 
     dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False)
 
     c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []
-    lines = []
+    line_buffer = []
+    cols_buffer = []
     chromDict = {}
     strandDict = {}
     n_unmapped = 0
@@ -229,26 +236,29 @@ def streaming_dedup(
                 warnings.warn("Empty line detected not at the end of the file")
                 continue    
 
-            words = line.split(sep)
-            if len(words) <= maxind:
+            cols = line.split(sep)
+            if len(cols) <= maxind:
                 raise ValueError(
                     "Error parsing line {}: ".format(line)
-                    + " expected {} words, got {}".format(maxind, len(words)))
+                    + " expected {} columns, got {}".format(maxind, len(cols)))
                 
-            if ((words[c1ind] == unmapped_chrom)
-                or (words[c2ind] == unmapped_chrom)):
+            if ((cols[c1ind] == unmapped_chrom)
+                or (cols[c2ind] == unmapped_chrom)):
 
                 outstream.write(line)  
                 n_unmapped += 1
                     
             else:
-                lines.append(line)
-                c1.append(fetchadd(words[c1ind], chromDict))
-                c2.append(fetchadd(words[c2ind], chromDict))
-                p1.append(int(words[p1ind]))
-                p2.append(int(words[p2ind]))
-                s1.append(fetchadd(words[s1ind], strandDict))
-                s2.append(fetchadd(words[s2ind], strandDict))
+                line_buffer.append(line)
+                if mark_dups:
+                    cols_buffer.append(cols)
+
+                c1.append(fetchadd(cols[c1ind], chromDict))
+                c2.append(fetchadd(cols[c2ind], chromDict))
+                p1.append(int(cols[p1ind]))
+                p2.append(int(cols[p2ind]))
+                s1.append(fetchadd(cols[s1ind], strandDict))
+                s2.append(fetchadd(cols[s2ind], strandDict))
                 
         if (not line) or (len(c1) == curMaxLen):
             res = dd.push(ar(c1, 8), 
@@ -260,21 +270,27 @@ def streaming_dedup(
             if not line:
                 res = np.concatenate([res, dd.finish()])
 
-            for newline, remove in zip(lines[:len(res)], res):
-                if not remove:
-                    outstream.write(newline)  
+            for i in range(len(res)): 
+                if not res[i]:
+                    outstream.write(line_buffer[i])  
                     n_nodups += 1
                 else:
                     n_dups += 1
                     if outstream_dups:
-                        outstream_dups.write(newline)
+                        if mark_dups:
+                            outstream_dups.write(sep.join(
+                                mark_split_pair_as_dup(cols_buffer[i])))
+                        else:
+                            outstream_dups.write(line_buffer[i])
                     
             c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []
-            lines = lines[len(res):]
+            line_buffer = line_buffer[len(res):]
+            if mark_dups:
+                cols_buffer = cols_buffer[len(res):]
             if not line:
-                if(len(lines) != 0):                
+                if(len(line_buffer) != 0):                
                     raise ValueError(
-                        "{} lines left in the buffer, ".format(len(lines))
+                        "{} lines left in the buffer, ".format(len(line_buffer))
                         + "should be none;"
                         + "something went terribly wrong")
                 break

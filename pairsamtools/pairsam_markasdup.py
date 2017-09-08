@@ -47,17 +47,7 @@ def markasdup_py(pairsam_path, output, **kwargs):
 
     for line in body_stream:
         cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
-        cols[_pairsam_format.COL_PTYPE] = 'DD'
-        
-        if (len(cols) > _pairsam_format.COL_SAM1) and (len(cols) > _pairsam_format.COL_SAM2):
-            for i in (_pairsam_format.COL_SAM1,
-                      _pairsam_format.COL_SAM2):
-                    
-                # split each sam column into sam entries, tag and assemble back
-                cols[i] = _pairsam_format.INTER_SAM_SEP.join(
-                    [mark_sam_as_dup(sam) 
-                     for sam in cols[i].split(_pairsam_format.INTER_SAM_SEP)
-                    ])
+        mark_split_pair_as_dup(cols)
 
         outstream.write(_pairsam_format.PAIRSAM_SEP.join(cols))
         outstream.write('\n')
@@ -66,6 +56,20 @@ def markasdup_py(pairsam_path, output, **kwargs):
         instream.close()
     if outstream != sys.stdout:
         outstream.close()
+
+def mark_split_pair_as_dup(cols):
+    cols[_pairsam_format.COL_PTYPE] = 'DD'
+    
+    if (len(cols) > _pairsam_format.COL_SAM1) and (len(cols) > _pairsam_format.COL_SAM2):
+        for i in (_pairsam_format.COL_SAM1,
+                  _pairsam_format.COL_SAM2):
+                
+            # split each sam column into sam entries, tag and assemble back
+            cols[i] = _pairsam_format.INTER_SAM_SEP.join(
+                [mark_sam_as_dup(sam) 
+                 for sam in cols[i].split(_pairsam_format.INTER_SAM_SEP)
+                ])
+    return cols
 
 def mark_sam_as_dup(sam):
     '''Tag the binary flag and the optional pair type field of a sam entry
