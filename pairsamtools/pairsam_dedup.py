@@ -44,9 +44,10 @@ MAX_LEN = 10000
     type=str, 
     default="", 
     help='output file for unmapped pairs. '
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
-        ' If the path is the same as in --output or -, output unmapped pairs together '
-        ' with deduped pairs. By default, unmapped pairs are dropped.')
+        'If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed. '
+        'If the path is the same as in --output or -, output unmapped pairs together '
+        'with deduped pairs. If the path is the same as --output-dups, output '
+        'unmapped reads together with dups. By default, unmapped pairs are dropped.')
 @click.option(
     "--output-stats", 
     type=str, 
@@ -187,6 +188,8 @@ def dedup_py(
     elif (output_unmapped == '-' or 
         (pathlib.Path(output_unmapped).absolute() == pathlib.Path(output).absolute())):
         outstream_unmapped = outstream
+    elif (pathlib.Path(output_unmapped).absolute() == pathlib.Path(output_dups).absolute()):
+        outstream_unmapped = outstream_dups
     else:
         outstream_unmapped = _fileio.auto_open(output_unmapped, mode='w', 
                                             nproc=kwargs.get('nproc_out'),
@@ -200,7 +203,8 @@ def dedup_py(
         outstream.writelines((l+'\n' for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
         outstream_dups.writelines((l+'\n' for l in header))
-    if outstream_unmapped and (outstream_unmapped != outstream):
+    if (outstream_unmapped and (outstream_unmapped != outstream) 
+            and (outstream_unmapped != outstream_dups)):
         outstream_unmapped.writelines((l+'\n' for l in header))
 
     n_unmapped, n_dups, n_nodups = streaming_dedup(
@@ -226,7 +230,8 @@ def dedup_py(
     if outstream_dups and (outstream_dups != outstream):
         outstream_dups.close()
 
-    if outstream_unmapped and (outstream_unmapped != outstream):
+    if (outstream_unmapped and (outstream_unmapped != outstream) 
+            and (outstream_unmapped != outstream_dups)):
         outstream_unmapped.close()
 
 def fetchadd(key, mydict):
