@@ -265,6 +265,7 @@ def streaming_dedup(
     n_nodups = 0
     curMaxLen = max(MAX_LEN, dd.getLen())
 
+    instream = iter(instream)
     while True: 
         line = next(instream, None)
         stripline = line.strip() if line else None
