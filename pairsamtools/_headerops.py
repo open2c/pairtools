@@ -139,6 +139,20 @@ def make_standard_pairsheader(
 
     return header
 
+def subset_chroms_in_pairsheader(header, chrom_subset):
+    new_header = []
+    for line in header:
+        if line.startswith('#chromsize:'):
+            if line.strip().split()[1] in chrom_subset:
+                new_header.append(line)
+        elif line.startswith('#chromosomes:'):
+            line = ' '.join(
+                ['#chromosomes:'] + [c for c in line.strip().split()[1:] 
+                                     if c in chrom_subset])
+            new_header.append(line)
+        else:
+            new_header.append(line)
+    return new_header
 
 def insert_samheader(header, samheader):
     new_header = [l for l in header if not l.startswith('#columns')]

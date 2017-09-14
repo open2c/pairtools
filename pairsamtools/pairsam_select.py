@@ -41,10 +41,23 @@ UTIL_NAME = 'pairsam_select'
     help="Which of the outputs should receive header and comment lines",
     show_default=True)
 
+@click.option(
+    "--chrom-subset", 
+    type=str,
+    default=None, 
+    help="A path to a chromosomes file (tab-separated, 1st column contains "
+    "chromosome names) containing a chromosome subset of interest. "
+    "If provided, additionally filter pairs with both sides originating from "
+    "the provided subset of chromosomes. This operation modifies the #chromosomes: "
+    "and #chromsize: header fields accordingly."
+    )
+
 @common_io_options
 
 def select(
-    condition, pairsam_path, output, output_rest, send_comments_to, **kwargs
+    condition, pairsam_path, output, output_rest, send_comments_to,
+    chrom_subset,
+    **kwargs
     ):
     '''select pairsam entries.
 
@@ -80,13 +93,18 @@ def select(
     pairsam select '(chrom1=="!") and (chrom2!="!")'
     pairsam select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
 
+    pairsam select 'True' --chr-subset mm9.reduced.chromsizes
+
     '''
     select_py(
-        condition, pairsam_path, output, output_rest, send_comments_to, **kwargs
+        condition, pairsam_path, output, output_rest, send_comments_to, 
+        chrom_subset,
+        **kwargs
     )
     
 def select_py(
-    condition, pairsam_path, output, output_rest, send_comments_to, **kwargs
+    condition, pairsam_path, output, output_rest, send_comments_to, chrom_subset,
+    **kwargs
     ):
 
     instream = (_fileio.auto_open(pairsam_path, mode='r', 
@@ -123,9 +141,14 @@ def select_py(
             regex_library[regex] = reobj
         return regex_library[regex].fullmatch(x)
     
+    new_chroms = None
+    if chrom_subset is not None:
+        new_chroms = [l.strip().split('\t')[0] for l in open(chrom_subset, 'r')]
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    if new_chroms is not None:
+        header = _headerops.subset_chroms_in_pairsheader(header, new_chroms)
     outstream.writelines((l+'\n' for l in header))
     if outstream_rest:
         outstream_rest.writelines((l+'\n' for l in header))
@@ -135,6 +158,10 @@ def select_py(
         column_names = _pairsam_format.COLUMNS
 
     condition = condition.strip()
+    if new_chroms is not None:
+        condition = ('({}) and (chrom1 in new_chroms) '
+                          'and (chrom2 in new_chroms)').format(condition)
+
     for i,col in enumerate(column_names):
         if col in ['pos1', 'pos2']:
             condition = condition.replace(col, 'int(COLS[{}])'.format(i))
