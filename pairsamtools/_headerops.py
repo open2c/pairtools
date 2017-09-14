@@ -101,13 +101,14 @@ def get_chrom_order(chroms_file, sam_chroms):
     i = 1
     with open(chroms_file, 'rt') as f:
         for line in f:
-            chrom = line.split('\t')[0].strip()
-            if chrom:
+            chrom = line.strip().split('\t')[0]
+            if chrom and (chrom in sam_chroms):
                 chrom_enum[chrom] = i
                 i += 1
 
     remaining = sorted(chrom for chrom in sam_chroms
-                        if chrom not in chrom_enum.keys())
+                       if chrom not in chrom_enum.keys())
+
     for chrom in remaining:
         chrom_enum[chrom] = i
         i += 1
