@@ -564,7 +564,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 
     """
     chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes), 
-                          range(len(chromosomes))))
+                          range(len(chromosomes)+1)))
     prev_read_id = ''
     sams1 = []
     sams2 = []
