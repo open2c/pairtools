@@ -35,10 +35,10 @@ def auto_open(path, mode, nproc=1, command=None):
             raise ValueError("Unknown mode : {}".format(mode))
         return f
     elif path.endswith('.bam'):
-        if shutil.which('samutils') is None:
+        if shutil.which('samtools') is None:
             raise ValueError({
-                'w':'samutils is not found, cannot compress output',
-                'r':'samutils is not found, cannot decompress input'
+                'w':'samtools is not found, cannot compress output',
+                'r':'samtools is not found, cannot decompress input'
                     }[mode])
         if mode =='w': 
             t = pipes.Template()
