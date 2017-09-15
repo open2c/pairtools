@@ -42,7 +42,7 @@ def auto_open(path, mode, nproc=1, command=None):
                     }[mode])
         if mode =='w': 
             t = pipes.Template()
-            t.append('samtools view -bS {}'.format(
+            t.append('samtools view -bS {} -'.format(
                          '-@ '+str(nproc-1) if nproc>1 else ''),
                      '--')
             f = t.open(path, 'w')
