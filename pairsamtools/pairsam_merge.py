@@ -192,10 +192,8 @@ def merge_py(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program,
         else:
             command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(path)
     command += "'"
-    res = subprocess.run(command, shell=True, stdout=outstream, stderr=subprocess.PIPE)
 
-    if res.returncode != 0:
-        raise OSError(abs(res.returncode), res.stderr.decode())
+    subprocess.check_call(command, shell=True, stdout=outstream)
 
     if outstream != sys.stdout:
         outstream.close()
