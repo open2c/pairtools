@@ -58,6 +58,10 @@ def markasdup_py(pairsam_path, output, **kwargs):
         outstream.close()
 
 def mark_split_pair_as_dup(cols):
+    # if the original columns ended with a new line, the marked columns
+    # should as well.
+    original_has_newline = cols[-1].endswith('\n')
+
     cols[_pairsam_format.COL_PTYPE] = 'DD'
     
     if (len(cols) > _pairsam_format.COL_SAM1) and (len(cols) > _pairsam_format.COL_SAM2):
@@ -69,6 +73,9 @@ def mark_split_pair_as_dup(cols):
                 [mark_sam_as_dup(sam) 
                  for sam in cols[i].split(_pairsam_format.INTER_SAM_SEP)
                 ])
+                
+    if original_has_newline and not cols[-1].endswith('\n'):
+        cols[-1] = cols[-1]+'\n'
     return cols
 
 def mark_sam_as_dup(sam):
