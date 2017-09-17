@@ -63,5 +63,18 @@ def test_split():
     assert all(
             any(l in l2 for l2 in pairsam_header)
             for l in sam_header if not l.startswith('@PG'))
+    assert all(
+            l in pairsam_header
+            for l in pairs_header
+            if (not (l.startswith('#columns') or l.startswith('#samheader'))))
+    columns_pairsam = [l for l in pairsam_header if l.startswith('#columns')][0].split()[1:]
+    columns_pairs = [l for l in pairs_header if l.startswith('#columns')][0].split()[1:]
+    assert (
+            ('sam1' in columns_pairsam)
+        and ('sam2' in columns_pairsam)
+        and ('sam1' not in columns_pairs)
+        and ('sam2' not in columns_pairs))
+    assert [c for c in columns_pairsam
+            if c != 'sam1' and c != 'sam2'] == columns_pairs
 
 

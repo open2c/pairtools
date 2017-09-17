@@ -68,6 +68,27 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    columns = _headerops.extract_column_names(header)
+
+    has_sams = False
+    if columns:
+        # trust the column order specified in the header
+        if ('sam1' in columns) and ('sam2' in columns):
+            sam1col = columns.index('sam1') 
+            sam2col = columns.index('sam2')
+            columns.pop(max(sam1col, sam2col))
+            columns.pop(min(sam1col, sam2col))
+            header = _headerops._update_header_entry(
+                header, 'columns', ' '.join(columns))
+            has_sams = True
+        elif ('sam1' in columns) != ('sam1' in columns):
+            raise ValueError(
+                'According to the #columns header field only one sam entry is present')
+    else:
+        # assume that the file has sam columns and follows the pairsam format
+        sam1col = _pairsam_format.COL_SAM1
+        sam2col = _pairsam_format.COL_SAM2
+        has_sams = True
 
     if outstream_pairs:
         outstream_pairs.writelines((l+'\n' for l in header))
@@ -76,19 +97,25 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
             (l[11:].strip()+'\n' for l in header if l.startswith('#samheader:')))
 
     # Split
+    sam1 = None
+    sam2 = None
     for line in body_stream:
         cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
+        if has_sams:
+            if sam1col < sam2col:
+                sam2 = cols.pop(sam2col)
+                sam1 = cols.pop(sam1col)
+            else:
+                sam1 = cols.pop(sam1col)
+                sam2 = cols.pop(sam2col)
+
         if outstream_pairs:
             # hard-coded tab separator to follow the DCIC pairs standard
-            outstream_pairs.write('\t'.join(cols[:_pairsam_format.COL_SAM1]))
+            outstream_pairs.write('\t'.join(cols))
             outstream_pairs.write('\n')
         
-        if (outstream_sam 
-            and (len(cols) > _pairsam_format.COL_SAM1) 
-            and (len(cols) > _pairsam_format.COL_SAM2)):
-
-            for col in (cols[_pairsam_format.COL_SAM1],
-                        cols[_pairsam_format.COL_SAM2]):
+        if (outstream_sam and has_sams):
+            for col in (sam1, sam2):
                 if col != '.':
                     for sam_entry in col.split(_pairsam_format.INTER_SAM_SEP):
                         outstream_sam.write(sam_entry.replace(_pairsam_format.SAM_SEP,'\t'))
