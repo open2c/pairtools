@@ -570,6 +570,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     sams2 = []
     line = ''
     
+    instream = iter(instream)
     while line is not None:
         line = next(instream, None)
 
