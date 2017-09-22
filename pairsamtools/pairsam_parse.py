@@ -224,48 +224,47 @@ def parse_algn(samcols, min_mapq):
     }
 
 
-def parse_supp(samcols, min_mapq):
-    supp_algns = []
-    for col in samcols[11:]:
-        if not col.startswith('SA:Z:'):
-            continue
+#def parse_supp(samcols, min_mapq):
+#    supp_algns = []
+#    for col in samcols[11:]:
+#        if not col.startswith('SA:Z:'):
+#            continue
+#
+#        for SA in col[5:].split(';'):
+#            if not SA:
+#                continue
+#            SAcols = SA.split(',')
+#            mapq = int(SAcols[4])
+#            is_unique = (mapq >= min_mapq)
+#
+#            chrom = SAcols[0] if is_unique else _pairsam_format.UNMAPPED_CHROM
+#            strand = SAcols[2] if is_unique else _pairsam_format.UNMAPPED_STRAND
+#
+#            cigar = parse_cigar(SAcols[3])
+#
+#            pos = _pairsam_format.UNMAPPED_POS
+#            if is_unique:
+#                if strand == '+':
+#                    pos = int(SAcols[1])
+#                else:
+#                    pos = int(SAcols[1]) + cigar['algn_ref_span']
+#
+#            supp_algns.append({
+#                'chrom': chrom,
+#                'pos': pos,
+#                'strand': strand,
+#                'mapq': mapq,
+#                'is_mapped': True,
+#                'is_unique': is_unique,
+#                'is_linear': None,
+#                'cigar': cigar,
+#                'dist_to_5': cigar['clip5'] if strand == '+' else cigar['clip3'],
+#            })
+#
+#    return supp_algns
 
-        for SA in col[5:].split(';'):
-            if not SA:
-                continue
-            SAcols = SA.split(',')
-            mapq = int(SAcols[4])
-            is_unique = (mapq >= min_mapq)
 
-            chrom = SAcols[0] if is_unique else _pairsam_format.UNMAPPED_CHROM
-            strand = SAcols[2] if is_unique else _pairsam_format.UNMAPPED_STRAND
-
-            cigar = parse_cigar(SAcols[3])
-
-            pos = _pairsam_format.UNMAPPED_POS
-            if is_unique:
-                if strand == '+':
-                    pos = int(SAcols[1])
-                else:
-                    pos = int(SAcols[1]) + cigar['algn_ref_span']
-
-            supp_algns.append({
-                'chrom': chrom,
-                'pos': pos,
-                'strand': strand,
-                'mapq': mapq,
-                'is_mapped': True,
-                'is_unique': is_unique,
-                'is_linear': None,
-                'cigar': cigar,
-                'dist_to_5': cigar['clip5'] if strand == '+' else cigar['clip3'],
-            })
-
-    return supp_algns
-
-
-def rescue_chimeric_alignment(repr_algn1, repr_algn2, supp_algns1, supp_algns2,
-                              max_molecule_size):
+def rescue_chimeric_alignment(algns1, algns2, max_molecule_size):
     """
 
     Returns
@@ -273,33 +272,27 @@ def rescue_chimeric_alignment(repr_algn1, repr_algn2, supp_algns1, supp_algns2,
     algn1_5, algn2_5, is_rescued
 
     """
+    
     # If both alignments are non-chimeric, no need to rescue!
-    if (not supp_algns1) and (not supp_algns2):
+    n_unique_algns1 = sum([a['is_mapped'] and a['is_unique'] for a in algns1])
+    n_unique_algns2 = sum([a['is_mapped'] and a['is_unique'] for a in algns2]) 
+
+    assert (n_unique_algns1 >= 1) and (n_unique_algns2 >= 1)
+
+    if (n_unique_algns1 == 1) and (n_unique_algns2 == 1):
         return True
 
-    # If both alignments are chimeric, cannot rescue
-    if (supp_algns1) and (supp_algns2):
+    # Can rescue only pairs with one chimeric alignment with two parts.
+    if not (
+        ((n_unique_algns1 == 1) and (n_unique_algns2 == 2))
+        or ((n_unique_algns1 == 2) and (n_unique_algns2 == 1))
+    ):
         return False
 
-    # Cannot rescue a chimeric alignment with multiple supplemental alignments.
-    if (len(supp_algns1) > 1) or (len(supp_algns2) > 1):
-        return False
-
-    sup_algn = supp_algns1[0] if (supp_algns1) else supp_algns2[0]
-    # if the supplemental alignment is non-unique, no need to rescue!
-    if not sup_algn['is_unique']:
-        return True
-
-    first_read_is_chimeric = bool(supp_algns1)
-    linear_algn = repr_algn2 if first_read_is_chimeric else repr_algn1
-    repr_algn = repr_algn1 if first_read_is_chimeric else repr_algn2
-
-    chim5_algn = (repr_algn
-                  if (repr_algn['dist_to_5'] < sup_algn['dist_to_5'])
-                  else sup_algn)
-    chim3_algn = (sup_algn
-                  if (repr_algn['dist_to_5'] < sup_algn['dist_to_5'])
-                  else repr_algn)
+    first_read_is_chimeric = n_unique_algns1 > 1
+    chim5_algn  = algns1[0] if first_read_is_chimeric else algns2[0]
+    chim3_algn  = algns1[1] if first_read_is_chimeric else algns2[1]
+    linear_algn = algns2[0] if first_read_is_chimeric else algns1[0]
 
     can_rescue = True
     # in normal chimeras, the 3' alignment of the chimeric alignment must be on
@@ -339,6 +332,12 @@ def rescue_chimeric_alignment(repr_algn1, repr_algn2, supp_algns1, supp_algns2,
     return can_rescue
 
 
+def _alignment_sorting_order(algn):
+    if (algn['is_mapped'] and algn['is_unique']):
+        return algn['dist_to_5'] 
+    else:
+        return algn['cigar']['read_len'] + algn['dist_to_5']
+
 def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size, 
              store_unrescuable_chimeras):
     """
@@ -353,16 +352,22 @@ def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size,
     sam1_repr_cols = sams1[0].rstrip().split('\t')
     sam2_repr_cols = sams2[0].rstrip().split('\t')
 
-    algn1 = parse_algn(sam1_repr_cols, min_mapq)
-    algn2 = parse_algn(sam2_repr_cols, min_mapq)
+    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq)
+              for sam in sams1]
+    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq)
+              for sam in sams2]
+    algns1 = sorted(algns1, key=_alignment_sorting_order)
+    algns2 = sorted(algns2, key=_alignment_sorting_order)
+
+    algn1 = algns1[0]
+    algn2 = algns2[0]
 
     is_null_1 = not algn1['is_mapped']
     is_null_2 = not algn2['is_mapped']
     is_multi_1 = not algn1['is_unique']
     is_multi_2 = not algn2['is_unique']
-    is_chimeric_1 = not algn1['is_linear']
-    is_chimeric_2 = not algn2['is_linear']
-
+    is_chimeric_1 = sum([a['is_mapped'] and a['is_unique'] for a in algns1]) > 1
+    is_chimeric_2 = sum([a['is_mapped'] and a['is_unique'] for a in algns2]) > 1
 
     side_type_1 = ('N' if is_null_1 
                        else ('M' if is_multi_1 
@@ -391,43 +396,25 @@ def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size,
         algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
 
     # Parse chimeras
-
-    all_algns1 = [algn1]
-    all_algns2 = [algn2]
     
     if ('C' in pair_type): 
-        if (pair_type == 'CL') or store_unrescuable_chimeras:
-            supp_algns1 = parse_supp(sam1_repr_cols, min_mapq)
-            supp_algns2 = parse_supp(sam2_repr_cols, min_mapq)
+       is_rescued = (pair_type == 'CL') and rescue_chimeric_alignment(
+           algns1, algns2, max_molecule_size)
 
-            all_algns1 += supp_algns1
-            all_algns2 += supp_algns2
+       if is_rescued:
+           pair_type = 'CX'
 
-            algn1_5 = min(all_algns1, key=lambda x:x['dist_to_5'])
-            algn2_5 = min(all_algns2, key=lambda x:x['dist_to_5'])
-    
-        is_rescued = False
-        if (pair_type == 'CL'):
-           is_rescued = rescue_chimeric_alignment(
-                algn1, algn2, supp_algns1, supp_algns2, max_molecule_size)
-
-           if is_rescued:
-               pair_type = 'CX'
-
-        if (is_rescued or store_unrescuable_chimeras):
-            algn1 = algn1_5
-            algn2 = algn2_5
-        else:
-            if is_chimeric_1:
-                algn1 = copy.deepcopy(algn1)
-                algn1['chrom'] = _pairsam_format.UNMAPPED_CHROM
-                algn1['pos'] = _pairsam_format.UNMAPPED_POS
-                algn1['strand'] = _pairsam_format.UNMAPPED_STRAND
-            if is_chimeric_2:
-                algn2 = copy.deepcopy(algn2)
-                algn2['chrom'] = _pairsam_format.UNMAPPED_CHROM
-                algn2['pos'] = _pairsam_format.UNMAPPED_POS
-                algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
+       if not (is_rescued or store_unrescuable_chimeras):
+           if is_chimeric_1:
+               algn1 = copy.deepcopy(algn1)
+               algn1['chrom'] = _pairsam_format.UNMAPPED_CHROM
+               algn1['pos'] = _pairsam_format.UNMAPPED_POS
+               algn1['strand'] = _pairsam_format.UNMAPPED_STRAND
+           if is_chimeric_2:
+               algn2 = copy.deepcopy(algn2)
+               algn2['chrom'] = _pairsam_format.UNMAPPED_CHROM
+               algn2['pos'] = _pairsam_format.UNMAPPED_POS
+               algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
         
     # If a pair has coordinates on both sides, it must be flipped according to
     # its genomic coordinates.
@@ -440,7 +427,7 @@ def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size,
                 > (chrom_enum[algn2['chrom']], algn2['pos']))
 
 
-    return pair_type, algn1, algn2, flip_pair, all_algns1, all_algns2
+    return pair_type, algn1, algn2, flip_pair, algns1, algns2
 
 
 def push_sam(line, drop_seq, sams1, sams2):
@@ -463,15 +450,9 @@ def push_sam(line, drop_seq, sams1, sams2):
 
 
     if ((flag & 0x40) != 0):
-        if ((flag & 0x800) == 0):
-            sams1.insert(0, sam)
-        else:
-            sams1.append(sam)
+        sams1.append(sam)
     else:
-        if ((flag & 0x800) == 0):
-            sams2.insert(0, sam)
-        else:
-            sams2.append(sam)
+        sams2.append(sam)
     return
 
 
