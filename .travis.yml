@@ -16,7 +16,7 @@ install:
   - conda config --add channels bioconda                  
   - conda config --get                                    
 
-  - conda update -q conda
+  #- conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
 
