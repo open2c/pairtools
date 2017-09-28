@@ -124,10 +124,17 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
         chroms_path, 
         list(sam_chromsizes.keys()))
 
+    columns =  (_pairsam_format.COLUMNS 
+                + (['mapq1', 'mapq2'] if store_mapq else []))
+
+    if drop_sam:
+        columns.pop(columns.index('sam1'))
+        columns.pop(columns.index('sam2'))
+
     header = _headerops.make_standard_pairsheader(
-        assembly=assembly,
-        chromsizes=[(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
-        columns=_pairsam_format.COLUMNS + (['mapq1', 'mapq2'] if store_mapq else [])
+        assembly = assembly,
+        chromsizes = [(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
+        columns = columns
     )
     
     header = _headerops.insert_samheader(header, samheader) 
@@ -508,20 +515,17 @@ def write_pairsam(
     out_file.write(algn2['strand'])
     out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(pair_type)
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    if drop_sam:
-        out_file.write('.')
-    else:
+
+    if not drop_sam:
+        out_file.write(_pairsam_format.PAIRSAM_SEP)
         for i, sam in enumerate(sams1):
             out_file.write(sam.replace('\t', _pairsam_format.SAM_SEP))
             out_file.write(_pairsam_format.SAM_SEP + 'Yt:Z:')
             out_file.write(pair_type)
             if i < len(sams1) -1:
                 out_file.write(_pairsam_format.INTER_SAM_SEP)
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    if drop_sam:
-        out_file.write('.')
-    else:
+
+        out_file.write(_pairsam_format.PAIRSAM_SEP)
         for i, sam in enumerate(sams2):
             out_file.write(sam.replace('\t', _pairsam_format.SAM_SEP))
             out_file.write(_pairsam_format.SAM_SEP + 'Yt:Z:')
