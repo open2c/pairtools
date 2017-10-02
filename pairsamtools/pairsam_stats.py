@@ -171,7 +171,7 @@ class StatObject(object):
                 # establish structure of an empty stat:
                 self.stat['total'] = 0
                 self.stat['total_unmapped'] = 0
-                self.stat['total_single_sided_mapped'] = 1
+                self.stat['total_single_sided_mapped'] = 0
                 self.stat['total_mapped'] = 0
                 self.stat['cis'] = 0
                 self.stat['trans'] = 0
