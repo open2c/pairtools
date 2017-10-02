@@ -12,6 +12,8 @@ import io
 import copy
 
 from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
+from .pairsam_stats import StatObject
+
 
 UTIL_NAME = 'pairsam_parse'
 
@@ -82,12 +84,18 @@ UTIL_NAME = 'pairsam_parse'
         ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4-compressed.'
         ' By default, not used.'
         )
+@click.option(
+    "--output-stats", 
+    type=str, 
+    default="", 
+    help='output file for various statistics of pairsam file. '
+        ' By default, statistics is not generated.')
 
 @common_io_options
 
 def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
           drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras,
-          output_parsed_alignments, **kwargs):
+          output_parsed_alignments, output_stats, **kwargs):
     '''parse .sam and make .pairsam.
 
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
@@ -95,12 +103,12 @@ def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
     '''
     parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
              drop_readid, drop_seq, drop_sam, store_mapq, store_unrescuable_chimeras,
-             output_parsed_alignments, **kwargs)
+             output_parsed_alignments, output_stats, **kwargs)
 
 
 def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
              drop_readid, drop_seq, drop_sam, store_mapq, 
-             store_unrescuable_chimeras, output_parsed_alignments, **kwargs):
+             store_unrescuable_chimeras, output_parsed_alignments, output_stats, **kwargs):
     instream = (_fileio.auto_open(sam_path, mode='r', 
                                   nproc=kwargs.get('nproc_in'),
                                   command=kwargs.get('cmd_in', None)) 
@@ -113,9 +121,17 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 
                  if output_parsed_alignments else None)
+    out_stats_stream = (_fileio.auto_open(output_stats, mode='w', 
+                               nproc=kwargs.get('nproc_out'),
+                               command=kwargs.get('cmd_out', None)) 
+                 if output_stats else None)
+
 
     if out_alignments_stream:
         out_alignments_stream.write('side\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')
+
+    # generate empty StatObject if stats output is requested:
+    out_stat = StatObject() if output_stats else None
 
 
     samheader, body_stream = _headerops.get_header(instream, comment_char='@')
@@ -143,12 +159,22 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
 
     streaming_classify(body_stream, outstream, chromosomes, min_mapq, 
                        max_molecule_size, drop_readid, drop_seq, drop_sam, 
-                       store_mapq, store_unrescuable_chimeras, out_alignments_stream)
+                       store_mapq, store_unrescuable_chimeras,
+                       out_alignments_stream, out_stat)
+
+    # save statistics to a file if it was requested:
+    if out_stat:
+        out_stat.save(out_stats_stream)
 
     if instream != sys.stdin:
         instream.close()
     if outstream != sys.stdout:
         outstream.close()
+    # close optional output streams if needed:
+    if out_alignments_stream:
+        out_alignments_stream.close()
+    if out_stats_stream:
+        out_stats_stream.close()
 
 
 def parse_cigar(cigar):
@@ -544,7 +570,7 @@ def write_pairsam(
 
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size, 
                        drop_readid, drop_seq, drop_sam, store_mapq, 
-                       store_unrescuable_chimeras, out_alignments_stream):
+                       store_unrescuable_chimeras, out_alignments_stream, out_stat):
     """
 
     """
@@ -579,6 +605,10 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                     drop_readid,
                     drop_sam,
                     store_mapq)
+                # update StatObject is stats output requested
+                # make sure the alignment order is correct
+                if out_stat:
+                    out_stat.update(algn2, algn1, pair_type)
             else:
                 write_pairsam(
                     algn1, algn2,
@@ -589,6 +619,10 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                     drop_readid,
                     drop_sam,
                     store_mapq)
+                # update StatObject is stats output requested
+                # make sure the alignment order is correct
+                if out_stat:
+                    out_stat.update(algn1, algn2, pair_type)
             if out_alignments_stream:
                 write_all_algnments(all_algns1, all_algns2, out_alignments_stream)
             
