@@ -136,14 +136,51 @@ def do_merge(output, files_to_merge, **kwargs):
 
 
 class StatObject(Mapping):
-    """docstring for StatObject:
-    A class that defines a simple container
-    for sequencing statistics and simple operations
-    for the class.
-    create StatObject from file, from existing dict empty StatObject;
-    update StatObject with an info about a mapped paired-end read;
-    save StatObject to .stats file;
-    several StatObject-s can be merged together using summation."""
+    """
+    Container for various sequencing statistics
+
+    New object can be created as empty, from file and from existing dict.
+    Multiple instances of StatsObject can be merged using summation.
+    Instance of StatsObject can be saved to a text file.
+
+
+    Parameters
+    ----------
+    stat_dict: dict-like, optional
+        dictionary used to initialize StatObject
+
+    Methods
+    -------
+    from_file(file_handle)
+        create StatsObject from file
+
+        file_handle: file handle
+
+    update(algn1, algn2, pair_type)
+        update existing StatObject object with
+        information from a mapped paired-end read
+
+        algn1: tuple-like
+            tuple contents: (chrom, pos, strand)
+        algn2: tuple-like
+            tuple contents: (chrom, pos, strand)
+        pair_type: str
+            type of the mapped pair
+
+        Note
+        ----
+        this method can update StatObject
+        created as StatObject() only.
+        StatObject created using from_file(),
+        or using StatObject(dict) cannot be updated now.
+
+    save(outstream)
+        save to .stats text file
+
+        outstream: file handle
+
+
+    """
     def __init__(self, stat_dict = None):
         if stat_dict:
             # init from non-empty dictionary
@@ -197,9 +234,25 @@ class StatObject(Mapping):
 
 
     def from_file(self, file_handle):
-        """Provide a file_handle to the method
-        it return a new StatObject filled with 
-        the contents of the file"""
+        """create instance of StatObject from file
+
+        Parameters
+        ----------
+        file_handle: file handle
+
+        Returns
+        -------
+        StatObject
+            new instance of StatObject
+            filled with the contents of
+            the input file
+
+        Note
+        ----
+        instance of StatObject returned
+        by this method cannot be updated 
+        since it is a flat version of a dict
+        """
         # fill in from file - file_handle:
         stat_from_file = OrderedDict()
         for l in file_handle:
@@ -216,15 +269,29 @@ class StatObject(Mapping):
 
 
     def update(self, algn1, algn2, pair_type):
-        """update existing StatObject
-        using information from a mapped paired-end read
-        algn-s should be tuples of (chrom, pos, strand)
-        Caveat: this method can update StatObject
-        only created as empty StatObject()
-        StatObject created from_file or using non-empty
-        dictionary cannot be updated now
-        (unless it has an exact matching nested structure)
+        """update existing StatObject with info from mapped read
+
+        Parameters
+        ----------
+        algn1: tuple-like
+            tuple contents: (chrom, pos, strand)
+        algn2: tuple-like
+            tuple contents: (chrom, pos, strand)
+        pair_type: str
+            type of the mapped pair
+            e.g. CX,LL,MN,NN, etc.
+
+
+        Note
+        ----
+        Only instances of StatObject
+        created as StatObject() (i.e., as empty)
+        can be updated by this method
+        It all has to do with some dicts being flat,
+        while others nested.
+        This will be addressed in the future.
         """
+
         # extract chrom, position and strand from each of the alignmentns:
         chrom1, pos1, strand1 = ( algn1['chrom'], algn1['pos'], algn1['strand'] )
         chrom2, pos2, strand2 = ( algn2['chrom'], algn2['pos'], algn2['strand'] )
@@ -290,6 +357,23 @@ class StatObject(Mapping):
 
 
     def save(self, outstream):
+        """save StatObject to tab-delimited text file
+
+        Parameters
+        ----------
+        outstream: file handle
+
+
+        Note
+        ----
+        The order of the keys is not guaranteed
+        Merging several .stats is not associative with respect to key order:
+        merge(A,merge(B,C)) != merge(merge(A,B),C).
+
+        Theys should match exactly, however, when soprted:
+        sort(merge(A,merge(B,C))) == sort(merge(merge(A,B),C))
+        """
+
         # Storing statistics
         for k,v in self._stat.items():
             # this should work for the stat initialized with the file:
