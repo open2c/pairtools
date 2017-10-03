@@ -31,7 +31,7 @@ def test_mock_pairsam():
     print(stats)
 
     assert stats['total'] == 8
-    assert stats['total_single_sided_mapped'] == 4
+    assert stats['total_single_sided_mapped'] == 3
     assert stats['total_mapped'] == 5
     assert stats['cis'] == 3
     assert stats['trans'] == 2

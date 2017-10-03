@@ -7,7 +7,7 @@ import click
 
 import numpy as np
 
-from collections import OrderedDict
+from collections import OrderedDict, Mapping
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
@@ -115,7 +115,7 @@ def do_merge(output, files_to_merge, **kwargs):
         f = _fileio.auto_open(stat_file, mode='r', 
                       nproc=kwargs.get('nproc_in'),
                       command=kwargs.get('cmd_in', None)) 
-        stat = StatObject(file_handle = f)
+        stat = StatObject.from_file(f)
         stats.append(stat)
         f.close()
 
@@ -135,99 +135,131 @@ def do_merge(output, files_to_merge, **kwargs):
         outstream.close()
 
 
-class StatObject(object):
+class StatObject(Mapping):
     """docstring for StatObject:
     A class that defines a simple container
     for sequencing statistics and simple operations
-    for the class (accumulation, merge and output)."""
-    def __init__(self, file_handle = None, stat_dict = None):
-
+    for the class.
+    create StatObject from file, from existing dict empty StatObject;
+    update StatObject with an info about a mapped paired-end read;
+    save StatObject to .stats file;
+    several StatObject-s can be merged together using summation."""
+    def __init__(self, stat_dict = None):
         if stat_dict:
-            self.stat = stat_dict
+            # init from non-empty dictionary
+            # should we deep_copy instead ?
+            self._stat = stat_dict
         else:
-            # initialize empty stat dictironary:
-            self.stat = OrderedDict()
-            # fill it from file or establish an empty one:
-            if file_handle:
-                # fill in from file_handle:
-                for l in file_handle:
-                    fields = l.strip().split('\t') 
-                    if len(fields) == 0:
-                        continue
-                    if len(fields) != 2:
-                        raise _fileio.ParseError(
-                            '{} is not a valid stats file'.format(file_handle.name))
-                    self.stat[fields[0]] = int(fields[1])
-            else:
-                # some more variables used for initialization:
-                self.min_log10_dist = 0
-                self.max_log10_dist = 9
-                self.bin_log10_spacing = 0.25
-                self.dist_bins = (np.r_[0,
-                    np.round(10**np.arange(self.min_log10_dist, self.max_log10_dist+0.001, self.bin_log10_spacing))
-                    .astype(np.int)]
-                )
+            # create empty dict
+            self._stat = OrderedDict()
+            # some variables used for initialization:
+            # genomic distnace bining for the ++/--/-+/+- distribution
+            self._min_log10_dist = 0
+            self._max_log10_dist = 9
+            self._bin_log10_spacing = 0.25
+            self._dist_bins = (np.r_[0,
+                np.round(10**np.arange(self._min_log10_dist, self._max_log10_dist+0.001, self._bin_log10_spacing))
+                .astype(np.int)]
+            )
 
-                # establish structure of an empty stat:
-                self.stat['total'] = 0
-                self.stat['total_unmapped'] = 0
-                self.stat['total_single_sided_mapped'] = 0
-                self.stat['total_mapped'] = 0
-                self.stat['cis'] = 0
-                self.stat['trans'] = 0
-                self.stat['pair_types'] = {}
+            # establish structure of an empty _stat:
+            self._stat['total'] = 0
+            self._stat['total_unmapped'] = 0
+            self._stat['total_single_sided_mapped'] = 0
+            self._stat['total_mapped'] = 0
+            self._stat['cis'] = 0
+            self._stat['trans'] = 0
+            self._stat['pair_types'] = {}
 
-                self.stat['cis_1kb+'] = 0
-                self.stat['cis_2kb+'] = 0
-                self.stat['cis_10kb+'] = 0
-                self.stat['cis_20kb+'] = 0
+            self._stat['cis_1kb+'] = 0
+            self._stat['cis_2kb+'] = 0
+            self._stat['cis_10kb+'] = 0
+            self._stat['cis_20kb+'] = 0
 
-                self.stat['chrom_freq'] = OrderedDict()
+            self._stat['chrom_freq'] = OrderedDict()
 
-                self.stat['dist_freq'] = OrderedDict([
-                    ('+-', np.zeros(len(self.dist_bins), dtype=np.int)),
-                    ('-+', np.zeros(len(self.dist_bins), dtype=np.int)),
-                    ('--', np.zeros(len(self.dist_bins), dtype=np.int)),
-                    ('++', np.zeros(len(self.dist_bins), dtype=np.int)),
-                    ])
+            self._stat['dist_freq'] = OrderedDict([
+                ('+-', np.zeros(len(self._dist_bins), dtype=np.int)),
+                ('-+', np.zeros(len(self._dist_bins), dtype=np.int)),
+                ('--', np.zeros(len(self._dist_bins), dtype=np.int)),
+                ('++', np.zeros(len(self._dist_bins), dtype=np.int)),
+                ])
+
+
+    def __getitem__(self, key):
+        return self._stat[key]
+
+    def __iter__(self):
+        return iter(self._stat)
+
+    def __len__(self):
+        return len(self._stat)
+
+
+    def from_file(self, file_handle):
+        """Provide a file_handle to the method
+        it return a new StatObject filled with 
+        the contents of the file"""
+        # fill in from file - file_handle:
+        stat_from_file = OrderedDict()
+        for l in file_handle:
+            fields = l.strip().split('\t') 
+            if len(fields) == 0:
+                continue
+            if len(fields) != 2:
+                raise _fileio.ParseError(
+                    '{} is not a valid stats file'.format(file_handle.name))
+            stat_from_file[fields[0]] = int(fields[1])
+        # return StatObject from a non-empty dict:
+        return StatObject(stat_from_file)
+
 
 
     def update(self, algn1, algn2, pair_type):
+        """update existing StatObject
+        using information from a mapped paired-end read
+        algn-s should be tuples of (chrom, pos, strand)
+        Caveat: this method can update StatObject
+        only created as empty StatObject()
+        StatObject created from_file or using non-empty
+        dictionary cannot be updated now
+        (unless it has an exact matching nested structure)
+        """
         # extract chrom, position and strand from each of the alignmentns:
         chrom1, pos1, strand1 = ( algn1['chrom'], algn1['pos'], algn1['strand'] )
         chrom2, pos2, strand2 = ( algn2['chrom'], algn2['pos'], algn2['strand'] )
 
-        self.stat['total'] += 1
-        self.stat['pair_types'][pair_type] = self.stat['pair_types'].get(pair_type,0) + 1
+        self._stat['total'] += 1
+        self._stat['pair_types'][pair_type] = self._stat['pair_types'].get(pair_type,0) + 1
         if chrom1 == '!' and chrom2 == '!':
-            self.stat['total_unmapped'] += 1
+            self._stat['total_unmapped'] += 1
         elif chrom1 != '!' and chrom2 != '!':
-            self.stat['chrom_freq'][(chrom1, chrom2)] = (
-                self.stat['chrom_freq'].get((chrom1, chrom2),0) + 1)
-            self.stat['total_mapped'] += 1
+            self._stat['chrom_freq'][(chrom1, chrom2)] = (
+                self._stat['chrom_freq'].get((chrom1, chrom2),0) + 1)
+            self._stat['total_mapped'] += 1
 
             if chrom1 == chrom2:
-                self.stat['cis'] += 1
+                self._stat['cis'] += 1
                 dist = np.abs(pos2-pos1)
-                bin_idx = np.searchsorted(self.dist_bins, dist, 'right') - 1
-                self.stat['dist_freq'][strand1+strand2][bin_idx] += 1
+                bin_idx = np.searchsorted(self._dist_bins, dist, 'right') - 1
+                self._stat['dist_freq'][strand1+strand2][bin_idx] += 1
                 if dist >= 1000:
-                    self.stat['cis_1kb+'] += 1
+                    self._stat['cis_1kb+'] += 1
                 if dist >= 2000:
-                    self.stat['cis_2kb+'] += 1
+                    self._stat['cis_2kb+'] += 1
                 if dist >= 10000:
-                    self.stat['cis_10kb+'] += 1
+                    self._stat['cis_10kb+'] += 1
                 if dist >= 20000:
-                    self.stat['cis_20kb+'] += 1
+                    self._stat['cis_20kb+'] += 1
 
             else:
-                self.stat['trans'] += 1
+                self._stat['trans'] += 1
         else:
-            self.stat['total_single_sided_mapped'] += 1
+            self._stat['total_single_sided_mapped'] += 1
 
 
     def __add__(self, other):
-        stats = [self.stat, other.stat]
+        stats = [self._stat, other._stat]
 
         # Find a set of all possible keys. First, print overlapping keys, 
         # preserving the order. Then, add unique keys from each of the stats tables.
@@ -246,7 +278,7 @@ class StatObject(object):
             out_stats[k] = sum(stat.get(k, 0) for stat in stats)
 
         # return the result of a merger:
-        return StatObject(stat_dict = out_stats)
+        return StatObject(out_stats)
 
 
     # we need this to be able to sum(list_of_StatObjects)
@@ -259,22 +291,22 @@ class StatObject(object):
 
     def save(self, outstream):
         # Storing statistics
-        for k,v in self.stat.items():
+        for k,v in self._stat.items():
             # this should work for the stat initialized with the file:
             if isinstance(v, int):
                 outstream.write('{}\t{}\n'.format(k,v))
             # this is used to store newly initialized stat-object:
             else:
                 if k == 'dist_freq':
-                    for i in range(len(self.dist_bins)):
+                    for i in range(len(self._dist_bins)):
                         for dirs, freqs in v.items():
-                            if i != len(self.dist_bins) - 1:
+                            if i != len(self._dist_bins) - 1:
                                 outstream.write('{}/{}-{}/{}\t{}\n'.format(
-                                    k, self.dist_bins[i], self.dist_bins[i+1], dirs, freqs[i])
+                                    k, self._dist_bins[i], self._dist_bins[i+1], dirs, freqs[i])
                                     )
                             else:
                                 outstream.write('{}/{}+/{}\t{}\n'.format(
-                                    k, self.dist_bins[i], dirs, freqs[i]))
+                                    k, self._dist_bins[i], dirs, freqs[i]))
 
                 if k == 'pair_types':
                     for pair_type, freq in v.items():
