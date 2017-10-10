@@ -139,9 +139,18 @@ class StatObject(Mapping):
     """
     Container for various sequencing statistics
 
-    New object can be created as empty, from file and from existing dict.
+    New object can be created as empty or parsed from file.
     Multiple instances of StatsObject can be merged using summation.
     Instance of StatsObject can be saved to a text file.
+
+    StatObject has an underlying nested dictionary that stores
+    all the elements. Accessing elements of StatObject
+    can be done in 2 ways: (1) standard indexing for nested
+    dict-s (2) in a flattened manner, where all the required keys 
+    are concatenated using '/'-char.
+
+    Order in which keys are accessed should be identical to
+    the way they are seen in a .stats file.
 
 
     Parameters
@@ -153,6 +162,10 @@ class StatObject(Mapping):
     -------
     from_file(file_handle)
         create StatsObject from file
+
+        parse file_handle file to extract
+        values of all fields that are expected
+        for a StatObject data-structure.
 
         file_handle: file handle
 
@@ -167,12 +180,9 @@ class StatObject(Mapping):
         pair_type: str
             type of the mapped pair
 
-        Note
-        ----
-        this method can update StatObject
-        created as StatObject() only.
-        StatObject created using from_file(),
-        or using StatObject(dict) cannot be updated now.
+    flatten()
+        return flattened OrderedDict that
+        follows .stats text file format.
 
     save(outstream)
         save to .stats text file
@@ -181,50 +191,105 @@ class StatObject(Mapping):
 
 
     """
-    def __init__(self, stat_dict = None):
-        if stat_dict:
-            # init from non-empty dictionary
-            # should we deep_copy instead ?
-            self._stat = stat_dict
-        else:
-            # create empty dict
-            self._stat = OrderedDict()
-            # some variables used for initialization:
-            # genomic distnace bining for the ++/--/-+/+- distribution
-            self._min_log10_dist = 0
-            self._max_log10_dist = 9
-            self._bin_log10_spacing = 0.25
-            self._dist_bins = (np.r_[0,
-                np.round(10**np.arange(self._min_log10_dist, self._max_log10_dist+0.001, self._bin_log10_spacing))
-                .astype(np.int)]
-            )
 
-            # establish structure of an empty _stat:
-            self._stat['total'] = 0
-            self._stat['total_unmapped'] = 0
-            self._stat['total_single_sided_mapped'] = 0
-            self._stat['total_mapped'] = 0
-            self._stat['cis'] = 0
-            self._stat['trans'] = 0
-            self._stat['pair_types'] = {}
+    self._SEP = '\t'
+    self._KEY_SEP = '/'
 
-            self._stat['cis_1kb+'] = 0
-            self._stat['cis_2kb+'] = 0
-            self._stat['cis_10kb+'] = 0
-            self._stat['cis_20kb+'] = 0
 
-            self._stat['chrom_freq'] = OrderedDict()
 
-            self._stat['dist_freq'] = OrderedDict([
-                ('+-', np.zeros(len(self._dist_bins), dtype=np.int)),
-                ('-+', np.zeros(len(self._dist_bins), dtype=np.int)),
-                ('--', np.zeros(len(self._dist_bins), dtype=np.int)),
-                ('++', np.zeros(len(self._dist_bins), dtype=np.int)),
-                ])
+    def __init__(self):
+        # create empty ordered-dict:
+        self._stat = OrderedDict()
+        # some variables used for initialization:
+        # genomic distnace bining for the ++/--/-+/+- distribution
+        self._min_log10_dist = 0
+        self._max_log10_dist = 9
+        self._bin_log10_spacing = 0.25
+        self._dist_bins = (np.r_[0,
+            np.round(10**np.arange(self._min_log10_dist, self._max_log10_dist+0.001, self._bin_log10_spacing))
+            .astype(np.int)]
+        )
+
+        # establish structure of an empty _stat:
+        self._stat['total'] = 0
+        self._stat['total_unmapped'] = 0
+        self._stat['total_single_sided_mapped'] = 0
+        self._stat['total_mapped'] = 0
+        self._stat['cis'] = 0
+        self._stat['trans'] = 0
+        self._stat['pair_types'] = {}
+
+        self._stat['cis_1kb+'] = 0
+        self._stat['cis_2kb+'] = 0
+        self._stat['cis_10kb+'] = 0
+        self._stat['cis_20kb+'] = 0
+
+        self._stat['chrom_freq'] = OrderedDict()
+
+        self._stat['dist_freq'] = OrderedDict([
+            ('+-', np.zeros(len(self._dist_bins), dtype=np.int)),
+            ('-+', np.zeros(len(self._dist_bins), dtype=np.int)),
+            ('--', np.zeros(len(self._dist_bins), dtype=np.int)),
+            ('++', np.zeros(len(self._dist_bins), dtype=np.int)),
+            ])
 
 
     def __getitem__(self, key):
-        return self._stat[key]
+        if isinstance(key, str):
+            # let's strip any unintentionall '/'
+            # from either side of the key
+            key = key.strip('/')
+            if self._KEY_SEP in key:
+                # multi-key to access nested elements
+                k_fields = key.split(self._KEY_SEP)
+            else:
+                # single-key access flat part of StatObject
+                # or to access highest level of hierarchy
+                return self._stat[key]
+        else:
+            # clearly an error:
+            raise ValueError(
+                '{} is not a valid key: must be str'.format(key))
+
+        # process multi-key case:
+        # in this case key must be in ['pair_types','chrom_freq','dist_freq']
+        # get the first 'k' and keep the remainders in 'k_fields'
+        k = k_fields.pop(0)
+        if k == 'pair_types':
+            # assert there is only one element in key_fields left:
+            if len(k_fields) == 1:
+                return self._stat[k][k_fields[0]]
+            else:
+                raise ValueError(
+                    '{} is not a valid key: {} section implies 1 identifier'.format(key, k))
+        if k == 'chrom_freq':
+            # assert remaining key_fields == [chr1, chr2]:
+            if len(k_fields) == 2:
+                return self._stat[k][tuple(k_fields)]
+            else:
+                raise ValueError(
+                    '{} is not a valid key: {} section implies 2 identifiers'.format(key, k))
+        if k == 'dist_freq':
+            # assert that last element of key_fields is the 'directions'
+            # THIS IS DONE FOR CONSISTENCY WITH .stats FILE
+            # SHOULD THAT BE CHANGED IN .stats AND HERE AS WELL?
+            if len(k_fields) == 2:
+                # assert 'dirs' in ['++','--','+-','-+']
+                dirs = k_fields.pop()
+                # there is only genomic distance range of the bin that's left:
+                bin_range, = k_fields
+                # extract left border of the bin "1000000+" or "1500-6000":
+                dist_bin_left = bin_range.strip('+') if bin_range.endswith('+')
+                            else bin_range.split('-')[0]
+                # get the index of that bin:
+                bin_idx = np.searchsorted(self._dist_bins, int(dist_bin_left), 'right') - 1
+                # store corresponding value:
+                return self._stat['dist_freq'][dirs][bin_idx]
+            else:
+                raise ValueError(
+                    '{} is not a valid stats file: {} section implies 2 identifiers'.format(file_handle.name,key))
+
+
 
     def __iter__(self):
         return iter(self._stat)
@@ -246,25 +311,69 @@ class StatObject(Mapping):
             new instance of StatObject
             filled with the contents of
             the input file
-
-        Note
-        ----
-        instance of StatObject returned
-        by this method cannot be updated 
-        since it is a flat version of a dict
         """
         # fill in from file - file_handle:
-        stat_from_file = OrderedDict()
+        stat_from_file = StatObject()
         for l in file_handle:
-            fields = l.strip().split('\t') 
+            fields = l.strip().split(self._SEP) 
             if len(fields) == 0:
+                # skip empty lines:
                 continue
             if len(fields) != 2:
+                # expect two _SEP separated values per line:
                 raise _fileio.ParseError(
                     '{} is not a valid stats file'.format(file_handle.name))
-            stat_from_file[fields[0]] = int(fields[1])
+            # extract key and value, then split the key:
+            putative_key, putative_val =  fields[0], fields[1]
+            key_fields = putative_key.split(self._KEY_SEP)
+            # we should impose a rigid structure of .stats or redo it:
+            if len(key_fields)==1:
+                key = key_fields[0]
+                if key in stat_from_file._stat:
+                    stat_from_file[key] = int(fields[1])
+                else:
+                    raise _fileio.ParseError(
+                        '{} is not a valid stats file: unknown field {} detected'.format(file_handle.name,key))
+            else:
+                # in this case key must be in ['pair_types','chrom_freq','dist_freq']
+                # get the first 'key' and keep the remainders in 'key_fields'
+                key = key_fields.pop(0)
+                if key == 'pair_types':
+                    # assert there is only one element in key_fields left:
+                    if len(key_fields) == 1:
+                        stat_from_file._stat[key][key_fields[0]] = int(fields[1])
+                    else:
+                        raise _fileio.ParseError(
+                            '{} is not a valid stats file: {} section implies 1 identifier'.format(file_handle.name,key))
+                if key == 'chrom_freq':
+                    # assert remaining key_fields == [chr1, chr2]:
+                    if len(key_fields) == 2:
+                        stat_from_file._stat[key][tuple(key_fields)] = int(fields[1])
+                    else:
+                        raise _fileio.ParseError(
+                            '{} is not a valid stats file: {} section implies 2 identifiers'.format(file_handle.name,key))
+                if key == 'dist_freq':
+                    # assert that last element of key_fields is the 'directions'
+                    if len(key_fields) == 2:
+                        # assert 'dirs' in ['++','--','+-','-+']
+                        dirs = key_fields.pop()
+                        # there is only genomic distance range of the bin that's left:
+                        bin_range, = key_fields
+                        # extract left border of the bin "1000000+" or "1500-6000":
+                        dist_bin_left = bin_range.strip('+') if bin_range.endswith('+')
+                                    else bin_range.split('-')[0]
+                        # get the index of that bin:
+                        bin_idx = np.searchsorted(self._dist_bins, int(dist_bin_left), 'right') - 1
+                        # store corresponding value:
+                        stat_from_file._stat[key][dirs][bin_idx] = int(fields[1])
+                    else:
+                        raise _fileio.ParseError(
+                            '{} is not a valid stats file: {} section implies 2 identifiers'.format(file_handle.name,key))
+                else:
+                    raise _fileio.ParseError(
+                        '{} is not a valid stats file: unknown field {} detected'.format(file_handle.name,key))
         # return StatObject from a non-empty dict:
-        return StatObject(stat_from_file)
+        return stat_from_file
 
 
 
@@ -280,16 +389,6 @@ class StatObject(Mapping):
         pair_type: str
             type of the mapped pair
             e.g. CX,LL,MN,NN, etc.
-
-
-        Note
-        ----
-        Only instances of StatObject
-        created as StatObject() (i.e., as empty)
-        can be updated by this method
-        It all has to do with some dicts being flat,
-        while others nested.
-        This will be addressed in the future.
         """
 
         # extract chrom, position and strand from each of the alignmentns:
@@ -326,26 +425,44 @@ class StatObject(Mapping):
 
 
     def __add__(self, other):
-        stats = [self._stat, other._stat]
+        # both StatObject are implied to have a list of common fields:
+        #
+        # 'total', 'total_unmapped', 'total_single_sided_mapped', 'total_mapped',
+        # 'cis', 'trans', 'pair_types', 'cis_1kb+', 'cis_2kb+',
+        # 'cis_10kb+', 'cis_20kb+', 'chrom_freq', 'dist_freq',
+        #
+        # initialize empty StatObject for the result of summation:
+        sum_stat = StatObject()
+        # use the empty StatObject to iterate over:
+        for k,v in sum_stat._stat.items():
+            # not nested fields are summed trivially:
+            if isinstance(v, int):
+                sum_stat._stat[k] = self._stat[k] + other._stat[k]
+            # sum nested dicts/arrays in a context dependet manner:
+            else:
+                if k == 'pair_types':
+                    # https://stackoverflow.com/questions/10461531/merge-and-sum-of-two-dictionaries
+                    sum_dicts = lambda dict_x,dict_y: { 
+                                    key: dict_x.get(key, 0) + dict_y.get(key, 0)
+                                            for key in set(dict_x) | set(dict_y) }
+                    sum_stat._stat['pair_types'] = sum_dicts(self._stat[k], other._stat[k])
+                if k == 'chrom_freq':
+                    # union list of keys (chr1,chr2) with potential duplicates:
+                    union_keys_with_dups = list(self._stat[k].keys()) + list(other._stat[k].keys())
+                    # OrderedDict.fromkeys will take care of keys' order and duplicates in a consistent manner:
+                    # https://stackoverflow.com/questions/1720421/how-to-concatenate-two-lists-in-python
+                    # last comment to the 3rd Answer
+                    sum_stat._stat[k] = OrderedDict.fromkeys( union_keys_with_dups )
+                    # perform a summation:
+                    for union_key in sum_stat._stat[k]:
+                        sum_stat._stat[k][union_key] = self._stat[k].get(union_key, 0) \
+                                                    + other._stat[k].get(union_key, 0)
+                if k == 'dist_freq':
+                    for dirs in sum_stat[k]:
+                        sum_stat[k][dirs] = self._stat[k][dirs] + other._stat[k][dirs]
+        return sum_stat
 
-        # Find a set of all possible keys. First, print overlapping keys, 
-        # preserving the order. Then, add unique keys from each of the stats tables.
-        out_keys = [
-            k for k in stats[0]
-            if all(k in stat for stat in stats)]
 
-        for stat in stats:
-            out_keys += [
-                k for k in stat
-                if k not in out_keys]
-
-        # Sum all stats.
-        out_stats = OrderedDict()
-        for k in out_keys:
-            out_stats[k] = sum(stat.get(k, 0) for stat in stats)
-
-        # return the result of a merger:
-        return StatObject(out_stats)
 
 
     # we need this to be able to sum(list_of_StatObjects)
@@ -356,8 +473,57 @@ class StatObject(Mapping):
             return self.__add__(other)
 
 
+
+
+    def flatten(self):
+        """return a flattened OrderedDic (formatted same way as .stats file)
+
+        """
+        # OrderedDict for flat store:
+        flat_stat = OrderedDict()
+
+        # Storing statistics
+        for k,v in self._stat.items():
+            if isinstance(v, int):
+                flat_stat[k] = v
+            # store nested dicts/arrays in a context dependet manner:
+            else:
+                if k == 'dist_freq':
+                    for i in range(len(self._dist_bins)):
+                        for dirs, freqs in v.items():
+                            # last bin is treated differently: "100000+" vs "1200-3000":
+                            if i != len(self._dist_bins) - 1:
+                                formatted_key = self._KEY_SEP.join(['{}','{}-{}','{}']).format(
+                                                k, self._dist_bins[i], self._dist_bins[i+1], dirs)
+                            else:
+                                formatted_key = self._KEY_SEP.join(['{}','{}+','{}']).format(
+                                                k, self._dist_bins[i], dirs)
+                            #store key,value pair:
+                            flat_stat[formatted_key] = freqs[i]
+                if k == 'pair_types':
+                    for pair_type, freq in v.items():
+                        formatted_key = self._KEY_SEP.join(['{}','{}']).format(k, pair_type)
+                        #store key,value pair:
+                        flat_stat[formatted_key] = freq
+                if k == 'chrom_freq':
+                    for (chrom1, chrom2), freq in v.items():
+                        formatted_key = self._KEY_SEP.join(['{}','{}','{}']).format(k, chrom1, chrom2)
+                        #store key,value pair:
+                        flat_stat[formatted_key] = freq
+
+        # return flattened OrderedDict
+        return flat_stat
+
+
+
+
+
+
+
+
     def save(self, outstream):
-        """save StatObject to tab-delimited text file
+        """save StatObject to tab-delimited text file.
+        Flattened version of StatObject is stored in the file.
 
         Parameters
         ----------
@@ -370,37 +536,13 @@ class StatObject(Mapping):
         Merging several .stats is not associative with respect to key order:
         merge(A,merge(B,C)) != merge(merge(A,B),C).
 
-        Theys should match exactly, however, when soprted:
+        Theys shou5ld match exactly, however, when soprted:
         sort(merge(A,merge(B,C))) == sort(merge(merge(A,B),C))
         """
 
-        # Storing statistics
-        for k,v in self._stat.items():
-            # this should work for the stat initialized with the file:
-            if isinstance(v, int):
-                outstream.write('{}\t{}\n'.format(k,v))
-            # this is used to store newly initialized stat-object:
-            else:
-                if k == 'dist_freq':
-                    for i in range(len(self._dist_bins)):
-                        for dirs, freqs in v.items():
-                            if i != len(self._dist_bins) - 1:
-                                outstream.write('{}/{}-{}/{}\t{}\n'.format(
-                                    k, self._dist_bins[i], self._dist_bins[i+1], dirs, freqs[i])
-                                    )
-                            else:
-                                outstream.write('{}/{}+/{}\t{}\n'.format(
-                                    k, self._dist_bins[i], dirs, freqs[i]))
-
-                if k == 'pair_types':
-                    for pair_type, freq in v.items():
-                        outstream.write('{}/{}\t{}\n'.format(
-                            k, pair_type, freq))
-
-                if k == 'chrom_freq':
-                    for (chrom1, chrom2), freq in v.items():
-                        outstream.write('{}/{}/{}\t{}\n'.format(
-                            k, chrom1, chrom2, freq))
+        # write flattened version of the StatObject to outstream
+        for k,v in self.flatten().items():
+            outstream.write('{}{}{}\n'.format(k, self._SEP, v))
 
 
 if __name__ == '__main__':
