@@ -369,7 +369,7 @@ class StatObject(Mapping):
                         dist_bin_left = bin_range.strip('+') if bin_range.endswith('+') \
                                     else bin_range.split('-')[0]
                         # get the index of that bin:
-                        bin_idx = np.searchsorted(cls._dist_bins, int(dist_bin_left), 'right') - 1
+                        bin_idx = np.searchsorted(stat_from_file._dist_bins, int(dist_bin_left), 'right') - 1
                         # store corresponding value:
                         stat_from_file._stat[key][dirs][bin_idx] = int(fields[1])
                     else:
