@@ -114,7 +114,8 @@ def do_merge(output, files_to_merge, **kwargs):
     for stat_file in files_to_merge:
         f = _fileio.auto_open(stat_file, mode='r', 
                       nproc=kwargs.get('nproc_in'),
-                      command=kwargs.get('cmd_in', None)) 
+                      command=kwargs.get('cmd_in', None))
+        # use a factory method to instanciate StatObject
         stat = StatObject.from_file(f)
         stats.append(stat)
         f.close()
@@ -192,8 +193,8 @@ class StatObject(Mapping):
 
     """
 
-    self._SEP = '\t'
-    self._KEY_SEP = '/'
+    _SEP = '\t'
+    _KEY_SEP = '/'
 
 
 
@@ -251,6 +252,7 @@ class StatObject(Mapping):
             raise ValueError(
                 '{} is not a valid key: must be str'.format(key))
 
+        # K_FIELDS:
         # process multi-key case:
         # in this case key must be in ['pair_types','chrom_freq','dist_freq']
         # get the first 'k' and keep the remainders in 'k_fields'
@@ -262,14 +264,14 @@ class StatObject(Mapping):
             else:
                 raise ValueError(
                     '{} is not a valid key: {} section implies 1 identifier'.format(key, k))
-        if k == 'chrom_freq':
+        elif k == 'chrom_freq':
             # assert remaining key_fields == [chr1, chr2]:
             if len(k_fields) == 2:
                 return self._stat[k][tuple(k_fields)]
             else:
                 raise ValueError(
                     '{} is not a valid key: {} section implies 2 identifiers'.format(key, k))
-        if k == 'dist_freq':
+        elif k == 'dist_freq':
             # assert that last element of key_fields is the 'directions'
             # THIS IS DONE FOR CONSISTENCY WITH .stats FILE
             # SHOULD THAT BE CHANGED IN .stats AND HERE AS WELL?
@@ -279,7 +281,7 @@ class StatObject(Mapping):
                 # there is only genomic distance range of the bin that's left:
                 bin_range, = k_fields
                 # extract left border of the bin "1000000+" or "1500-6000":
-                dist_bin_left = bin_range.strip('+') if bin_range.endswith('+')
+                dist_bin_left = bin_range.strip('+') if bin_range.endswith('+') \
                             else bin_range.split('-')[0]
                 # get the index of that bin:
                 bin_idx = np.searchsorted(self._dist_bins, int(dist_bin_left), 'right') - 1
@@ -287,7 +289,10 @@ class StatObject(Mapping):
                 return self._stat['dist_freq'][dirs][bin_idx]
             else:
                 raise ValueError(
-                    '{} is not a valid stats file: {} section implies 2 identifiers'.format(file_handle.name,key))
+                    '{} is not a valid key: {} section implies 2 identifiers'.format(key,k))
+        else:
+            raise ValueError(
+                '{} is not a valid key'.format(k))
 
 
 
@@ -298,7 +303,8 @@ class StatObject(Mapping):
         return len(self._stat)
 
 
-    def from_file(self, file_handle):
+    @classmethod
+    def from_file(cls, file_handle):
         """create instance of StatObject from file
 
         Parameters
@@ -313,9 +319,9 @@ class StatObject(Mapping):
             the input file
         """
         # fill in from file - file_handle:
-        stat_from_file = StatObject()
+        stat_from_file = cls()
         for l in file_handle:
-            fields = l.strip().split(self._SEP) 
+            fields = l.strip().split(cls._SEP) 
             if len(fields) == 0:
                 # skip empty lines:
                 continue
@@ -325,12 +331,12 @@ class StatObject(Mapping):
                     '{} is not a valid stats file'.format(file_handle.name))
             # extract key and value, then split the key:
             putative_key, putative_val =  fields[0], fields[1]
-            key_fields = putative_key.split(self._KEY_SEP)
+            key_fields = putative_key.split(cls._KEY_SEP)
             # we should impose a rigid structure of .stats or redo it:
             if len(key_fields)==1:
                 key = key_fields[0]
                 if key in stat_from_file._stat:
-                    stat_from_file[key] = int(fields[1])
+                    stat_from_file._stat[key] = int(fields[1])
                 else:
                     raise _fileio.ParseError(
                         '{} is not a valid stats file: unknown field {} detected'.format(file_handle.name,key))
@@ -345,14 +351,14 @@ class StatObject(Mapping):
                     else:
                         raise _fileio.ParseError(
                             '{} is not a valid stats file: {} section implies 1 identifier'.format(file_handle.name,key))
-                if key == 'chrom_freq':
+                elif key == 'chrom_freq':
                     # assert remaining key_fields == [chr1, chr2]:
                     if len(key_fields) == 2:
                         stat_from_file._stat[key][tuple(key_fields)] = int(fields[1])
                     else:
                         raise _fileio.ParseError(
                             '{} is not a valid stats file: {} section implies 2 identifiers'.format(file_handle.name,key))
-                if key == 'dist_freq':
+                elif key == 'dist_freq':
                     # assert that last element of key_fields is the 'directions'
                     if len(key_fields) == 2:
                         # assert 'dirs' in ['++','--','+-','-+']
@@ -360,10 +366,10 @@ class StatObject(Mapping):
                         # there is only genomic distance range of the bin that's left:
                         bin_range, = key_fields
                         # extract left border of the bin "1000000+" or "1500-6000":
-                        dist_bin_left = bin_range.strip('+') if bin_range.endswith('+')
+                        dist_bin_left = bin_range.strip('+') if bin_range.endswith('+') \
                                     else bin_range.split('-')[0]
                         # get the index of that bin:
-                        bin_idx = np.searchsorted(self._dist_bins, int(dist_bin_left), 'right') - 1
+                        bin_idx = np.searchsorted(cls._dist_bins, int(dist_bin_left), 'right') - 1
                         # store corresponding value:
                         stat_from_file._stat[key][dirs][bin_idx] = int(fields[1])
                     else:
@@ -500,12 +506,12 @@ class StatObject(Mapping):
                                                 k, self._dist_bins[i], dirs)
                             #store key,value pair:
                             flat_stat[formatted_key] = freqs[i]
-                if k == 'pair_types':
+                elif k == 'pair_types':
                     for pair_type, freq in v.items():
                         formatted_key = self._KEY_SEP.join(['{}','{}']).format(k, pair_type)
                         #store key,value pair:
                         flat_stat[formatted_key] = freq
-                if k == 'chrom_freq':
+                elif k == 'chrom_freq':
                     for (chrom1, chrom2), freq in v.items():
                         formatted_key = self._KEY_SEP.join(['{}','{}','{}']).format(k, chrom1, chrom2)
                         #store key,value pair:
@@ -513,10 +519,6 @@ class StatObject(Mapping):
 
         # return flattened OrderedDict
         return flat_stat
-
-
-
-
 
 
 
@@ -547,12 +549,4 @@ class StatObject(Mapping):
 
 if __name__ == '__main__':
     stats()
-
-
-
-
-
-
-
-
 
