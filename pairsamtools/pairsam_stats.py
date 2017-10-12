@@ -69,7 +69,7 @@ def stats_py(input_path, output, merge, **kwargs):
 
 
     # new stats class stuff would come here ...
-    stats = StatObject()
+    stats = PairCounter()
 
     # Collecting statistics
     for line in body_stream:
@@ -88,7 +88,7 @@ def stats_py(input_path, output, merge, **kwargs):
         pair_type = cols[_pairsam_format.COL_PTYPE]
         #
         #
-        stats.update(algn1, algn2, pair_type)
+        stats.add_pair(algn1, algn2, pair_type)
 
 
 
@@ -102,27 +102,20 @@ def stats_py(input_path, output, merge, **kwargs):
     if outstream != sys.stdout:
         outstream.close()
 
-
-
-
-
-
 def do_merge(output, files_to_merge, **kwargs):
-
     # Parse all stats files.
     stats = []
     for stat_file in files_to_merge:
         f = _fileio.auto_open(stat_file, mode='r', 
                       nproc=kwargs.get('nproc_in'),
                       command=kwargs.get('cmd_in', None))
-        # use a factory method to instanciate StatObject
-        stat = StatObject.from_file(f)
+        # use a factory method to instanciate PairCounter
+        stat = PairCounter.from_file(f)
         stats.append(stat)
         f.close()
 
     # combine stats from several files (files_to_merge):
     out_stat = sum(stats)
-
 
     # Save merged stats.
     outstream = _fileio.auto_open(output, mode='w', 
@@ -136,78 +129,29 @@ def do_merge(output, files_to_merge, **kwargs):
         outstream.close()
 
 
-class StatObject(Mapping):
+class PairCounter(Mapping):
     """
-    Container for various sequencing statistics
+    A Counter for Hi-C pairs that accumulates various statistics.
 
-    New object can be created as empty or parsed from file.
-    Multiple instances of StatsObject can be merged using summation.
-    Instance of StatsObject can be saved to a text file.
+    PairCounter implements two interfaces to access multi-level statistics:
+    1. as a nested dict, e.g. pairCounter['pair_types']['LL']
+    2. as a flat dict, with the level keys separated by '/', e.g. pairCounter['pair_types/LL']
 
-    StatObject has an underlying nested dictionary that stores
-    all the elements. Accessing elements of StatObject
-    can be done in 2 ways: (1) standard indexing for nested
-    dict-s (2) in a flattened manner, where all the required keys 
-    are concatenated using '/'-char.
-
-    Order in which keys are accessed should be identical to
-    the way they are seen in a .stats file.
-
-
-    Parameters
-    ----------
-    stat_dict: dict-like, optional
-        dictionary used to initialize StatObject
-
-    Methods
-    -------
-    from_file(file_handle)
-        create StatsObject from file
-
-        parse file_handle file to extract
-        values of all fields that are expected
-        for a StatObject data-structure.
-
-        file_handle: file handle
-
-    update(algn1, algn2, pair_type)
-        update existing StatObject object with
-        information from a mapped paired-end read
-
-        algn1: tuple-like
-            tuple contents: (chrom, pos, strand)
-        algn2: tuple-like
-            tuple contents: (chrom, pos, strand)
-        pair_type: str
-            type of the mapped pair
-
-    flatten()
-        return flattened OrderedDict that
-        follows .stats text file format.
-
-    save(outstream)
-        save to .stats text file
-
-        outstream: file handle
-
-
+    Other features:
+    -- PairCounters can be saved into/loaded from a file
+    -- multiple PairCounters can be merged via addition.
     """
 
     _SEP = '\t'
     _KEY_SEP = '/'
 
-
-
-    def __init__(self):
-        # create empty ordered-dict:
+    def __init__(self, min_log10_dist=0, max_log10_dist=9, log10_dist_bin_step=0.25):
         self._stat = OrderedDict()
         # some variables used for initialization:
-        # genomic distnace bining for the ++/--/-+/+- distribution
-        self._min_log10_dist = 0
-        self._max_log10_dist = 9
-        self._bin_log10_spacing = 0.25
+        # genomic distance bining for the ++/--/-+/+- distribution
         self._dist_bins = (np.r_[0,
-            np.round(10**np.arange(self._min_log10_dist, self._max_log10_dist+0.001, self._bin_log10_spacing))
+            np.round(10**np.arange(min_log10_dist, max_log10_dist+0.001, 
+                                   log10_dist_bin_step))
             .astype(np.int)]
         )
 
@@ -237,14 +181,14 @@ class StatObject(Mapping):
 
     def __getitem__(self, key):
         if isinstance(key, str):
-            # let's strip any unintentionall '/'
+            # let's strip any unintentional '/'
             # from either side of the key
             key = key.strip('/')
             if self._KEY_SEP in key:
                 # multi-key to access nested elements
                 k_fields = key.split(self._KEY_SEP)
             else:
-                # single-key access flat part of StatObject
+                # single-key access flat part of PairCounter
                 # or to access highest level of hierarchy
                 return self._stat[key]
         else:
@@ -264,6 +208,7 @@ class StatObject(Mapping):
             else:
                 raise ValueError(
                     '{} is not a valid key: {} section implies 1 identifier'.format(key, k))
+
         elif k == 'chrom_freq':
             # assert remaining key_fields == [chr1, chr2]:
             if len(k_fields) == 2:
@@ -271,6 +216,7 @@ class StatObject(Mapping):
             else:
                 raise ValueError(
                     '{} is not a valid key: {} section implies 2 identifiers'.format(key, k))
+
         elif k == 'dist_freq':
             # assert that last element of key_fields is the 'directions'
             # THIS IS DONE FOR CONSISTENCY WITH .stats FILE
@@ -295,9 +241,9 @@ class StatObject(Mapping):
                 '{} is not a valid key'.format(k))
 
 
-
     def __iter__(self):
         return iter(self._stat)
+
 
     def __len__(self):
         return len(self._stat)
@@ -305,7 +251,7 @@ class StatObject(Mapping):
 
     @classmethod
     def from_file(cls, file_handle):
-        """create instance of StatObject from file
+        """create instance of PairCounter from file
 
         Parameters
         ----------
@@ -313,10 +259,8 @@ class StatObject(Mapping):
 
         Returns
         -------
-        StatObject
-            new instance of StatObject
-            filled with the contents of
-            the input file
+        PairCounter
+            new PairCounter filled with the contents of the input file
         """
         # fill in from file - file_handle:
         stat_from_file = cls()
@@ -351,6 +295,7 @@ class StatObject(Mapping):
                     else:
                         raise _fileio.ParseError(
                             '{} is not a valid stats file: {} section implies 1 identifier'.format(file_handle.name,key))
+
                 elif key == 'chrom_freq':
                     # assert remaining key_fields == [chr1, chr2]:
                     if len(key_fields) == 2:
@@ -358,6 +303,7 @@ class StatObject(Mapping):
                     else:
                         raise _fileio.ParseError(
                             '{} is not a valid stats file: {} section implies 2 identifiers'.format(file_handle.name,key))
+
                 elif key == 'dist_freq':
                     # assert that last element of key_fields is the 'directions'
                     if len(key_fields) == 2:
@@ -366,10 +312,13 @@ class StatObject(Mapping):
                         # there is only genomic distance range of the bin that's left:
                         bin_range, = key_fields
                         # extract left border of the bin "1000000+" or "1500-6000":
-                        dist_bin_left = bin_range.strip('+') if bin_range.endswith('+') \
-                                    else bin_range.split('-')[0]
+                        dist_bin_left = (bin_range.strip('+')
+                            if bin_range.endswith('+') 
+                            else bin_range.split('-')[0])
                         # get the index of that bin:
-                        bin_idx = np.searchsorted(stat_from_file._dist_bins, int(dist_bin_left), 'right') - 1
+                        bin_idx = np.searchsorted(
+                            stat_from_file._dist_bins, 
+                            int(dist_bin_left), 'right') - 1
                         # store corresponding value:
                         stat_from_file._stat[key][dirs][bin_idx] = int(fields[1])
                     else:
@@ -378,13 +327,12 @@ class StatObject(Mapping):
                 else:
                     raise _fileio.ParseError(
                         '{} is not a valid stats file: unknown field {} detected'.format(file_handle.name,key))
-        # return StatObject from a non-empty dict:
+        # return PairCounter from a non-empty dict:
         return stat_from_file
 
 
-
-    def update(self, algn1, algn2, pair_type):
-        """update existing StatObject with info from mapped read
+    def add_pair(self, algn1, algn2, pair_type):
+        """Gather statistics for a Hi-C pair and add to the PairCounter.
 
         Parameters
         ----------
@@ -394,12 +342,12 @@ class StatObject(Mapping):
             tuple contents: (chrom, pos, strand)
         pair_type: str
             type of the mapped pair
-            e.g. CX,LL,MN,NN, etc.
+            e.g. CX, LL, MN, NN, etc.
         """
 
         # extract chrom, position and strand from each of the alignmentns:
-        chrom1, pos1, strand1 = ( algn1['chrom'], algn1['pos'], algn1['strand'] )
-        chrom2, pos2, strand2 = ( algn2['chrom'], algn2['pos'], algn2['strand'] )
+        chrom1, pos1, strand1 = (algn1['chrom'], algn1['pos'], algn1['strand'])
+        chrom2, pos2, strand2 = (algn2['chrom'], algn2['pos'], algn2['strand'])
 
         self._stat['total'] += 1
         self._stat['pair_types'][pair_type] = self._stat['pair_types'].get(pair_type,0) + 1
@@ -407,7 +355,7 @@ class StatObject(Mapping):
             self._stat['total_unmapped'] += 1
         elif chrom1 != '!' and chrom2 != '!':
             self._stat['chrom_freq'][(chrom1, chrom2)] = (
-                self._stat['chrom_freq'].get((chrom1, chrom2),0) + 1)
+                self._stat['chrom_freq'].get((chrom1, chrom2), 0) + 1)
             self._stat['total_mapped'] += 1
 
             if chrom1 == chrom2:
@@ -419,10 +367,14 @@ class StatObject(Mapping):
                     self._stat['cis_1kb+'] += 1
                 if dist >= 2000:
                     self._stat['cis_2kb+'] += 1
+                if dist >= 4000:
+                    self._stat['cis_4kb+'] += 1
                 if dist >= 10000:
                     self._stat['cis_10kb+'] += 1
                 if dist >= 20000:
                     self._stat['cis_20kb+'] += 1
+                if dist >= 40000:
+                    self._stat['cis_40kb+'] += 1
 
             else:
                 self._stat['trans'] += 1
@@ -431,15 +383,15 @@ class StatObject(Mapping):
 
 
     def __add__(self, other):
-        # both StatObject are implied to have a list of common fields:
+        # both PairCounter are implied to have a list of common fields:
         #
         # 'total', 'total_unmapped', 'total_single_sided_mapped', 'total_mapped',
         # 'cis', 'trans', 'pair_types', 'cis_1kb+', 'cis_2kb+',
         # 'cis_10kb+', 'cis_20kb+', 'chrom_freq', 'dist_freq',
         #
-        # initialize empty StatObject for the result of summation:
-        sum_stat = StatObject()
-        # use the empty StatObject to iterate over:
+        # initialize empty PairCounter for the result of summation:
+        sum_stat = PairCounter()
+        # use the empty PairCounter to iterate over:
         for k,v in sum_stat._stat.items():
             # not nested fields are summed trivially:
             if isinstance(v, int):
@@ -461,24 +413,22 @@ class StatObject(Mapping):
                     sum_stat._stat[k] = OrderedDict.fromkeys( union_keys_with_dups )
                     # perform a summation:
                     for union_key in sum_stat._stat[k]:
-                        sum_stat._stat[k][union_key] = self._stat[k].get(union_key, 0) \
-                                                    + other._stat[k].get(union_key, 0)
+                        sum_stat._stat[k][union_key] = (
+                            self._stat[k].get(union_key, 0) 
+                            + other._stat[k].get(union_key, 0)
+                        )
                 if k == 'dist_freq':
                     for dirs in sum_stat[k]:
                         sum_stat[k][dirs] = self._stat[k][dirs] + other._stat[k][dirs]
         return sum_stat
 
 
-
-
-    # we need this to be able to sum(list_of_StatObjects)
+    # we need this to be able to sum(list_of_PairCounters)
     def __radd__(self, other):
         if other == 0:
             return self
         else:
             return self.__add__(other)
-
-
 
 
     def flatten(self):
@@ -521,11 +471,9 @@ class StatObject(Mapping):
         return flat_stat
 
 
-
-
     def save(self, outstream):
-        """save StatObject to tab-delimited text file.
-        Flattened version of StatObject is stored in the file.
+        """save PairCounter to tab-delimited text file.
+        Flattened version of PairCounter is stored in the file.
 
         Parameters
         ----------
@@ -542,7 +490,7 @@ class StatObject(Mapping):
         sort(merge(A,merge(B,C))) == sort(merge(merge(A,B),C))
         """
 
-        # write flattened version of the StatObject to outstream
+        # write flattened version of the PairCounter to outstream
         for k,v in self.flatten().items():
             outstream.write('{}{}{}\n'.format(k, self._SEP, v))
 

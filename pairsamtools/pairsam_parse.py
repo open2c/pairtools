@@ -12,7 +12,7 @@ import io
 import copy
 
 from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
-from .pairsam_stats import StatObject
+from .pairsam_stats import PairCounter
 
 
 UTIL_NAME = 'pairsam_parse'
@@ -130,8 +130,8 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     if out_alignments_stream:
         out_alignments_stream.write('side\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')
 
-    # generate empty StatObject if stats output is requested:
-    out_stat = StatObject() if output_stats else None
+    # generate empty PairCounter if stats output is requested:
+    out_stat = PairCounter() if output_stats else None
 
 
     samheader, body_stream = _headerops.get_header(instream, comment_char='@')
@@ -605,10 +605,9 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                     drop_readid,
                     drop_sam,
                     store_mapq)
-                # update StatObject is stats output requested
-                # make sure the alignment order is correct
+                # add a pair to PairCounter if stats output requested
                 if out_stat:
-                    out_stat.update(algn2, algn1, pair_type)
+                    out_stat.add_pair(algn2, algn1, pair_type)
             else:
                 write_pairsam(
                     algn1, algn2,
@@ -619,10 +618,9 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                     drop_readid,
                     drop_sam,
                     store_mapq)
-                # update StatObject is stats output requested
-                # make sure the alignment order is correct
+                # add a pair to PairCounter if stats output requested
                 if out_stat:
-                    out_stat.update(algn1, algn2, pair_type)
+                    out_stat.add_pair(algn1, algn2, pair_type)
             if out_alignments_stream:
                 write_all_algnments(all_algns1, all_algns2, out_alignments_stream)
             
