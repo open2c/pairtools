@@ -166,8 +166,10 @@ class PairCounter(Mapping):
 
         self._stat['cis_1kb+'] = 0
         self._stat['cis_2kb+'] = 0
+        self._stat['cis_4kb+'] = 0
         self._stat['cis_10kb+'] = 0
         self._stat['cis_20kb+'] = 0
+        self._stat['cis_40kb+'] = 0
 
         self._stat['chrom_freq'] = OrderedDict()
 
