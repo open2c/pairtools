@@ -163,6 +163,7 @@ class PairCounter(Mapping):
         self._stat['cis'] = 0
         self._stat['trans'] = 0
         self._stat['pair_types'] = {}
+        self._stat['dedup'] = {}
 
         self._stat['cis_1kb+'] = 0
         self._stat['cis_2kb+'] = 0
@@ -200,11 +201,12 @@ class PairCounter(Mapping):
 
         # K_FIELDS:
         # process multi-key case:
-        # in this case key must be in ['pair_types','chrom_freq','dist_freq']
+        # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup']
         # get the first 'k' and keep the remainders in 'k_fields'
         k = k_fields.pop(0)
-        if k == 'pair_types':
+        if k in ['pair_types', 'dedup']:
             # assert there is only one element in key_fields left:
+            # 'pair_types' and 'dedup' treated the same
             if len(k_fields) == 1:
                 return self._stat[k][k_fields[0]]
             else:
@@ -287,11 +289,12 @@ class PairCounter(Mapping):
                     raise _fileio.ParseError(
                         '{} is not a valid stats file: unknown field {} detected'.format(file_handle.name,key))
             else:
-                # in this case key must be in ['pair_types','chrom_freq','dist_freq']
+                # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup']
                 # get the first 'key' and keep the remainders in 'key_fields'
                 key = key_fields.pop(0)
-                if key == 'pair_types':
+                if key in ['pair_types', 'dedup']:
                     # assert there is only one element in key_fields left:
+                    # 'pair_types' and 'dedup' treated the same
                     if len(key_fields) == 1:
                         stat_from_file._stat[key][key_fields[0]] = int(fields[1])
                     else:
@@ -389,7 +392,7 @@ class PairCounter(Mapping):
         #
         # 'total', 'total_unmapped', 'total_single_sided_mapped', 'total_mapped',
         # 'cis', 'trans', 'pair_types', 'cis_1kb+', 'cis_2kb+',
-        # 'cis_10kb+', 'cis_20kb+', 'chrom_freq', 'dist_freq',
+        # 'cis_10kb+', 'cis_20kb+', 'chrom_freq', 'dist_freq', 'dedup'
         #
         # initialize empty PairCounter for the result of summation:
         sum_stat = PairCounter()
@@ -400,12 +403,14 @@ class PairCounter(Mapping):
                 sum_stat._stat[k] = self._stat[k] + other._stat[k]
             # sum nested dicts/arrays in a context dependet manner:
             else:
-                if k == 'pair_types':
+                if k in ['pair_types','dedup']:
+                    # handy function for summation of a pair of dicts:
                     # https://stackoverflow.com/questions/10461531/merge-and-sum-of-two-dictionaries
                     sum_dicts = lambda dict_x,dict_y: { 
                                     key: dict_x.get(key, 0) + dict_y.get(key, 0)
                                             for key in set(dict_x) | set(dict_y) }
-                    sum_stat._stat['pair_types'] = sum_dicts(self._stat[k], other._stat[k])
+                    # sum a pair of corresponding dicts:
+                    sum_stat._stat[k] = sum_dicts(self._stat[k], other._stat[k])
                 if k == 'chrom_freq':
                     # union list of keys (chr1,chr2) with potential duplicates:
                     union_keys_with_dups = list(self._stat[k].keys()) + list(other._stat[k].keys())
@@ -445,8 +450,9 @@ class PairCounter(Mapping):
             if isinstance(v, int):
                 flat_stat[k] = v
             # store nested dicts/arrays in a context dependet manner:
+            # nested categories are stored only if they are non-trivial
             else:
-                if k == 'dist_freq':
+                if (k == 'dist_freq') and v:
                     for i in range(len(self._dist_bins)):
                         for dirs, freqs in v.items():
                             # last bin is treated differently: "100000+" vs "1200-3000":
@@ -458,12 +464,14 @@ class PairCounter(Mapping):
                                                 k, self._dist_bins[i], dirs)
                             #store key,value pair:
                             flat_stat[formatted_key] = freqs[i]
-                elif k == 'pair_types':
-                    for pair_type, freq in v.items():
-                        formatted_key = self._KEY_SEP.join(['{}','{}']).format(k, pair_type)
+                elif (k in ['pair_types','dedup']) and v:
+                    # 'pair_types' and 'dedup' are simple dicts inside,
+                    # treat them the exact same way:
+                    for k_item, freq in v.items():
+                        formatted_key = self._KEY_SEP.join(['{}','{}']).format(k, k_item)
                         #store key,value pair:
                         flat_stat[formatted_key] = freq
-                elif k == 'chrom_freq':
+                elif (k == 'chrom_freq') and v:
                     for (chrom1, chrom2), freq in v.items():
                         formatted_key = self._KEY_SEP.join(['{}','{}','{}']).format(k, chrom1, chrom2)
                         #store key,value pair:

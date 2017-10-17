@@ -216,9 +216,9 @@ def dedup_py(
         stat_f = _fileio.auto_open(output_stats, mode='a',
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None))
-        stat_f.write('{}\t{}\n'.format('n_unmapped', n_unmapped))
-        stat_f.write('{}\t{}\n'.format('n_dups', n_dups))
-        stat_f.write('{}\t{}\n'.format('n_nodups', n_nodups))
+        stat_f.write('{}\t{}\n'.format('dedup/n_unmapped', n_unmapped))
+        stat_f.write('{}\t{}\n'.format('dedup/n_dups', n_dups))
+        stat_f.write('{}\t{}\n'.format('dedup/n_nodups', n_nodups))
         stat_f.close()
 
     if instream != sys.stdin:
