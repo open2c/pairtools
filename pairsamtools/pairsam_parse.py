@@ -90,6 +90,14 @@ UTIL_NAME = 'pairsam_parse'
     default="", 
     help='output file for various statistics of pairsam file. '
         ' By default, statistics is not generated.')
+@click.option(
+    '--report-alignment-end', 
+    type=click.Choice(['5', '3']),
+    default='5',
+    help='specifies whether the 5\' or 3\' end of the alignment is reported as'
+    ' the position of the Hi-C read.'
+
+)
 
 @common_io_options
 
@@ -126,7 +134,6 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
                                command=kwargs.get('cmd_out', None)) 
                  if output_stats else None)
 
-
     if out_alignments_stream:
         out_alignments_stream.write('side\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')
 
@@ -160,7 +167,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     streaming_classify(body_stream, outstream, chromosomes, min_mapq, 
                        max_molecule_size, drop_readid, drop_seq, drop_sam, 
                        store_mapq, store_unrescuable_chimeras,
-                       out_alignments_stream, out_stat)
+                       out_alignments_stream, out_stat, **kwargs)
 
     # save statistics to a file if it was requested:
     if out_stat:
@@ -235,18 +242,22 @@ def parse_algn(samcols, min_mapq):
     chrom = samcols[2] if (is_mapped and is_unique) else _pairsam_format.UNMAPPED_CHROM
 
     strand = _pairsam_format.UNMAPPED_STRAND
-    pos = _pairsam_format.UNMAPPED_POS
+    pos5 = _pairsam_format.UNMAPPED_POS
+    pos3 = _pairsam_format.UNMAPPED_POS
     if is_mapped and is_unique: 
         if ((int(samcols[1]) & 0x10) == 0):
             strand = '+'
-            pos = int(samcols[3])
+            pos5 = int(samcols[3])
+            pos3 = int(samcols[3]) + cigar['algn_ref_span']
         else:
             strand = '-'
-            pos = int(samcols[3]) + cigar['algn_ref_span']
+            pos5 = int(samcols[3]) + cigar['algn_ref_span']
+            pos3 = int(samcols[3])
 
     return {
         'chrom': chrom,
-        'pos': pos,
+        'pos5': pos5,
+        'pos3': pos3,
         'strand': strand,
         'mapq': mapq,
         'is_mapped': is_mapped,
@@ -338,24 +349,24 @@ def rescue_chimeric_alignment(algns1, algns2, max_molecule_size):
     # towards each other
     can_rescue &= (chim3_algn['strand'] != linear_algn['strand'])
     if linear_algn['strand'] == '+':
-        can_rescue &= (linear_algn['pos'] < chim3_algn['pos'])
+        can_rescue &= (linear_algn['pos5'] < chim3_algn['pos5'])
     else:
-        can_rescue &= (linear_algn['pos'] > chim3_algn['pos'])
+        can_rescue &= (linear_algn['pos5'] > chim3_algn['pos5'])
 
     # for normal chimeras, we can infer the size of the molecule and
     # this size must be smaller than the maximal size of Hi-C molecules after
     # the size selection step of the Hi-C protocol
     if linear_algn['strand'] == '+':
         molecule_size = (
-            chim3_algn['pos']
-            - linear_algn['pos']
+            chim3_algn['pos5']
+            - linear_algn['pos5']
             + chim3_algn['dist_to_5']
             + linear_algn['dist_to_5']
         )
     else:
         molecule_size = (
-            linear_algn['pos']
-            - chim3_algn['pos']
+            linear_algn['pos5']
+            - chim3_algn['pos5']
             + chim3_algn['dist_to_5']
             + linear_algn['dist_to_5']
         )
@@ -372,7 +383,7 @@ def _alignment_sorting_order(algn):
         return algn['cigar']['read_len'] + algn['dist_to_5']
 
 def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size, 
-             store_unrescuable_chimeras):
+                         store_unrescuable_chimeras, report_alignment_end):
     """
     Possible pair types:
     ...
@@ -421,11 +432,13 @@ def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size,
 
     if is_multi_1:
         algn1['chrom'] = _pairsam_format.UNMAPPED_CHROM
-        algn1['pos'] = _pairsam_format.UNMAPPED_POS
+        algn1['pos5'] = _pairsam_format.UNMAPPED_POS
+        algn1['pos3'] = _pairsam_format.UNMAPPED_POS
         algn1['strand'] = _pairsam_format.UNMAPPED_STRAND
     if is_multi_2:
         algn2['chrom'] = _pairsam_format.UNMAPPED_CHROM
-        algn2['pos'] = _pairsam_format.UNMAPPED_POS
+        algn2['pos5'] = _pairsam_format.UNMAPPED_POS
+        algn2['pos3'] = _pairsam_format.UNMAPPED_POS
         algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
 
     # Parse chimeras
@@ -441,16 +454,25 @@ def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size,
            if is_chimeric_1:
                algn1 = copy.deepcopy(algn1)
                algn1['chrom'] = _pairsam_format.UNMAPPED_CHROM
-               algn1['pos'] = _pairsam_format.UNMAPPED_POS
+               algn1['pos5'] = _pairsam_format.UNMAPPED_POS
+               algn1['pos3'] = _pairsam_format.UNMAPPED_POS
                algn1['strand'] = _pairsam_format.UNMAPPED_STRAND
            if is_chimeric_2:
                algn2 = copy.deepcopy(algn2)
                algn2['chrom'] = _pairsam_format.UNMAPPED_CHROM
-               algn2['pos'] = _pairsam_format.UNMAPPED_POS
+               algn2['pos5'] = _pairsam_format.UNMAPPED_POS
+               algn2['pos3'] = _pairsam_format.UNMAPPED_POS
                algn2['strand'] = _pairsam_format.UNMAPPED_STRAND
         
     # If a pair has coordinates on both sides, it must be flipped according to
     # its genomic coordinates.
+
+    if report_alignment_end == '5':
+        algn1['pos'] = algn1['pos5']
+        algn2['pos'] = algn2['pos5']
+    else:
+        algn1['pos'] = algn1['pos3']
+        algn2['pos'] = algn2['pos3']
 
     if ((algn1['chrom'] != _pairsam_format.UNMAPPED_CHROM)
         and (algn1['chrom'] != _pairsam_format.UNMAPPED_CHROM)):
@@ -570,7 +592,7 @@ def write_pairsam(
 
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size, 
                        drop_readid, drop_seq, drop_sam, store_mapq, 
-                       store_unrescuable_chimeras, out_alignments_stream, out_stat):
+                       store_unrescuable_chimeras, out_alignments_stream, out_stat, **kwargs):
     """
 
     """
@@ -594,7 +616,8 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 sams2,
                 min_mapq,
                 max_molecule_size, 
-                store_unrescuable_chimeras)
+                store_unrescuable_chimeras, 
+                kwargs['report_alignment_end'])
             if flip_pair:
                 write_pairsam(
                     algn2, algn1, 
