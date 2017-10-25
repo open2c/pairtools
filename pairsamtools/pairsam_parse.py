@@ -95,9 +95,7 @@ UTIL_NAME = 'pairsam_parse'
     type=click.Choice(['5', '3']),
     default='5',
     help='specifies whether the 5\' or 3\' end of the alignment is reported as'
-    ' the position of the Hi-C read.'
-
-)
+    ' the position of the Hi-C read.')
 
 @common_io_options
 
@@ -254,7 +252,7 @@ def parse_algn(samcols, min_mapq):
             pos5 = int(samcols[3]) + cigar['algn_ref_span']
             pos3 = int(samcols[3])
 
-    return {
+    algn = {
         'chrom': chrom,
         'pos5': pos5,
         'pos3': pos3,
@@ -263,9 +261,12 @@ def parse_algn(samcols, min_mapq):
         'is_mapped': is_mapped,
         'is_unique': is_unique,
         'is_linear': is_linear,
-        'cigar': cigar,
         'dist_to_5': cigar['clip5'] if strand == '+' else cigar['clip3'],
     }
+
+    algn.update(cigar)
+
+    return algn
 
 
 #def parse_supp(samcols, min_mapq):
@@ -380,7 +381,7 @@ def _alignment_sorting_order(algn):
     if (algn['is_mapped'] and algn['is_unique']):
         return algn['dist_to_5'] 
     else:
-        return algn['cigar']['read_len'] + algn['dist_to_5']
+        return algn['read_len'] + algn['dist_to_5']
 
 def parse_sams_into_pair(chrom_enum, sams1, sams2, min_mapq, max_molecule_size, 
                          store_unrescuable_chimeras, report_alignment_end):
@@ -524,13 +525,13 @@ def write_all_algnments(all_algns1, all_algns2, out_file):
             out_file.write('\t')
             out_file.write(str(algn['mapq']))
             out_file.write('\t')
-            out_file.write(str(algn['cigar']['cigar_str']))
+            out_file.write(str(algn['cigar_str']))
             out_file.write('\t')
             out_file.write(str(algn['dist_to_5']))
             out_file.write('\t')
-            out_file.write(str(algn['dist_to_5']+algn['cigar']['algn_read_span']))
+            out_file.write(str(algn['dist_to_5']+algn['algn_read_span']))
             out_file.write('\t')
-            out_file.write(str(algn['cigar']['matched_bp']))
+            out_file.write(str(algn['matched_bp']))
             out_file.write('\t')
 
         out_file.write('\n')

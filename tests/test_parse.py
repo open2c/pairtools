@@ -102,14 +102,13 @@ def test_parse_algn():
          'is_unique': True, 
          'is_mapped': True, 
          'is_linear': True, 
-         'cigar': {
-                   'cigar_str' : '90M11S',
-                   'algn_ref_span': 90, 
-                   'algn_read_span': 90,
-                   'matched_bp': 90, 
-                   'clip3': 11, 
-                   'clip5': 0, 
-                   'read_len': 101}}
+         'cigar_str' : '90M11S',
+         'algn_ref_span': 90, 
+         'algn_read_span': 90,
+         'matched_bp': 90, 
+         'clip3': 11, 
+         'clip5': 0, 
+         'read_len': 101}
 
     sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
           '\tFLAG1\tFLAG2\tSIMULATED:readid01,chr1,chr1,10,200,+,+,LL')
@@ -124,14 +123,13 @@ def test_parse_algn():
          'is_unique': True, 
          'is_mapped': True, 
          'is_linear': True, 
-         'cigar': {
-                   'cigar_str' : '50M',
-                   'algn_ref_span': 50, 
-                   'algn_read_span': 50,
-                   'matched_bp': 50, 
-                   'clip3': 0,
-                   'clip5': 0, 
-                   'read_len': 50}}
+         'cigar_str' : '50M',
+         'algn_ref_span': 50, 
+         'algn_read_span': 50,
+         'matched_bp': 50, 
+         'clip3': 0,
+         'clip5': 0, 
+         'read_len': 50}
 
 
     sam = ('readid10\t77\t*\t0\t0\t*\t*\t0\t0\tSEQ\tPHRED'
@@ -147,14 +145,13 @@ def test_parse_algn():
          'is_unique': False, 
          'is_mapped': False, 
          'is_linear': True, 
-         'cigar': {
-                   'cigar_str' : '*',
-                   'algn_ref_span': 0, 
-                   'algn_read_span': 0,
-                   'matched_bp': 0, 
-                   'clip3': 0,
-                   'clip5': 0, 
-                   'read_len': 0}}
+         'cigar_str' : '*',
+         'algn_ref_span': 0, 
+         'algn_read_span': 0,
+         'matched_bp': 0, 
+         'clip3': 0,
+         'clip5': 0, 
+         'read_len': 0}
 
 
 def test_mock_sam():
