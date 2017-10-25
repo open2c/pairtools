@@ -21,8 +21,8 @@ def test_parse_cigar():
          'matched_bp': 0, 
          'algn_ref_span': 0, 
          'algn_read_span': 0, 
-         'clip5': 0, 
-         'clip3': 0})
+         'clip5_ref': 0, 
+         'clip3_ref': 0})
 
     assert (parse_cigar('50M') == 
         {
@@ -31,8 +31,8 @@ def test_parse_cigar():
          'matched_bp': 50, 
          'algn_ref_span': 50, 
          'algn_read_span': 50, 
-         'clip5': 0, 
-         'clip3': 0})
+         'clip5_ref': 0, 
+         'clip3_ref': 0})
 
     assert (parse_cigar('40M10S') == 
         {
@@ -41,8 +41,8 @@ def test_parse_cigar():
          'matched_bp': 40, 
          'algn_ref_span': 40, 
          'algn_read_span': 40, 
-         'clip5': 0, 
-         'clip3': 10})
+         'clip5_ref': 0, 
+         'clip3_ref': 10})
 
     assert (parse_cigar('10S40M') == 
         {
@@ -51,8 +51,8 @@ def test_parse_cigar():
          'matched_bp': 40, 
          'algn_ref_span': 40, 
          'algn_read_span': 40, 
-         'clip5': 10, 
-         'clip3': 0})
+         'clip5_ref': 10, 
+         'clip3_ref': 0})
 
     assert (parse_cigar('10S30M10S') == 
         {
@@ -61,8 +61,8 @@ def test_parse_cigar():
          'matched_bp': 30, 
          'algn_ref_span': 30, 
          'algn_read_span': 30, 
-         'clip5': 10, 
-         'clip3': 10})
+         'clip5_ref': 10, 
+         'clip3_ref': 10})
 
     assert (parse_cigar('30M10I10M') == 
         {
@@ -71,8 +71,8 @@ def test_parse_cigar():
          'matched_bp': 40, 
          'algn_ref_span': 40, 
          'algn_read_span': 50, 
-         'clip5': 0, 
-         'clip3': 0})
+         'clip5_ref': 0, 
+         'clip3_ref': 0})
 
     assert (parse_cigar('30M10D10M10S') == 
         {
@@ -81,8 +81,8 @@ def test_parse_cigar():
          'matched_bp': 40, 
          'algn_ref_span': 50, 
          'algn_read_span': 40, 
-         'clip5': 0, 
-         'clip3': 10})
+         'clip5_ref': 0, 
+         'clip3_ref': 10})
 
 
 def test_parse_algn():
@@ -98,7 +98,8 @@ def test_parse_algn():
          'pos3': 24316295, 
          'strand': '+', 
          'dist_to_5': 0, 
-        'mapq': 60, 
+         'dist_to_3': 11, 
+         'mapq': 60, 
          'is_unique': True, 
          'is_mapped': True, 
          'is_linear': True, 
@@ -106,8 +107,8 @@ def test_parse_algn():
          'algn_ref_span': 90, 
          'algn_read_span': 90,
          'matched_bp': 90, 
-         'clip3': 11, 
-         'clip5': 0, 
+         'clip3_ref': 11, 
+         'clip5_ref': 0, 
          'read_len': 101}
 
     sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
@@ -119,6 +120,7 @@ def test_parse_algn():
          'pos3': 60, 
          'strand': '+', 
          'dist_to_5': 0, 
+         'dist_to_3': 0, 
          'mapq': 60, 
          'is_unique': True, 
          'is_mapped': True, 
@@ -127,8 +129,8 @@ def test_parse_algn():
          'algn_ref_span': 50, 
          'algn_read_span': 50,
          'matched_bp': 50, 
-         'clip3': 0,
-         'clip5': 0, 
+         'clip3_ref': 0,
+         'clip5_ref': 0, 
          'read_len': 50}
 
 
@@ -136,11 +138,13 @@ def test_parse_algn():
            '\tFLAG1\tFLAG2\tSIMULATED:readid10,!,!,0,0,-,-,NN')
     samcols = sam.split('\t')
     parsed_algn = parse_algn(samcols, min_mapq)
-    assert parsed_algn == {'chrom': '!', 
+    assert parsed_algn == {
+         'chrom': '!', 
          'pos5': 0, 
          'pos3': 0, 
          'strand': '-', 
          'dist_to_5': 0, 
+         'dist_to_3': 0, 
          'mapq': 0, 
          'is_unique': False, 
          'is_mapped': False, 
@@ -149,8 +153,8 @@ def test_parse_algn():
          'algn_ref_span': 0, 
          'algn_read_span': 0,
          'matched_bp': 0, 
-         'clip3': 0,
-         'clip5': 0, 
+         'clip3_ref': 0,
+         'clip5_ref': 0, 
          'read_len': 0}
 
 
@@ -163,6 +167,8 @@ def test_mock_sam():
              '-m',
              'pairsamtools',
              'parse',
+             '--chimeras-policy',
+             'mask',
              '-c',
              mock_chroms_path,
              mock_sam_path],
