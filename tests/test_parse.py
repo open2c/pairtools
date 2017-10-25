@@ -94,7 +94,8 @@ def test_parse_algn():
     samcols = sam.split('\t')
     parsed_algn = parse_algn(samcols, min_mapq)
     assert parsed_algn == {'chrom': 'chr12', 
-         'pos': 24316205, 
+         'pos5': 24316205, 
+         'pos3': 24316295, 
          'strand': '+', 
          'dist_to_5': 0, 
         'mapq': 60, 
@@ -115,7 +116,8 @@ def test_parse_algn():
     samcols = sam.split('\t')
     parsed_algn = parse_algn(samcols, min_mapq)
     assert parsed_algn == {'chrom': 'chr1', 
-         'pos': 10, 
+         'pos5': 10, 
+         'pos3': 60, 
          'strand': '+', 
          'dist_to_5': 0, 
          'mapq': 60, 
@@ -137,7 +139,8 @@ def test_parse_algn():
     samcols = sam.split('\t')
     parsed_algn = parse_algn(samcols, min_mapq)
     assert parsed_algn == {'chrom': '!', 
-         'pos': 0, 
+         'pos5': 0, 
+         'pos3': 0, 
          'strand': '-', 
          'dist_to_5': 0, 
          'mapq': 0, 
