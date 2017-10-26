@@ -95,7 +95,7 @@ UTIL_NAME = 'pairsam_parse'
 @click.option(
     '--max-inter-align-gap',
     type=int,
-    default=-1,
+    default=None,
     help='if specified, read segments that are not covered by any alignment and'
          ' longer than the specified value are treated as "empty" alignments.'
          ' These empty alignments convert otherwise linear alignments into chimeras,' 
@@ -409,7 +409,7 @@ def _convert_gaps_into_alignments(sorted_algns, max_inter_align_gap):
     last_5_pos = 0
     for i in range(len(sorted_algns)):
         algn = sorted_algns[i]
-        if (algn['dist_to_5'] - last_5_pos >= max_inter_align_gap):
+        if (algn['dist_to_5'] - last_5_pos > max_inter_align_gap):
             new_algn = empty_alignment()
             new_algn['dist_to_5'] = last_5_pos
             new_algn['algn_read_span'] = algn['dist_to_5'] - last_5_pos
@@ -460,7 +460,7 @@ def parse_sams_into_pair(chrom_enum,
     algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
     algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
 
-    if max_inter_align_gap > 0:
+    if max_inter_align_gap is not None:
         _convert_gaps_into_alignments(algns1, max_inter_align_gap)
         _convert_gaps_into_alignments(algns2, max_inter_align_gap)
 
