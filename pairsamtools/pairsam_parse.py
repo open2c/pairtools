@@ -113,6 +113,7 @@ UTIL_NAME = 'pairsam_parse'
     ' "5unique" - report the 5\'-most unique alignment on each side, if present;'
     ' "3any" - report the 3\'-most alignment on each side;'
     ' "3unique" - report the 3\'-most unique alignment on each side, if present.'
+    show_default=True
     )
 
 @common_io_options
