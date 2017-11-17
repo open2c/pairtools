@@ -17,6 +17,18 @@ from .pairsam_stats import PairCounter
 
 UTIL_NAME = 'pairsam_parse'
 
+EXTRA_COLUMNS = [
+    'mapq',
+    'pos5',
+    'pos3',
+    'cigar',
+    'read_len',
+    'matched_bp',
+    'algn_ref_span',
+    'algn_read_span',
+    'dist_to_5',
+    'dist_to_3',
+]
 
 @cli.command()
 @click.argument(
@@ -67,9 +79,12 @@ UTIL_NAME = 'pairsam_parse'
     is_flag=True,
     help='If specified, do not add sams to the output')
 @click.option(
-    "--store-mapq", 
-    is_flag=True,
-    help='If specified, add two columns with MAPQ on both sides.')
+    "--add-columns", 
+    type=click.STRING,
+    default='',
+    help='Report extra columns describing alignments of each side '
+         'Possible values (can take multiple values as a comma-separated '
+         'list): {}.'.format(', '.join(EXTRA_COLUMNS)))
 @click.option(
     "--output-parsed-alignments", 
     type=str, 
@@ -119,7 +134,7 @@ UTIL_NAME = 'pairsam_parse'
 @common_io_options
 
 def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
-          drop_readid, drop_seq, drop_sam, store_mapq,
+          drop_readid, drop_seq, drop_sam, add_columns,
           output_parsed_alignments, output_stats, **kwargs):
     '''parse .sam and make .pairsam.
 
@@ -127,12 +142,12 @@ def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
     decompressed from bam. By default, the input is read from stdin.
     '''
     parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
-             drop_readid, drop_seq, drop_sam, store_mapq,
+             drop_readid, drop_seq, drop_sam, add_columns,
              output_parsed_alignments, output_stats, **kwargs)
 
 
 def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
-             drop_readid, drop_seq, drop_sam, store_mapq, 
+             drop_readid, drop_seq, drop_sam, add_columns, 
              output_parsed_alignments, output_stats, **kwargs):
     instream = (_fileio.auto_open(sam_path, mode='r', 
                                   nproc=kwargs.get('nproc_in'),
@@ -163,8 +178,14 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
         chroms_path, 
         list(sam_chromsizes.keys()))
 
+    add_columns = [col for col in add_columns.split(',') if col]
+    for col in add_columns:
+        if col not in EXTRA_COLUMNS:
+            raise Exception('{} is not a valid extra column'.format(col))
+
     columns =  (_pairsam_format.COLUMNS 
-                + (['mapq1', 'mapq2'] if store_mapq else []))
+                + ([c+side for c in add_columns for side in ['1', '2']])
+                )
 
     if drop_sam:
         columns.pop(columns.index('sam1'))
@@ -182,8 +203,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
 
     streaming_classify(body_stream, outstream, chromosomes, min_mapq, 
                        max_molecule_size, drop_readid, drop_seq, drop_sam, 
-                       store_mapq,
-                       out_alignments_stream, out_stat, **kwargs)
+                       add_columns, out_alignments_stream, out_stat, **kwargs)
 
     # save statistics to a file if it was requested:
     if out_stat:
@@ -237,7 +257,7 @@ def parse_cigar(cigar):
     return {
         'clip5_ref': clip5_ref,
         'clip3_ref': clip3_ref,
-        'cigar_str': cigar,
+        'cigar': cigar,
         'algn_ref_span': algn_ref_span,
         'algn_read_span': algn_read_span,
         'read_len': read_len,
@@ -257,7 +277,7 @@ def empty_alignment():
         'is_unique': False, 
         'is_mapped': False, 
         'is_linear': True, 
-        'cigar_str' : '*',
+        'cigar' : '*',
         'algn_ref_span': 0, 
         'algn_read_span': 0,
         'matched_bp': 0, 
@@ -323,6 +343,7 @@ def parse_algn(samcols, min_mapq):
     algn.update(cigar)
 
     return algn
+
 
 def rescue_chimeric_alignment(algns1, algns2, max_molecule_size):
     """
@@ -619,7 +640,7 @@ def write_all_algnments(all_algns1, all_algns2, out_file):
             out_file.write('\t')
             out_file.write(str(algn['mapq']))
             out_file.write('\t')
-            out_file.write(str(algn['cigar_str']))
+            out_file.write(str(algn['cigar']))
             out_file.write('\t')
             out_file.write(str(algn['dist_to_5']))
             out_file.write('\t')
@@ -632,7 +653,7 @@ def write_all_algnments(all_algns1, all_algns2, out_file):
 
 def write_pairsam(
         algn1, algn2, read_id, pair_type, sams1, sams2, out_file, 
-        drop_readid, drop_sam, store_mapq):
+        drop_readid, drop_sam, add_columns):
     """
     SAM is already tab-separated and
     any printable character between ! and ~ may appear in the PHRED field!
@@ -676,17 +697,18 @@ def write_pairsam(
             if i < len(sams2) -1:
                 out_file.write(_pairsam_format.INTER_SAM_SEP)
 
-    if store_mapq:
+    
+    for col in add_columns:
         out_file.write(_pairsam_format.PAIRSAM_SEP)
-        out_file.write(str(algn1['mapq']))
+        out_file.write(str(algn1[col]))
         out_file.write(_pairsam_format.PAIRSAM_SEP)
-        out_file.write(str(algn2['mapq']))
+        out_file.write(str(algn2[col]))
 
     out_file.write('\n')
 
 
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size, 
-                       drop_readid, drop_seq, drop_sam, store_mapq, 
+                       drop_readid, drop_seq, drop_sam, add_columns, 
                        out_alignments_stream, out_stat, **kwargs):
     """
 
@@ -724,7 +746,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                     outstream, 
                     drop_readid,
                     drop_sam,
-                    store_mapq)
+                    add_columns)
                 # add a pair to PairCounter if stats output requested
                 if out_stat:
                     out_stat.add_pair(algn2, algn1, pair_type)
@@ -737,7 +759,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                     outstream,
                     drop_readid,
                     drop_sam,
-                    store_mapq)
+                    add_columns)
                 # add a pair to PairCounter if stats output requested
                 if out_stat:
                     out_stat.add_pair(algn1, algn2, pair_type)
