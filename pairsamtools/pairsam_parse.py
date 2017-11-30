@@ -776,6 +776,44 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 if __name__ == '__main__':
     parse()
 
+def parse_alternative_algns(samcols):
+    alt_algns = []
+    for col in samcols[11:]:
+        if not col.startswith('XA:Z:'):
+            continue
+
+        for SA in col[5:].split(';'):
+            if not SA:
+                continue
+            SAcols = SA.split(',')
+
+            chrom = SAcols[0] 
+            strand = '-' if SAcols[1]<0 else '+'
+
+            cigar = parse_cigar(SAcols[2])
+            NM = SAcols[3] 
+
+            pos = _pairsam_format.UNMAPPED_POS
+            if strand == '+':
+                pos = int(SAcols[1])
+            else:
+                pos = int(SAcols[1]) + cigar['algn_ref_span']
+
+            alt_algns.append({
+                'chrom': chrom,
+                'pos': pos,
+                'strand': strand,
+                'mapq': mapq,
+                'is_mapped': True,
+                'is_unique': False,
+                'is_linear': None,
+                'cigar': cigar,
+                'NM': NM,
+                'dist_to_5': cigar['clip5_ref'] if strand == '+' else cigar['clip3_ref'],
+            })
+
+    return supp_algns
+
 #def parse_supp(samcols, min_mapq):
 #    supp_algns = []
 #    for col in samcols[11:]:
