@@ -39,7 +39,7 @@ Requirements:
     on the either side of each molecule;
     - report unmapped/multimapped (ambiguous alignments)/chimeric alignments as
     chromosome "!", position 0, strand "-";
-    - find and rescue chrimeric alignments produced by singly-ligated Hi-C 
+    - identify and rescue chrimeric alignments produced by singly-ligated Hi-C 
     molecules with a sequenced ligation junction on one of the sides;
     - perform upper-triangular flipping of the sides of Hi-C molecules 
     such that the first side has a lower sorting index than the second side;
@@ -87,8 +87,8 @@ We provide a simple mapping bash pipeline in /examples/.
 It serves as an illustration to pairsamtools' functionality and
 will not be further developed.
 
-In the nearest future, [distiller](https://github.com/mirnylab/distiller) will
-provide a make-like interface for flexible and reliable data analysis workflow.
+[distiller](https://github.com/mirnylab/distiller-nf) provides an 
+interface for flexible and reliable data analysis workflow.
 
 ## data conventions
 
@@ -152,35 +152,32 @@ interpretability and no other reserved technical roles.
 pairsamtools uses a simple two-character notation to define all possible pair types
 by the quality of alignment. For each pair, its type can be defined unambiguously
 using the table below. To use this table, identify which side has an alignment 
-of a "poorer" quality (unmapped < multimapped < chimeric alignment < linear alignment)
+of a "poorer" quality (unmapped < multimapped < unique alignment)
 and which side has a "better" alignment and find the corresponding row in the table.
 
 
 
-
-| more poorly aligned side  |                 |                                 | better aligned side  |                 |                                 | Code     | Pair type         | Sidedness |
+| more poorly aligned side  |                 | better aligned side  |                 |  Chimeric alignment  | Code     | Pair type         | Sidedness |
 |--------|-----------------|---------------------------------|--------|-----------------|---------------------------------|----------|-------------------|-----------|
-| Mapped | Uniquely mapped | Linear (non-chimeric) alignment | Mapped | Uniquely mapped | Linear (non-chimeric) alignment |          |                   |           |
-| -      |                 |                                 | -      |                 |                                 | NN       | null              | 0         |
-| -      |                 |                                 | +      | -               |                                 | NM       | null-multi        | 0         |
-| -      |                 |                                 | +      | +               | -                               | NC       | null-chimeric     | 0*        |
-| -      |                 |                                 | +      | +               | +                               | NL       | null-linear       | 1         |
-| +      | -               |                                 | +      | -               |                                 | MM       | multi-multi       | 0         |
-| +      | -               |                                 | +      | +               | -                               | MC       | multi-chimeric    | 0*        |
-| +      | -               |                                 | +      | +               | +                               | ML       | multi-linear      | 1         |
-| +      | +               | -                               | +      | +               | -                               | CC       | chimeric-chimeric | 0*        |
-| +      | +               | -                               | +      | +               | +                               | CL or CX | chimeric-linear   | 1* or 2**   |
-| +      | +               | +                               | +      | +               | +                               | LL       | linear-linear     | 2         |
-| +      | +               | +                               | +      | +               | +                               | DD       | duplicate         | 2***         |
+| Mapped | Uniquely mapped | Mapped | Uniquely mapped |                                 |          |                   |           |
+| -      |                 | -      |                 | -                               | NN       | null              | 0         |
+| -      |                 | +      | -               | -                               | NM       | null-multi        | 0         |
+| -      |                 | +      | +               | -                               | NU       | null-unique       | 1         |
+| +      | -               | +      | -               | -                               | MM       | multi-multi       | 0         |
+| +      | -               | +      | +               | -                               | MU       | multi-unique      | 1         |
+| +      | +               | +      | +               | -                               | UU       | unique-unique     | 2         |
+| +      | +               | +      | +               | +                               | CC       | chimeric-chimeric | 0*        |
+| +      | +               | +      | +               | +                               | UR or RU | rescured-chimeric | 2**   |
+| +      | +               | +      | +               | -                               | DD       | duplicate         | 2***         |
 
-\*  chimeric reads may represent Hi-C molecules formed via multiple ligation
-events and thus cannot be interpreted as unambiguous pairs.
+\*  chimeric reads represent Hi-C molecules formed via multiple ligation
+events and thus cannot be reported as a single pair.
 
 **  some chimeric reads correspond to valid Hi-C molecules formed via a single
 ligation event, with the ligation junction sequenced through on one side. 
-Following the procedure introduced in
+Following the procedure introduced in [HiC-Pro](https://github.com/nservant/HiC-Pro)
 [Juicer](https://github.com/theaidenlab/juicer), pairsamtools rescue such 
-molecules, report their outer-most mapped positions and tag them as "CX" pair type.
+molecules, report their outer-most mapped positions and tag them as "UR" or "RU" pair type.
 Such molecules can and should be used in downstream analysis.
 
 ***  pairsamtools detect molecules that could be formed via PCR duplication and

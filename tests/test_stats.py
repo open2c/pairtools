@@ -31,15 +31,15 @@ def test_mock_pairsam():
     print(stats)
 
     assert stats['total'] == 8
-    assert stats['total_single_sided_mapped'] == 3
+    assert stats['total_single_sided_mapped'] == 2
     assert stats['total_mapped'] == 5
     assert stats['cis'] == 3
     assert stats['trans'] == 2
-    assert stats['pair_types/LL'] == 4
-    assert stats['pair_types/NL'] == 1
-    assert stats['pair_types/CL'] == 1
-    assert stats['pair_types/CX'] == 1
-    assert stats['pair_types/ML'] == 1
+    assert stats['pair_types/UU'] == 4
+    assert stats['pair_types/NU'] == 1
+    assert stats['pair_types/CC'] == 1
+    assert stats['pair_types/UR'] == 1
+    assert stats['pair_types/MU'] == 1
     assert stats['chrom_freq/chr1/chr2'] ==  1
     assert stats['chrom_freq/chr1/chr1'] ==  3
     assert stats['chrom_freq/chr2/chr3'] ==  1

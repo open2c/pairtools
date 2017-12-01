@@ -7,8 +7,8 @@
 #samheader: @PG	ID:bwa	PN:bwa	VN:0.7.15-r1140	CL:bwa mem -SP /path/ucsc.hg19.fasta.gz /path/1.fastq.gz /path/2.fastq.gz
 #chromosomes: chr2 chr3 chr1
 #columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type sam1 sam2
-readid01	chr1	1	chr2	25	+	+	LL	readid01129chr1160101Mchr2250CGFFXS:i:0Yt:Z:LL	readid0165chr22560101Mchr110ATIIXS:i:0Yt:Z:LL	
-readid02	chr1	1	chr1	40	+	+	LL	readid02129chr1160101Mchr1400CGFFXS:i:0Yt:Z:LL	readid0265chr14060101Mchr110ATIIXS:i:0Yt:Z:LL	
-readid03	chr1	1	chr1	3	+	+	CX	readid03129chr1160101Mchr130CGFFXS:i:0Yt:Z:CX	readid0365chr1360101Mchr110ATIIXS:i:0Yt:Z:CX	
-readid04	!	0	chr1	3	-	+	NL	readid04129chr1160101Mchr130CGFFXS:i:0Yt:Z:NL	readid0465chr1360101Mchr110ATIIXS:i:0Yt:Z:NL	
+readid01	chr1	1	chr2	25	+	+	UU	readid01129chr1160101Mchr2250CGFFXS:i:0Yt:Z:UU	readid0165chr22560101Mchr110ATIIXS:i:0Yt:Z:UU	
+readid02	chr1	1	chr1	40	+	+	UU	readid02129chr1160101Mchr1400CGFFXS:i:0Yt:Z:UU	readid0265chr14060101Mchr110ATIIXS:i:0Yt:Z:UU	
+readid03	chr1	1	chr1	3	+	+	UR	readid03129chr1160101Mchr130CGFFXS:i:0Yt:Z:UR	readid0365chr1360101Mchr110ATIIXS:i:0Yt:Z:UR	
+readid04	!	0	chr1	3	-	+	NU	readid04129chr1160101Mchr130CGFFXS:i:0Yt:Z:NU	readid0465chr1360101Mchr110ATIIXS:i:0Yt:Z:NU	
 readid05	!	0	!	0	-	-	NN	readid05129chr1160101Mchr130CGFFXS:i:0Yt:Z:NN	readid0565chr1360101Mchr110ATIIXS:i:0Yt:Z:NN	

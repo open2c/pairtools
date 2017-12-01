@@ -109,7 +109,8 @@ def test_parse_algn():
          'matched_bp': 90, 
          'clip3_ref': 11, 
          'clip5_ref': 0, 
-         'read_len': 101}
+         'read_len': 101,
+         'type':'U'}
 
     sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
           '\tFLAG1\tFLAG2\tSIMULATED:readid01,chr1,chr1,10,200,+,+,LL')
@@ -131,7 +132,8 @@ def test_parse_algn():
          'matched_bp': 50, 
          'clip3_ref': 0,
          'clip5_ref': 0, 
-         'read_len': 50}
+         'read_len': 50,
+         'type':'U'}
 
 
     sam = ('readid10\t77\t*\t0\t0\t*\t*\t0\t0\tSEQ\tPHRED'
@@ -155,7 +157,8 @@ def test_parse_algn():
          'matched_bp': 0, 
          'clip3_ref': 0,
          'clip5_ref': 0, 
-         'read_len': 0}
+         'read_len': 0,
+         'type':'N'}
 
 
 def test_mock_sam():
