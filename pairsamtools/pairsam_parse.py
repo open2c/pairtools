@@ -267,6 +267,7 @@ def empty_alignment():
         'chrom': _pairsam_format.UNMAPPED_CHROM,
         'pos5': _pairsam_format.UNMAPPED_POS,
         'pos3': _pairsam_format.UNMAPPED_POS, 
+        'pos': _pairsam_format.UNMAPPED_POS, 
         'strand': _pairsam_format.UNMAPPED_STRAND, 
         'dist_to_5': 0, 
         'dist_to_3': 0, 
@@ -286,7 +287,7 @@ def empty_alignment():
     }
 
 
-def parse_algn(samcols, min_mapq):
+def parse_algn(samcols, min_mapq, report_alignment_end):
     is_mapped = (int(samcols[1]) & 0x04) == 0
     mapq = int(samcols[4])
     is_unique = (mapq >= min_mapq)
@@ -341,6 +342,8 @@ def parse_algn(samcols, min_mapq):
     }
 
     algn.update(cigar)
+
+    algn['pos'] = algn['pos5'] if report_alignment_end =='5' else algn['pos3']
 
     return algn
 
@@ -480,6 +483,7 @@ def _mask_alignment(algn):
     algn['chrom'] = _pairsam_format.UNMAPPED_CHROM
     algn['pos5'] = _pairsam_format.UNMAPPED_POS
     algn['pos3'] = _pairsam_format.UNMAPPED_POS
+    algn['pos'] = _pairsam_format.UNMAPPED_POS
     algn['strand'] = _pairsam_format.UNMAPPED_STRAND
 
     return algn
@@ -490,7 +494,8 @@ def parse_sams_into_pair(sams1,
                          min_mapq, 
                          max_molecule_size, 
                          max_inter_align_gap,
-                         chimeras_policy):
+                         chimeras_policy,
+                         report_alignment_end):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments
     for a Hi-C pair. 
@@ -506,9 +511,9 @@ def parse_sams_into_pair(sams1,
     """
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq)
+    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq, report_alignment_end)
               for sam in sams1]
-    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq)
+    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq, report_alignment_end)
               for sam in sams2]
     algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
     algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
@@ -582,7 +587,7 @@ def parse_sams_into_pair(sams1,
 
     return hic_algn1, hic_algn2, algns1, algns2
 
-def check_pair_order(algn1, algn2, chrom_enum, report_alignment_end):
+def check_pair_order(algn1, algn2, chrom_enum):
     '''
     Check if a pair of alignments has the upper-triangular order or
     has to be flipped.
@@ -602,10 +607,9 @@ def check_pair_order(algn1, algn2, chrom_enum, report_alignment_end):
     if ((algn1['chrom'] != _pairsam_format.UNMAPPED_CHROM)
         and (algn2['chrom'] != _pairsam_format.UNMAPPED_CHROM)):
         
-        pos_key = 'pos5' if report_alignment_end =='5' else 'pos3'
         has_correct_order = (
-                (chrom_enum[algn1['chrom']], algn1[pos_key]) 
-             <= (chrom_enum[algn2['chrom']], algn2[pos_key]))
+                (chrom_enum[algn1['chrom']], algn1['pos']) 
+             <= (chrom_enum[algn2['chrom']], algn2['pos']))
 
     return has_correct_order
 
@@ -661,7 +665,7 @@ def write_all_algnments(all_algns1, all_algns2, out_file):
 
 def write_pairsam(
         algn1, algn2, read_id, sams1, sams2, out_file, 
-        drop_readid, drop_sam, add_columns, report_alignment_end):
+        drop_readid, drop_sam, add_columns):
     """
     SAM is already tab-separated and
     any printable character between ! and ~ may appear in the PHRED field!
@@ -676,17 +680,11 @@ def write_pairsam(
     out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(algn1['chrom'])
     out_file.write(_pairsam_format.PAIRSAM_SEP)
-    if report_alignment_end == '5':
-        out_file.write(str(algn1['pos5']))
-    else:
-        out_file.write(str(algn1['pos3']))
+    out_file.write(str(algn1['pos']))
     out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(algn2['chrom'])
     out_file.write(_pairsam_format.PAIRSAM_SEP)
-    if report_alignment_end == '5':
-        out_file.write(str(algn2['pos5']))
-    else:
-        out_file.write(str(algn2['pos3']))
+    out_file.write(str(algn2['pos']))
     out_file.write(_pairsam_format.PAIRSAM_SEP)
     out_file.write(algn1['strand'])
     out_file.write(_pairsam_format.PAIRSAM_SEP)
@@ -748,10 +746,10 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 max_molecule_size, 
                 kwargs['max_inter_align_gap'],
                 kwargs['chimeras_policy'],
+                kwargs['report_alignment_end'],
                 )
 
-            flip_pair = not check_pair_order(algn1, algn2, chrom_enum, 
-                kwargs['report_alignment_end'])
+            flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
 
             if flip_pair:
                 algn1, algn2 = algn2, algn1
@@ -764,12 +762,9 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 outstream,
                 drop_readid,
                 drop_sam,
-                add_columns,
-                kwargs['report_alignment_end'])
+                add_columns)
 
             # add a pair to PairCounter if stats output requested
-            algn1['pos'] = algn1['pos5'] if kwargs['report_alignment_end'] == '5' else algn1['pos3']
-            algn2['pos'] = algn2['pos5'] if kwargs['report_alignment_end'] == '5' else algn2['pos3']
             if out_stat:
                 out_stat.add_pair(algn1, algn2, algn1['type'] + algn2['type'])
 
