@@ -768,6 +768,8 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 kwargs['report_alignment_end'])
 
             # add a pair to PairCounter if stats output requested
+            algn1['pos'] = algn1['pos5'] if kwargs['report_alignment_end'] == '5' else algn1['pos3']
+            algn2['pos'] = algn2['pos5'] if kwargs['report_alignment_end'] == '5' else algn2['pos3']
             if out_stat:
                 out_stat.add_pair(algn1, algn2, algn1['type'] + algn2['type'])
 
