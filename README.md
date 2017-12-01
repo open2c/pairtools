@@ -158,7 +158,7 @@ and which side has a "better" alignment and find the corresponding row in the ta
 
 
 | more poorly aligned side  |                 | better aligned side  |                 |  Chimeric alignment  | Code     | Pair type         | Sidedness |
-|--------|-----------------|---------------------------------|--------|-----------------|---------------------------------|----------|-------------------|-----------|
+|--------|-----------------|---------------------------------|--------|-----------------|---------------------------------|----------|-------------------|
 | Mapped | Uniquely mapped | Mapped | Uniquely mapped |                                 |          |                   |           |
 | -      |                 | -      |                 | -                               | NN       | null              | 0         |
 | -      |                 | +      | -               | -                               | NM       | null-multi        | 0         |
