@@ -157,18 +157,20 @@ and which side has a "better" alignment and find the corresponding row in the ta
 
 
 
-| more poorly aligned side  |                 | better aligned side  |                 |  Chimeric alignment  | Code     | Pair type         | Sidedness |
-|--------|-----------------|---------------------------------|--------|-----------------|---------------------------------|----------|-------------------|
-| Mapped | Uniquely mapped | Mapped | Uniquely mapped |                                 |          |                   |           |
-| -      |                 | -      |                 | -                               | NN       | null              | 0         |
-| -      |                 | +      | -               | -                               | NM       | null-multi        | 0         |
-| -      |                 | +      | +               | -                               | NU       | null-unique       | 1         |
-| +      | -               | +      | -               | -                               | MM       | multi-multi       | 0         |
-| +      | -               | +      | +               | -                               | MU       | multi-unique      | 1         |
-| +      | +               | +      | +               | -                               | UU       | unique-unique     | 2         |
-| +      | +               | +      | +               | +                               | CC       | chimeric-chimeric | 0*        |
-| +      | +               | +      | +               | +                               | UR or RU | rescured-chimeric | 2**   |
-| +      | +               | +      | +               | -                               | DD       | duplicate         | 2***         |
+| More poorly aligned side |  | Better aligned side  |  |  Chimeric alignments  | Code | Pair type | Sidedness |
+|--------|-----------------|--------|-----------------|----|----------|------------------------|-------|
+| Mapped | Uniquely mapped | Mapped | Uniquely mapped |    |          |                        |       |
+| -      | -               | -      | -               | +  | CC       | chimeric-chimeric      | 0*    |
+| -      |                 | -      |                 | -  | NN       | null                   | 0     |
+| -      |                 | +      | -               | -  | NM       | null-multi             | 0     |
+| -      |                 | +      | +               | -  | NU       | null-unique            | 1     |
+| -      |                 | +      | +               | +  | NR       | null-rescued-chimeric  | 1**   |
+| +      | -               | +      | -               | -  | MM       | multi-multi            | 0     |
+| +      | -               | +      | +               | -  | MU       | multi-unique           | 1     |
+| +      | -               | +      | +               | +  | MR       | multi-rescued-chimeric | 2**   |
+| +      | +               | +      | +               | -  | UU       | unique-unique          | 2     |
+| +      | +               | +      | +               | +  | UR or RU | rescured-chimeric      | 2**   |
+| +      | +               | +      | +               | -  | DD       | duplicate              | 2***  |
 
 \*  chimeric reads represent Hi-C molecules formed via multiple ligation
 events and thus cannot be reported as a single pair.
