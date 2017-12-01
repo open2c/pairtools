@@ -92,10 +92,11 @@ def test_parse_algn():
     '=\t46893391\t22577187\t.\t.\t'
     'NM:i:1\tMD:Z:36A53\tAS:i:85\tXS:i:19'
     samcols = sam.split('\t')
-    parsed_algn = parse_algn(samcols, min_mapq)
+    parsed_algn = parse_algn(samcols, min_mapq,'5')
     assert parsed_algn == {'chrom': 'chr12', 
          'pos5': 24316205, 
          'pos3': 24316295, 
+         'pos': 24316205, 
          'strand': '+', 
          'dist_to_5': 0, 
          'dist_to_3': 11, 
@@ -115,10 +116,11 @@ def test_parse_algn():
     sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
           '\tFLAG1\tFLAG2\tSIMULATED:readid01,chr1,chr1,10,200,+,+,LL')
     samcols = sam.split('\t')
-    parsed_algn = parse_algn(samcols, min_mapq)
+    parsed_algn = parse_algn(samcols, min_mapq, '3')
     assert parsed_algn == {'chrom': 'chr1', 
          'pos5': 10, 
          'pos3': 60, 
+         'pos': 60, 
          'strand': '+', 
          'dist_to_5': 0, 
          'dist_to_3': 0, 
@@ -139,11 +141,12 @@ def test_parse_algn():
     sam = ('readid10\t77\t*\t0\t0\t*\t*\t0\t0\tSEQ\tPHRED'
            '\tFLAG1\tFLAG2\tSIMULATED:readid10,!,!,0,0,-,-,NN')
     samcols = sam.split('\t')
-    parsed_algn = parse_algn(samcols, min_mapq)
+    parsed_algn = parse_algn(samcols, min_mapq, '5')
     assert parsed_algn == {
          'chrom': '!', 
          'pos5': 0, 
          'pos3': 0, 
+         'pos': 0, 
          'strand': '-', 
          'dist_to_5': 0, 
          'dist_to_3': 0, 
