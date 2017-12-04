@@ -16,15 +16,32 @@ __version__ = '0.0.1-dev'
 
 import click
 import functools
+import sys
 
 CONTEXT_SETTINGS = {
     'help_option_names': ['-h', '--help'],
 }
 
+
 @click.version_option(version=__version__)
 @click.group(context_settings=CONTEXT_SETTINGS)
-def cli():
-    pass
+@click.option(
+    '-pm', '--post-mortem', 
+    help="Post mortem debugging", 
+    is_flag=True,
+    default=False)
+def cli(post_mortem):
+    if post_mortem:
+        import traceback
+        try:
+            import ipdb as pdb
+        except ImportError:
+            import pdb
+        def _excepthook(exc_type, value, tb):
+            traceback.print_exception(exc_type, value, tb)
+            print()
+            pdb.pm()
+        sys.excepthook = _excepthook
 
 
 def common_io_options(func):
