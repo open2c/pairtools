@@ -764,9 +764,11 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 drop_sam,
                 add_columns)
 
-            # add a pair to PairCounter if stats output requested
+            # add a pair to PairCounter if stats output is requested:
             if out_stat:
-                out_stat.add_pair(algn1, algn2, algn1['type'] + algn2['type'])
+                out_stat.add_pair(algn1['chrom'],  int(algn1['pos']),  algn1['strand'],
+                                  algn2['chrom'],  int(algn2['pos']),  algn2['strand'],
+                                  algn1['type'] + algn2['type'])
 
             if out_alignments_stream:
                 write_all_algnments(all_algns1, all_algns2, out_alignments_stream)

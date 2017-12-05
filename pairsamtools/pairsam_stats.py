@@ -75,21 +75,20 @@ def stats_py(input_path, output, merge, **kwargs):
     for line in body_stream:
         cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
 
-        algn1 = {
-            'chrom': cols[_pairsam_format.COL_C1],
-            'pos': int(cols[_pairsam_format.COL_P1]),
-            'strand': cols[_pairsam_format.COL_S1] }
-
-        algn2 = {
-            'chrom': cols[_pairsam_format.COL_C2],
-            'pos': int(cols[_pairsam_format.COL_P2]),
-            'strand': cols[_pairsam_format.COL_S2] }
-
+        # algn1:
+        chrom1 = cols[_pairsam_format.COL_C1]
+        pos1 = int(cols[_pairsam_format.COL_P1])
+        strand1 = cols[_pairsam_format.COL_S1]
+        # algn2:
+        chrom2 = cols[_pairsam_format.COL_C2]
+        pos2 = int(cols[_pairsam_format.COL_P2])
+        strand2 = cols[_pairsam_format.COL_S2]
+        # pair type:
         pair_type = cols[_pairsam_format.COL_PTYPE]
-        #
-        #
-        stats.add_pair(algn1, algn2, pair_type)
 
+        stats.add_pair(chrom1, pos1, strand1,
+                       chrom2, pos2, strand2,
+                       pair_type)
 
 
     # save statistics to file ...
@@ -336,23 +335,26 @@ class PairCounter(Mapping):
         return stat_from_file
 
 
-    def add_pair(self, algn1, algn2, pair_type):
+    def add_pair(self, chrom1, pos1, strand1, chrom2, pos2, strand2, pair_type):
         """Gather statistics for a Hi-C pair and add to the PairCounter.
 
         Parameters
         ----------
-        algn1: tuple-like
-            tuple contents: (chrom, pos, strand)
-        algn2: tuple-like
-            tuple contents: (chrom, pos, strand)
+        chrom1: str
+            chromosome of the first read
+        pos1: int
+            position of the first read
+        strand1: str
+            strand of the first read
+        chrom2: str
+            chromosome of the first read
+        pos2: int
+            position of the first read
+        strand2: str
+            strand of the first read
         pair_type: str
-            type of the mapped pair
-            e.g. CX, LL, MN, NN, etc.
+            type of the mapped pair of reads
         """
-
-        # extract chrom, position and strand from each of the alignmentns:
-        chrom1, pos1, strand1 = (algn1['chrom'], algn1['pos'], algn1['strand'])
-        chrom2, pos2, strand2 = (algn2['chrom'], algn2['pos'], algn2['strand'])
 
         self._stat['total'] += 1
         self._stat['pair_types'][pair_type] = self._stat['pair_types'].get(pair_type,0) + 1
