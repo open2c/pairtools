@@ -76,6 +76,10 @@ Requirements:
 
 - split: split a pairsam file into pairs and sam alignments.
 
+- stats: calculate various statistics of .pairs and .pairsam files
+
+- restrict: identify the span of the restriction fragment forming a Hi-C junction
+
 All pairsamtools properly manage file headers and keep track of the data
 processing history.
 
