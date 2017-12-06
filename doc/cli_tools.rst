@@ -1,8 +1,7 @@
 Command-line tools
 ==================
 
-.. toctree::
-   :maxdepth: 2
+.. click:: pairsamtools:cli
+   :prog: pairsamtools
+   :show-nested:
 
-   parse
-   
