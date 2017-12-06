@@ -79,13 +79,14 @@ Requirements:
 All pairsamtools properly manage file headers and keep track of the data
 processing history.
 
-### example pipeline
+### pipelines
 
 We provide a simple mapping bash pipeline in /examples/.
 It serves as an illustration to pairsamtools' functionality and
 will not be further developed.
 
-[distiller](https://github.com/mirnylab/distiller-nf) provides an 
-interface for flexible and reliable data analysis workflow.
+[distiller](https://github.com/mirnylab/distiller-nf) is a powerful
+Hi-C data analysis workflow, based on pairsamtools and 
+[nextflow](https://www.nextflow.io/).
 
 
