@@ -67,7 +67,7 @@ Requirements:
     to similar genomic locations (+/- N bp);
     - optionally output the PCR duplicate entries into a separate file.
     - NOTE: in order to remove all PCR duplicates, the input must contain \*all\* 
-    LL/CX read pairs from a single experimental replicate;
+      mapped read pairs from a single experimental replicate;
 
 - maskasdup: mark all pairs in a pairsam as Hi-C duplicates
     - change the field pair_type to DD;
