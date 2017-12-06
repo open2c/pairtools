@@ -3,14 +3,33 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to pairsamtools's documentation!
-========================================
+pairsamtools
+============
+
+pairsamtools is a set of simple and fast command-line tools to process 
+sequencing data from Hi-C experiments.
+
+pairsamtools operate on sequence alignments and perform the following operations:
+
+* detect and classify ligation sites (a.k.a. `Hi-C pairs`) produced in Hi-C experiments
+* sort Hi-C pairs for downstream analyses 
+* detect, tag and remove PCR/optical duplicates
+* generate extensive statistics of Hi-C datasets
+* select Hi-C pairs given flexibly defined criteria
+* restore and tag .sam files for selected subsets of Hi-C pairs
+
+pairsamtools produce .pairs files compliant with the 
+`4DN standards <https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md>`_.
+
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   quickstart
+   pairsam
+   cli_tools
 
 
 Indices and tables
