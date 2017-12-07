@@ -9,7 +9,7 @@
 pairsamtools is a simple and fast command-line framework to process sequencing
 data from a Hi-C experiment.
 
-pairsamtools processes pair-end sequence alignments and performs the following
+pairsamtools process pair-end sequence alignments and perform the following
 operations:
 - detect and classify ligation sites (a.k.a. Hi-C pairs) produced in Hi-C experiments
 - sort .pairs files for downstream analyses
@@ -20,9 +20,11 @@ operations:
 
 To get started, check out the [documentation](http://pairsamtools.readthedocs.io).
 
-pairsamtools operate on files compliant with the
+pairsamtools produce and operate on tab-separated files compliant with the
 [.pairs](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) 
-format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/).
+format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/). All
+pairsamtools properly manage file headers and keep track of the data
+processing history.
 
 ## installation
 
@@ -88,9 +90,6 @@ $ pip install git+https://github.com/mirnylab/pairsamtools
 - stats: calculate various statistics of .pairs and .pairsam files
 
 - restrict: identify the span of the restriction fragment forming a Hi-C junction
-
-All pairsamtools properly manage file headers and keep track of the data
-processing history.
 
 ### pipelines
 
