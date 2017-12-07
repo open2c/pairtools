@@ -1,5 +1,6 @@
 # pairsamtools
 
+[![Documentation Status](https://readthedocs.org/projects/pairsamtools/badge/?version=latest)](http://pairsamtools.readthedocs.org/en/latest/)
 [![Build Status](https://travis-ci.org/mirnylab/pairsamtools.svg?branch=master)](https://travis-ci.org/mirnylab/pairsamtools)
 [![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -8,15 +9,20 @@
 pairsamtools is a simple and fast command-line framework to process sequencing
 data from a Hi-C experiment.
 
-pairsamtools processes bwa mem-mapped reads and provides command-line tools to 
-perform the following operations:
-- form and classify Hi-C pairs, accounting for the ligation junctions
-- filter valid Hi-C pairs
-- remove PCR duplicates 
-- tag .sam entries with Hi-C specific information
-- produce sorted lists of Hi-C pairs for downstream analyses
+pairsamtools processes pair-end sequence alignments and performs the following
+operations:
+- detect and classify ligation sites (a.k.a. Hi-C pairs) produced in Hi-C experiments
+- sort .pairs files for downstream analyses
+- detect, tag and remove PCR/optical duplicates 
+- generate extensive statistics of Hi-C datasets
+- select Hi-C pairs given flexibly defined criteria
+- restore and tag .sam files for selected subsets of Hi-C pairs
 
-All pairsamtools are compliant with the DCIC standards.
+Read the [documentation](http://pairsamtools.readthedocs.io).
+
+pairsamtools operates on files compliant with 
+[.pairs](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) 
+format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/).
 
 ## installation
 
