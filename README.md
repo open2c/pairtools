@@ -27,7 +27,6 @@ format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/).
 ## installation
 
 At the moment, pairsamtools are provided as a set of command-line scripts.
-In the nearest future, pairsamtools will become pip-installable.
 
 Requirements:
 - python 3.x
@@ -35,6 +34,11 @@ Requirements:
 - numpy
 - click
 - bgzip
+
+Install using pip:
+```sh
+$ pip install git+https://github.com/mirnylab/pairsamtools
+```
 
 ### tools
 
