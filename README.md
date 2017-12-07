@@ -20,7 +20,7 @@ operations:
 
 To get started, check out the [documentation](http://pairsamtools.readthedocs.io).
 
-pairsamtools operates on files compliant with 
+pairsamtools operate on files compliant with the
 [.pairs](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) 
 format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/).
 
