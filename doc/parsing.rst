@@ -1,5 +1,5 @@
-Parsing alignment into pairs
-============================
+Parsing alignments into pairs
+=============================
 
 Overview
 --------
@@ -22,7 +22,7 @@ Terminology
 -----------
 
 Throughout this document we will be using the same visual language to describe
-how DNA sequences (in the .fastq format) are tranformed into sequence alignments 
+how DNA sequences (in the .fastq format) are transformed into sequence alignments 
 (.sam/.bam) and into ligation events (.pairs).
 
 .. figure:: _static/terminology.png
@@ -110,6 +110,8 @@ walks [1]_. Currently, ``pairsamtools parse`` does not
 process such molecules and tags them with type ``WW``. Note that, each of the
 alignments
 
+.. _section-gaps:
+
 Interpreting gaps between alignments
 ------------------------------------
 
@@ -138,6 +140,54 @@ the ``--max-inter-align-gap`` flag and, by default, equals 20bp.
 Rescuing single ligations
 -------------------------
 
+Importantly, some of DNA molecules containing only one ligation junction
+may still end up with three alignments:
+
+.. figure:: _static/read_pair_UR.png
+   :scale: 50 %
+   :alt: Not all read pairs with three alignments come from "walks"
+   :align: center
+
+   Not all read pairs with three alignments come from "walks"
+
+A molecule formed via a single ligation gets three alignments when one of the 
+two ligated DNA pieces is shorter than the read length, such that that read on 
+the corresponding side sequences through the ligation site and into the other 
+piece [2]_. The fraction of such molecules depends on the type of the restriction 
+enzyme, the typical size of DNA molecules in the Hi-C library and the read 
+length, and sometimes can be considerable.
+
+``pairsamtools parse`` detects such molecules and **rescues** them (i.e.
+changes their type from a *walk* to a single-ligation molecule). It tests
+walks with three aligments using three criteria:
+
+.. figure:: _static/read_pair_UR_criteria.png
+   :scale: 50 %
+   :alt: The three criteria used for "rescue"
+   :align: center
+
+   The three criteria used for "rescue"
+
+1. On the side with two alignments, the "inner" one must be on the same chromosome
+   as the alignment on the other side.
+
+2. The "inner" alignment and the alignment on the other side must point toward
+   each other.
+
+3. These two alignments must be within the distance specified with the
+   ``--max-molecule-size`` flag (by default, 2000bp).
+
+Sometimes, the "inner" alignment is non-unique or "null" (i.e. when the unmapped
+segment is longer than ``--max-inter-align-gap``, as described in :ref:`section-gaps`).
+`pairsamtools parse` rescues such *walks* as well.
+
+.. figure:: _static/read_pair_UR_MorN.png
+   :scale: 50 %
+   :alt: A walk with three alignments get rescued, when the middle alignment is multi- or null
+   :align: center
+
+   A walk with three alignments get rescued, when the middle alignment is multi- or null.
+
 Pair flipping
 -------------
 
@@ -145,3 +195,6 @@ Other reporting options
 -----------------------
 
 .. [1] Following the lead of `C-walks <https://www.nature.com/articles/nature20158>`_
+
+.. [2] This procedure was first introduced in `HiC-Pro <https://github.com/nservant/HiC-Pro>`_ 
+   and the in `Juicer <https://github.com/theaidenlab/juicer>`_ .
