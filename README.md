@@ -18,7 +18,7 @@ operations:
 - select Hi-C pairs given flexibly defined criteria
 - restore and tag .sam files for selected subsets of Hi-C pairs
 
-Read the [documentation](http://pairsamtools.readthedocs.io).
+To get started, check out the [documentation](http://pairsamtools.readthedocs.io).
 
 pairsamtools operates on files compliant with 
 [.pairs](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) 
