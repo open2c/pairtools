@@ -28,6 +28,7 @@ Contents:
    :maxdepth: 3
 
    quickstart
+   parsing
    pairsam
    cli_tools
 
