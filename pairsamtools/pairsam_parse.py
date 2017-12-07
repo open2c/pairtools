@@ -111,6 +111,7 @@ EXTRA_COLUMNS = [
     '--max-inter-align-gap',
     type=int,
     default=20,
+    show_default=True,
     help='read segments that are not covered by any alignment and'
          ' longer than the specified value are treated as "null" alignments.'
          ' These null alignments convert otherwise linear alignments into chimeras,' 
