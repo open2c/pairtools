@@ -65,7 +65,8 @@ EXTRA_COLUMNS = [
     type=int, 
     default=2000,
     show_default=True,
-    help='The maximal size of a Hi-C molecule; used in chimera rescue.')
+    help='The maximal size of a Hi-C molecule; used to rescue single ligations'
+         'from molecules with three alignments.')
 @click.option(
     "--drop-readid", 
     is_flag=True,
@@ -89,8 +90,8 @@ EXTRA_COLUMNS = [
     "--output-parsed-alignments", 
     type=str, 
     default="", 
-    help='output file for all parsed alignments, including chimeras.'
-        ' Useful for debugging and rnalysis of chimeras.'
+    help='output file for all parsed alignments, including walks.'
+        ' Useful for debugging and rnalysis of walks.'
         ' If file exists, it will be open in the append mode.'
         ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4-compressed.'
         ' By default, not used.'
@@ -114,17 +115,17 @@ EXTRA_COLUMNS = [
     show_default=True,
     help='read segments that are not covered by any alignment and'
          ' longer than the specified value are treated as "null" alignments.'
-         ' These null alignments convert otherwise linear alignments into chimeras,' 
-         ' and affect how they get reported as a Hi-C pair (see --chimeras-policy).' 
+         ' These null alignments convert otherwise linear alignments into walks,' 
+         ' and affect how they get reported as a Hi-C pair (see --walks-policy).' 
     )
 @click.option(
-    "--chimeras-policy", 
+    "--walks-policy", 
     type=click.Choice(['mask', 'all']),
     default='mask',
-    help='the policy for reporting unrescuable chimeras (reads containing more'
+    help='the policy for reporting unrescuable walks (reads containing more'
     ' than one alignment on one or both sides, that can not be explained by a'
-    ' simple ligation between two mappeable DNA fragments).'
-    ' "mask" - mask chimeras (chrom="!", pos=0, strand="-"); '
+    ' single ligation between two mappable DNA fragments).'
+    ' "mask" - mask walks (chrom="!", pos=0, strand="-"); '
     ' "all" - report all pairs of consecutive alignments [NOT IMPLEMENTED]; ',
     show_default=True
     )
@@ -288,7 +289,7 @@ def empty_alignment():
     }
 
 
-def parse_algn(samcols, min_mapq, report_alignment_end):
+def parse_algn(samcols, min_mapq, report_3_alignment_end=False):
     is_mapped = (int(samcols[1]) & 0x04) == 0
     mapq = int(samcols[4])
     is_unique = (mapq >= min_mapq)
@@ -344,14 +345,14 @@ def parse_algn(samcols, min_mapq, report_alignment_end):
 
     algn.update(cigar)
 
-    algn['pos'] = algn['pos5'] if report_alignment_end =='5' else algn['pos3']
+    algn['pos'] = algn['pos3'] if report_3_alignment_end else algn['pos5']
 
     return algn
 
 
-def rescue_chimeric_alignment(algns1, algns2, max_molecule_size):
+def rescue_walk(algns1, algns2, max_molecule_size):
     """
-    Rescue a chimeric molecule.
+    Rescue a single ligation that appears as a walk.
 
     Checks if a molecule with three alignments could be formed via a single 
     ligation between two fragments, where one fragment was so long that it 
@@ -365,10 +366,10 @@ def rescue_chimeric_alignment(algns1, algns2, max_molecule_size):
     the specified threshold.
 
 
-    Alternatively, a chimeras get rescued when the 3' chimeric sub-alignment 
+    Alternatively, a single ligation get rescued when the 3' sub-alignment 
     maps to multiple locations or no locations at all.
     
-    In the case of a successful rescue, tags the 3' chimeric sub-alignment with
+    In the case of a successful rescue, tags the 3' sub-alignment with
     type='X' and the linear alignment on the other side with type='R'.
 
     Returns
@@ -379,7 +380,7 @@ def rescue_chimeric_alignment(algns1, algns2, max_molecule_size):
 
     """
     
-    # If both alignments are non-chimeric, no need to rescue!
+    # If both sides have one alignment or none, no need to rescue!
     n_algns1 = len(algns1)
     n_algns2 = len(algns2)
 
@@ -406,12 +407,12 @@ def rescue_chimeric_alignment(algns1, algns2, max_molecule_size):
     # we automatically rescue chimeric alignments with null and non-unique 
     # alignments at the 3' side
     if (chim3_algn['is_mapped'] and chim5_algn['is_unique']):
-        # 1) in rescued chimeras, the 3' alignment of the chimeric alignment must be on
+        # 1) in rescued walks, the 3' alignment of the chimeric alignment must be on
         # the same chromosome as the linear alignment on the opposite side of the
         # molecule
         can_rescue &= (chim3_algn['chrom'] == linear_algn['chrom'])
 
-        # 2) in rescued chimeras, the 3' supplemental alignment of the chimeric
+        # 2) in rescued walks, the 3' supplemental alignment of the chimeric
         # alignment and the linear alignment on the opposite side must point
         # towards each other
         can_rescue &= (chim3_algn['strand'] != linear_algn['strand'])
@@ -420,9 +421,9 @@ def rescue_chimeric_alignment(algns1, algns2, max_molecule_size):
         else:
             can_rescue &= (linear_algn['pos5'] > chim3_algn['pos5'])
 
-        # 3) for normal chimeras, we can infer the size of the molecule and
-        # this size must be smaller than the maximal size of Hi-C molecules after
-        # the size selection step of the Hi-C protocol
+        # 3) in single ligations appearing as walks, we can infer the size of 
+        # the molecule and this size must be smaller than the maximal size of 
+        # Hi-C molecules after the size selection step of the Hi-C protocol
         if linear_algn['strand'] == '+':
             molecule_size = (
                 chim3_algn['pos5']
@@ -495,8 +496,8 @@ def parse_sams_into_pair(sams1,
                          min_mapq, 
                          max_molecule_size, 
                          max_inter_align_gap,
-                         chimeras_policy,
-                         report_alignment_end):
+                         walks_policy,
+                         report_3_alignment_end):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments
     for a Hi-C pair. 
@@ -512,9 +513,9 @@ def parse_sams_into_pair(sams1,
     """
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq, report_alignment_end)
+    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq, report_3_alignment_end)
               for sam in sams1]
-    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq, report_alignment_end)
+    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq, report_3_alignment_end)
               for sam in sams2]
     algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
     algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
@@ -537,20 +538,20 @@ def parse_sams_into_pair(sams1,
     rescued_linear_side = None
     if is_chimeric_1 or is_chimeric_2:
         # Pick two alignments to report as a Hi-C pair.
-        rescued_linear_side = rescue_chimeric_alignment(algns1, algns2, max_molecule_size)
+        rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
         if rescued_linear_side is not None:
             pass
         
-        elif chimeras_policy == 'mask':
+        elif walks_policy == 'mask':
             if is_chimeric_1 or is_chimeric_2:
                 hic_algn1 = _mask_alignment(copy.deepcopy(hic_algn1))
                 hic_algn2 = _mask_alignment(copy.deepcopy(hic_algn2))
                 #hic_algn1['type'] = hic_algn1['type'].lower()
                 #hic_algn2['type'] = hic_algn2['type'].lower()
-                hic_algn1['type'] = 'C'
-                hic_algn2['type'] = 'C'
+                hic_algn1['type'] = 'W'
+                hic_algn2['type'] = 'W'
 
-        elif chimeras_policy == 'all':
+        elif walks_policy == 'all':
             pass
 
         #elif chimeras_policy == '5any':
@@ -746,8 +747,8 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 min_mapq,
                 max_molecule_size, 
                 kwargs['max_inter_align_gap'],
-                kwargs['chimeras_policy'],
-                kwargs['report_alignment_end'],
+                kwargs['walks_policy'],
+                kwargs['report_alignment_end']=='3',
                 )
 
             flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
