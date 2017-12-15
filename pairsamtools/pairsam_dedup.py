@@ -347,10 +347,10 @@ def streaming_dedup(
                     outstream.write(line_buffer[i])
                     if out_stat:
                         out_stat.add_pair(cols_buffer[i][c1ind],
-                                          cols_buffer[i][p1ind],
+                                          int(cols_buffer[i][p1ind]),
                                           cols_buffer[i][s1ind],
                                           cols_buffer[i][c2ind],
-                                          cols_buffer[i][p2ind],
+                                          int(cols_buffer[i][p2ind]),
                                           cols_buffer[i][s2ind],
                                           cols_buffer[i][ptind])
                     # # to be removed: old way of doing dedup stats
@@ -359,10 +359,10 @@ def streaming_dedup(
                 else:
                     if out_stat:
                         out_stat.add_pair(cols_buffer[i][c1ind],
-                                          cols_buffer[i][p1ind],
+                                          int(cols_buffer[i][p1ind]),
                                           cols_buffer[i][s1ind],
                                           cols_buffer[i][c2ind],
-                                          cols_buffer[i][p2ind],
+                                          int(cols_buffer[i][p2ind]),
                                           cols_buffer[i][s2ind],
                                           'DD' )
                     # # to be removed: old way of doing dedup stats
