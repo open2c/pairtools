@@ -158,10 +158,17 @@ class PairCounter(Mapping):
         self._stat['total'] = 0
         self._stat['total_unmapped'] = 0
         self._stat['total_single_sided_mapped'] = 0
+        # total_mapped = total_dups + total_nodups
         self._stat['total_mapped'] = 0
+        self._stat['total_dups'] = 0
+        self._stat['total_nodups'] = 0
+        ########################################
+        # the rest of stats are based on nodups:
+        ########################################
         self._stat['cis'] = 0
         self._stat['trans'] = 0
         self._stat['pair_types'] = {}
+        # to be removed:
         self._stat['dedup'] = {}
 
         self._stat['cis_1kb+'] = 0
@@ -357,34 +364,40 @@ class PairCounter(Mapping):
         """
 
         self._stat['total'] += 1
+        # collect pair type stats including DD:
         self._stat['pair_types'][pair_type] = self._stat['pair_types'].get(pair_type,0) + 1
         if chrom1 == '!' and chrom2 == '!':
             self._stat['total_unmapped'] += 1
         elif chrom1 != '!' and chrom2 != '!':
-            self._stat['chrom_freq'][(chrom1, chrom2)] = (
-                self._stat['chrom_freq'].get((chrom1, chrom2), 0) + 1)
             self._stat['total_mapped'] += 1
-
-            if chrom1 == chrom2:
-                self._stat['cis'] += 1
-                dist = np.abs(pos2-pos1)
-                bin_idx = np.searchsorted(self._dist_bins, dist, 'right') - 1
-                self._stat['dist_freq'][strand1+strand2][bin_idx] += 1
-                if dist >= 1000:
-                    self._stat['cis_1kb+'] += 1
-                if dist >= 2000:
-                    self._stat['cis_2kb+'] += 1
-                if dist >= 4000:
-                    self._stat['cis_4kb+'] += 1
-                if dist >= 10000:
-                    self._stat['cis_10kb+'] += 1
-                if dist >= 20000:
-                    self._stat['cis_20kb+'] += 1
-                if dist >= 40000:
-                    self._stat['cis_40kb+'] += 1
-
+            # only mapped ones can be duplicates:
+            if pair_type == 'DD':
+                self._stat['total_dups'] += 1
             else:
-                self._stat['trans'] += 1
+                self._stat['total_nodups'] += 1
+                self._stat['chrom_freq'][(chrom1, chrom2)] = (
+                    self._stat['chrom_freq'].get((chrom1, chrom2), 0) + 1)
+
+                if chrom1 == chrom2:
+                    self._stat['cis'] += 1
+                    dist = np.abs(pos2-pos1)
+                    bin_idx = np.searchsorted(self._dist_bins, dist, 'right') - 1
+                    self._stat['dist_freq'][strand1+strand2][bin_idx] += 1
+                    if dist >= 1000:
+                        self._stat['cis_1kb+'] += 1
+                    if dist >= 2000:
+                        self._stat['cis_2kb+'] += 1
+                    if dist >= 4000:
+                        self._stat['cis_4kb+'] += 1
+                    if dist >= 10000:
+                        self._stat['cis_10kb+'] += 1
+                    if dist >= 20000:
+                        self._stat['cis_20kb+'] += 1
+                    if dist >= 40000:
+                        self._stat['cis_40kb+'] += 1
+
+                else:
+                    self._stat['trans'] += 1
         else:
             self._stat['total_single_sided_mapped'] += 1
 

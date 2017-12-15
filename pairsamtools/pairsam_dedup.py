@@ -172,6 +172,23 @@ def dedup_py(
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
+    out_stats_stream = (_fileio.auto_open(output_stats, mode='w', 
+                           nproc=kwargs.get('nproc_out'),
+                           command=kwargs.get('cmd_out', None)) 
+             if output_stats else None)
+    # Previous way of doing dedup-stats ...
+    # if output_stats:
+    #     stat_f = _fileio.auto_open(output_stats, mode='a',
+    #                                nproc=kwargs.get('nproc_out'),
+    #                                command=kwargs.get('cmd_out', None))
+    #     stat_f.write('{}\t{}\n'.format('dedup/n_unmapped', n_unmapped))
+    #     stat_f.write('{}\t{}\n'.format('dedup/n_dups', n_dups))
+    #     stat_f.write('{}\t{}\n'.format('dedup/n_nodups', n_nodups))
+    #     stat_f.close()
+
+    # generate empty PairCounter if stats output is requested:
+    out_stat = PairCounter() if output_stats else None
+
 
     if not output_dups:
         outstream_dups = None
@@ -207,19 +224,14 @@ def dedup_py(
             and (outstream_unmapped != outstream_dups)):
         outstream_unmapped.writelines((l+'\n' for l in header))
 
-    n_unmapped, n_dups, n_nodups = streaming_dedup(
-        method, max_mismatch, sep, 
+    streaming_dedup( method, max_mismatch, sep,
         c1, c2, p1, p2, s1, s2, unmapped_chrom,
-        body_stream, outstream, outstream_dups, outstream_unmapped, mark_dups)
+        body_stream, outstream, outstream_dups,
+        outstream_unmapped, out_stat, mark_dups)
 
-    if output_stats:
-        stat_f = _fileio.auto_open(output_stats, mode='a',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
-        stat_f.write('{}\t{}\n'.format('dedup/n_unmapped', n_unmapped))
-        stat_f.write('{}\t{}\n'.format('dedup/n_dups', n_dups))
-        stat_f.write('{}\t{}\n'.format('dedup/n_nodups', n_nodups))
-        stat_f.close()
+    # save statistics to a file if it was requested:
+    if out_stat:
+        out_stat.save(out_stats_stream)
 
     if instream != sys.stdin:
         instream.close()
@@ -233,6 +245,10 @@ def dedup_py(
     if (outstream_unmapped and (outstream_unmapped != outstream) 
             and (outstream_unmapped != outstream_dups)):
         outstream_unmapped.close()
+
+    if out_stats_stream:
+        out_stats_stream.close()
+
 
 def fetchadd(key, mydict):
     key = key.strip()
@@ -250,8 +266,14 @@ def streaming_dedup(
         c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
         unmapped_chrom,
         instream, outstream, outstream_dups, outstream_unmapped,
-        mark_dups):
+        out_stat, mark_dups):
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
+
+    # if we do stats in the dedup, we need PAIR_TYPE
+    # i do not see way around this:
+    if out_stat:
+        ptind = _pairsam_format.COL_PTYPE
+        maxind = max(maxind, ptind)
 
     dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False)
 
@@ -285,13 +307,21 @@ def streaming_dedup(
                 or (cols[c2ind] == unmapped_chrom)):
 
                 if outstream_unmapped:
-                    outstream_unmapped.write(line)  
-                n_unmapped += 1
+                    outstream_unmapped.write(line)
+
+                # add a pair to PairCounter if stats output is requested:
+                if out_stat:
+                    out_stat.add_pair(cols[c1ind],  int(cols[p1ind]),  cols[s1ind],
+                                      cols[c2ind],  int(cols[p2ind]),  cols[s2ind],
+                                      cols[ptind])
+                # # to be removed: old way of doing dedup stats
+                # n_unmapped += 1
                     
             else:
                 line_buffer.append(line)
-                if mark_dups:
-                    cols_buffer.append(cols)
+                # do cols_buffer all the time:
+                # if mark_dups:
+                cols_buffer.append(cols)
 
                 c1.append(fetchadd(cols[c1ind], chromDict))
                 c2.append(fetchadd(cols[c2ind], chromDict))
@@ -310,23 +340,53 @@ def streaming_dedup(
             if not line:
                 res = np.concatenate([res, dd.finish()])
 
-            for i in range(len(res)): 
+            for i in range(len(res)):
+                # not duplicated pair:
                 if not res[i]:
-                    outstream.write(line_buffer[i])  
-                    n_nodups += 1
+                    outstream.write(line_buffer[i])
+                    if out_stat:
+                        out_stat.add_pair(cols_buffer[i][c1ind],
+                                          cols_buffer[i][p1ind],
+                                          cols_buffer[i][s1ind],
+                                          cols_buffer[i][c2ind],
+                                          cols_buffer[i][p2ind],
+                                          cols_buffer[i][s2ind],
+                                          cols_buffer[i][ptind])
+                    # # to be removed: old way of doing dedup stats
+                    # n_nodups += 1
+                # duplicated pair:
                 else:
-                    n_dups += 1
+                    if out_stat:
+                        out_stat.add_pair(cols_buffer[i][c1ind],
+                                          cols_buffer[i][p1ind],
+                                          cols_buffer[i][s1ind],
+                                          cols_buffer[i][c2ind],
+                                          cols_buffer[i][p2ind],
+                                          cols_buffer[i][s2ind],
+                                          'DD' )
+                    # # to be removed: old way of doing dedup stats
+                    # n_dups += 1
                     if outstream_dups:
-                        if mark_dups:
-                            outstream_dups.write(sep.join(
-                                mark_split_pair_as_dup(cols_buffer[i])))
-                        else:
-                            outstream_dups.write(line_buffer[i])
+                        outstream_dups.write(
+                          # DD-marked pair:
+                          sep.join(mark_split_pair_as_dup(cols_buffer[i])) if mark_dups
+                          # pair as is:
+                          else line_buffer[i] )
+                    # # to be removed:
+                    # if outstream_dups:
+                    #     if mark_dups:
+                    #         outstream_dups.write(sep.join(
+                    #             mark_split_pair_as_dup(cols_buffer[i])))
+                    #     else:
+                    #         outstream_dups.write(line_buffer[i])
+
+
                     
             c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []
             line_buffer = line_buffer[len(res):]
-            if mark_dups:
-                cols_buffer = cols_buffer[len(res):]
+            # do cols_buffer all the time:
+            # if mark_dups:
+            cols_buffer = cols_buffer[len(res):]
             if not line:
                 if(len(line_buffer) != 0):                
                     raise ValueError(
@@ -334,8 +394,8 @@ def streaming_dedup(
                         + "should be none;"
                         + "something went terribly wrong")
                 break
-
-    return n_unmapped, n_dups, n_nodups
+    # do not return dup/dedup/unmapped anymore
+    # return n_unmapped, n_dups, n_nodups
 
 
 if __name__ == '__main__':
