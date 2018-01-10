@@ -296,12 +296,16 @@ def streaming_dedup(
         if line:
             if not stripline: 
                 warnings.warn("Empty line detected not at the end of the file")
-                continue    
+                continue
 
-            cols = line.split(sep)
+            # split the 'stripline', insted of 'line'
+            # otherwise newline symbol might persists
+            # along with the pairtype, e.g. "UU\n" vs "UU", 
+            # and cause havoc downstream, e.g. in `stats`.
+            cols = stripline.split(sep)
             if len(cols) <= maxind:
                 raise ValueError(
-                    "Error parsing line {}: ".format(line)
+                    "Error parsing line {}: ".format(stripline)
                     + " expected {} columns, got {}".format(maxind, len(cols)))
                 
             if ((cols[c1ind] == unmapped_chrom)
