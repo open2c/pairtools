@@ -97,7 +97,7 @@ def test_parse_algn():
          'chrom': 'chr12', 
          'pos': 24316205, 
          'pos5': 24316205, 
-         'pos3': 24316295, 
+         'pos3': 24316294, 
          'pos': 24316205, 
          'strand': '+', 
          'dist_to_5': 0, 
@@ -121,9 +121,9 @@ def test_parse_algn():
     parsed_algn = parse_algn(samcols, min_mapq, True)
     assert parsed_algn == {
          'chrom': 'chr1', 
-         'pos': 60, 
+         'pos': 59, 
          'pos5': 10, 
-         'pos3': 60, 
+         'pos3': 59, 
          'strand': '+', 
          'dist_to_5': 0, 
          'dist_to_3': 0, 

@@ -311,9 +311,9 @@ def parse_algn(samcols, min_mapq, report_3_alignment_end=False):
             chrom = samcols[2] 
             if strand == '+':
                 pos5 = int(samcols[3])
-                pos3 = int(samcols[3]) + cigar['algn_ref_span']
+                pos3 = int(samcols[3]) + cigar['algn_ref_span'] - 1
             else:
-                pos5 = int(samcols[3]) + cigar['algn_ref_span']
+                pos5 = int(samcols[3]) + cigar['algn_ref_span'] - 1
                 pos3 = int(samcols[3])
         else:
             chrom = _pairsam_format.UNMAPPED_CHROM
