@@ -23,6 +23,7 @@ def setup_func():
              'pairsamtools',
              'dedup',
              mock_pairsam_path,
+             '--mark-dups',
              '--output',
              dedup_path,
              '--output-dups',

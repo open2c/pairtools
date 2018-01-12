@@ -377,6 +377,9 @@ def streaming_dedup(
                           sep.join(mark_split_pair_as_dup(cols_buffer[i])) if mark_dups
                           # pair as is:
                           else line_buffer[i] )
+                        # cols_buffer is created from stripped_line and
+                        # lacks a terminal newline character
+                        outstream_dups.write('\n')
                     # # to be removed:
                     # if outstream_dups:
                     #     if mark_dups:
