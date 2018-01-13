@@ -177,15 +177,6 @@ def dedup_py(
                            nproc=kwargs.get('nproc_out'),
                            command=kwargs.get('cmd_out', None)) 
              if output_stats else None)
-    # Previous way of doing dedup-stats ...
-    # if output_stats:
-    #     stat_f = _fileio.auto_open(output_stats, mode='a',
-    #                                nproc=kwargs.get('nproc_out'),
-    #                                command=kwargs.get('cmd_out', None))
-    #     stat_f.write('{}\t{}\n'.format('dedup/n_unmapped', n_unmapped))
-    #     stat_f.write('{}\t{}\n'.format('dedup/n_dups', n_dups))
-    #     stat_f.write('{}\t{}\n'.format('dedup/n_nodups', n_nodups))
-    #     stat_f.close()
 
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
@@ -290,18 +281,15 @@ def streaming_dedup(
 
     instream = iter(instream)
     while True: 
-        line = next(instream, None)
-        stripline = line.strip() if line else None
+        rawline = next(instream, None)
+        stripline = rawline.strip() if rawline else None
 
-        if line:
-            if not stripline: 
-                warnings.warn("Empty line detected not at the end of the file")
-                continue
+        # take care of empty lines not at the end of the file separately
+        if rawline and (not stripline):
+            warnings.warn("Empty line detected not at the end of the file")
+            continue
 
-            # split the 'stripline', insted of 'line'
-            # otherwise newline symbol might persists
-            # along with the pairtype, e.g. "UU\n" vs "UU", 
-            # and cause havoc downstream, e.g. in `stats`.
+        if stripline:
             cols = stripline.split(sep)
             if len(cols) <= maxind:
                 raise ValueError(
@@ -312,20 +300,17 @@ def streaming_dedup(
                 or (cols[c2ind] == unmapped_chrom)):
 
                 if outstream_unmapped:
-                    outstream_unmapped.write(line)
+                    outstream_unmapped.write(stripline)
+                    # don't forget terminal newline
+                    outstream_unmapped.write("\n")
 
                 # add a pair to PairCounter if stats output is requested:
                 if out_stat:
                     out_stat.add_pair(cols[c1ind],  int(cols[p1ind]),  cols[s1ind],
                                       cols[c2ind],  int(cols[p2ind]),  cols[s2ind],
-                                      cols[ptind])
-                # # to be removed: old way of doing dedup stats
-                # n_unmapped += 1
-                    
+                                      cols[ptind])                    
             else:
-                line_buffer.append(line)
-                # do cols_buffer all the time:
-                # if mark_dups:
+                line_buffer.append(stripline)
                 cols_buffer.append(cols)
 
                 c1.append(fetchadd(cols[c1ind], chromDict))
@@ -335,20 +320,22 @@ def streaming_dedup(
                 s1.append(fetchadd(cols[s1ind], strandDict))
                 s2.append(fetchadd(cols[s2ind], strandDict))
                 
-        if (not line) or (len(c1) == curMaxLen):
+        if (not stripline) or (len(c1) == curMaxLen):
             res = dd.push(ar(c1, 8), 
                           ar(c2, 8), 
                           ar(p1, 32), 
                           ar(p2, 32), 
                           ar(s1, 8), 
                           ar(s2, 8))
-            if not line:
+            if not stripline:
                 res = np.concatenate([res, dd.finish()])
 
             for i in range(len(res)):
                 # not duplicated pair:
                 if not res[i]:
                     outstream.write(line_buffer[i])
+                    # don't forget terminal newline
+                    outstream.write("\n")
                     if out_stat:
                         out_stat.add_pair(cols_buffer[i][c1ind],
                                           int(cols_buffer[i][p1ind]),
@@ -357,8 +344,6 @@ def streaming_dedup(
                                           int(cols_buffer[i][p2ind]),
                                           cols_buffer[i][s2ind],
                                           cols_buffer[i][ptind])
-                    # # to be removed: old way of doing dedup stats
-                    # n_nodups += 1
                 # duplicated pair:
                 else:
                     if out_stat:
@@ -369,41 +354,29 @@ def streaming_dedup(
                                           int(cols_buffer[i][p2ind]),
                                           cols_buffer[i][s2ind],
                                           'DD' )
-                    # # to be removed: old way of doing dedup stats
-                    # n_dups += 1
                     if outstream_dups:
                         outstream_dups.write(
                           # DD-marked pair:
                           sep.join(mark_split_pair_as_dup(cols_buffer[i])) if mark_dups
                           # pair as is:
                           else line_buffer[i] )
-                        # cols_buffer is created from stripped_line and
-                        # lacks a terminal newline character
+                        # don't forget terminal newline
                         outstream_dups.write('\n')
-                    # # to be removed:
-                    # if outstream_dups:
-                    #     if mark_dups:
-                    #         outstream_dups.write(sep.join(
-                    #             mark_split_pair_as_dup(cols_buffer[i])))
-                    #     else:
-                    #         outstream_dups.write(line_buffer[i])
-
-
                     
+            # flush buffers and perform necessary checks here:
             c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []
             line_buffer = line_buffer[len(res):]
-            # do cols_buffer all the time:
-            # if mark_dups:
             cols_buffer = cols_buffer[len(res):]
-            if not line:
+            if not stripline:
                 if(len(line_buffer) != 0):                
                     raise ValueError(
                         "{} lines left in the buffer, ".format(len(line_buffer))
                         + "should be none;"
                         + "something went terribly wrong")
                 break
-    # do not return dup/dedup/unmapped anymore
-    # return n_unmapped, n_dups, n_nodups
+        # process next line ...
+    # all lines have been processed at this point.
+    # streaming_dedup is over.
 
 
 if __name__ == '__main__':
