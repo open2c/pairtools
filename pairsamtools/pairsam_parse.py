@@ -9,7 +9,6 @@ import pipes
 import sys
 import os
 import io
-import copy
 
 from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
 from .pairsam_stats import PairCounter
@@ -544,8 +543,8 @@ def parse_sams_into_pair(sams1,
         
         elif walks_policy == 'mask':
             if is_chimeric_1 or is_chimeric_2:
-                hic_algn1 = _mask_alignment(copy.deepcopy(hic_algn1))
-                hic_algn2 = _mask_alignment(copy.deepcopy(hic_algn2))
+                hic_algn1 = _mask_alignment(dict(hic_algn1))
+                hic_algn2 = _mask_alignment(dict(hic_algn2))
                 #hic_algn1['type'] = hic_algn1['type'].lower()
                 #hic_algn2['type'] = hic_algn2['type'].lower()
                 hic_algn1['type'] = 'W'
