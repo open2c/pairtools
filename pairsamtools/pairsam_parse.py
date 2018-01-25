@@ -674,50 +674,34 @@ def write_pairsam(
     Thus, use the vertical tab character to separate fields!
 
     """
-    if drop_readid:
-        out_file.write('.')
-    else:
-        out_file.write(read_id)
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    out_file.write(algn1['chrom'])
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    out_file.write(str(algn1['pos']))
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    out_file.write(algn2['chrom'])
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    out_file.write(str(algn2['pos']))
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    out_file.write(algn1['strand'])
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    out_file.write(algn2['strand'])
-    out_file.write(_pairsam_format.PAIRSAM_SEP)
-    out_file.write(algn1['type'] + algn2['type'])
+    cols = [
+        '.' if drop_readid else read_id,
+        algn1['chrom'],
+        str(algn1['pos']),
+        algn2['chrom'],
+        str(algn2['pos']),
+        algn1['strand'],
+        algn2['strand'],
+        algn1['type'] + algn2['type']
+    ]
 
     if not drop_sam:
-        out_file.write(_pairsam_format.PAIRSAM_SEP)
-        for i, sam in enumerate(sams1):
-            out_file.write(sam.replace('\t', _pairsam_format.SAM_SEP))
-            out_file.write(_pairsam_format.SAM_SEP + 'Yt:Z:')
-            out_file.write(algn1['type'] + algn2['type'])
-            if i < len(sams1) -1:
-                out_file.write(_pairsam_format.INTER_SAM_SEP)
-
-        out_file.write(_pairsam_format.PAIRSAM_SEP)
-        for i, sam in enumerate(sams2):
-            out_file.write(sam.replace('\t', _pairsam_format.SAM_SEP))
-            out_file.write(_pairsam_format.SAM_SEP + 'Yt:Z:')
-            out_file.write(algn1['type'] + algn2['type'])
-            if i < len(sams2) -1:
-                out_file.write(_pairsam_format.INTER_SAM_SEP)
+        for sams in [sams1, sams2]:
+            cols.append(
+                _pairsam_format.INTER_SAM_SEP.join([
+                    (sam.replace('\t', _pairsam_format.SAM_SEP)
+                    + _pairsam_format.SAM_SEP 
+                    + 'Yt:Z:' + algn1['type'] + algn2['type'])
+                for sam in sams
+                ])
+            )
 
     
     for col in add_columns:
-        out_file.write(_pairsam_format.PAIRSAM_SEP)
-        out_file.write(str(algn1[col]))
-        out_file.write(_pairsam_format.PAIRSAM_SEP)
-        out_file.write(str(algn2[col]))
+        cols.append(str(algn1[col]))
+        cols.append(str(algn2[col]))
 
-    out_file.write('\n')
+    out_file.write(_pairsam_format.PAIRSAM_SEP.join(cols) + '\n')
 
 
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size, 
