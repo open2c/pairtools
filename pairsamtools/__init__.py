@@ -25,8 +25,46 @@ CONTEXT_SETTINGS = {
 
 @click.version_option(version=__version__)
 @click.group(context_settings=CONTEXT_SETTINGS)
-def cli():
-    pass
+@click.option(
+    '--post-mortem', 
+    help="Post mortem debugging", 
+    is_flag=True,
+    default=False
+)
+
+@click.option(
+    '--output-profile', 
+    help="Profile performance with Python cProfile and dump the statistics "
+         "into a binary file", 
+    type=str,
+    default=''
+)
+def cli(post_mortem, output_profile):
+    if post_mortem:
+        import traceback
+        try:
+            import ipdb as pdb
+        except ImportError:
+            import pdb
+        def _excepthook(exc_type, value, tb):
+            traceback.print_exception(exc_type, value, tb)
+            print()
+            pdb.pm()
+        sys.excepthook = _excepthook
+
+    if output_profile:
+        import cProfile 
+        import atexit
+        
+        pr = cProfile.Profile()
+        pr.enable()
+
+        def _atexit_profile_hook():
+            pr.disable()
+            pr.dump_stats(output_profile)
+
+        atexit.register(_atexit_profile_hook)
+
 
 def common_io_options(func):
     @click.option(
@@ -63,47 +101,9 @@ def common_io_options(func):
              'Must read input from stdin and print output into stdout. '
              'EXAMPLE: pbgzip -c -n 8'
         )
-    @click.option(
-        '--post-mortem', 
-        help="Post mortem debugging", 
-        is_flag=True,
-        default=False
-    )
-
-    @click.option(
-        '--profile', 
-        help="Profile performance and dump the statistics into a file", 
-        type=str,
-        default=''
-    )
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        if kwargs.get('post_mortem'):
-            import traceback
-            try:
-                import ipdb as pdb
-            except ImportError:
-                import pdb
-            def _excepthook(exc_type, value, tb):
-                traceback.print_exception(exc_type, value, tb)
-                print()
-                pdb.pm()
-            sys.excepthook = _excepthook
-
-        if kwargs.get('profile'):
-            import cProfile 
-            import atexit
-            
-            pr = cProfile.Profile()
-            pr.enable()
-
-            def _atexit_profile_hook():
-                pr.disable()
-                pr.dump_stats(kwargs.get('profile'))
-
-            atexit.register(_atexit_profile_hook)
-
         return func(*args, **kwargs)
     return wrapper
 
