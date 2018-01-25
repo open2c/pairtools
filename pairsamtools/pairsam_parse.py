@@ -84,7 +84,8 @@ EXTRA_COLUMNS = [
     default='',
     help='Report extra columns describing alignments '
          'Possible values (can take multiple values as a comma-separated '
-         'list): {}.'.format(', '.join(EXTRA_COLUMNS)))
+         'list): a SAM tag (any pair of uppercase letters) or {}.'.format(
+             ', '.join(EXTRA_COLUMNS)))
 @click.option(
     "--output-parsed-alignments", 
     type=str, 
@@ -178,7 +179,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
 
     add_columns = [col for col in add_columns.split(',') if col]
     for col in add_columns:
-        if col not in EXTRA_COLUMNS:
+        if not( (col in EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())):
             raise Exception('{} is not a valid extra column'.format(col))
 
     columns =  (_pairsam_format.COLUMNS 
@@ -288,7 +289,7 @@ def empty_alignment():
     }
 
 
-def parse_algn(samcols, min_mapq, report_3_alignment_end=False):
+def parse_algn(samcols, min_mapq, report_3_alignment_end=False, sam_tags=None):
     is_mapped = (int(samcols[1]) & 0x04) == 0
     mapq = int(samcols[4])
     is_unique = (mapq >= min_mapq)
@@ -345,6 +346,16 @@ def parse_algn(samcols, min_mapq, report_3_alignment_end=False):
     algn.update(cigar)
 
     algn['pos'] = algn['pos3'] if report_3_alignment_end else algn['pos5']
+
+    if sam_tags:
+        for tag in sam_tags:
+            algn[tag] = ''
+            
+        for col in samcols[11:]:
+            for tag in sam_tags:
+                if col.startswith(tag+':'):
+                    algn[tag] = col[5:]
+                    continue
 
     return algn
 
@@ -496,7 +507,8 @@ def parse_sams_into_pair(sams1,
                          max_molecule_size, 
                          max_inter_align_gap,
                          walks_policy,
-                         report_3_alignment_end):
+                         report_3_alignment_end,
+                         sam_tags):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments
     for a Hi-C pair. 
@@ -512,9 +524,11 @@ def parse_sams_into_pair(sams1,
     """
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq, report_3_alignment_end)
+    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq, 
+                         report_3_alignment_end, sam_tags)
               for sam in sams1]
-    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq, report_3_alignment_end)
+    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq, 
+                         report_3_alignment_end, sam_tags)
               for sam in sams2]
     algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
     algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
@@ -698,8 +712,9 @@ def write_pairsam(
 
     
     for col in add_columns:
-        cols.append(str(algn1[col]))
-        cols.append(str(algn2[col]))
+        # use get b/c empty alignments would not have sam tags (NM, AS, etc)
+        cols.append(str(algn1.get(col, '')))
+        cols.append(str(algn2.get(col, '')))
 
     out_file.write(_pairsam_format.PAIRSAM_SEP.join(cols) + '\n')
 
@@ -712,6 +727,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     """
     chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes), 
                           range(len(chromosomes)+1)))
+    sam_tags = [col for col in add_columns if len(col)==2 and col.isupper()]
     prev_read_id = ''
     sams1 = []
     sams2 = []
@@ -732,6 +748,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 kwargs['max_inter_align_gap'],
                 kwargs['walks_policy'],
                 kwargs['report_alignment_end']=='3',
+                sam_tags
                 )
 
             flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
