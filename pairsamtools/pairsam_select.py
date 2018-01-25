@@ -86,14 +86,14 @@ def select(
 
     \b
     Examples:
-    pairsam select '(pair_type=="LL") or (pair_type=="CX")'
-    pairsam select 'chrom1==chrom2'
-    pairsam select 'COLS[1]==COLS[3]'
-    pairsam select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
-    pairsam select '(chrom1=="!") and (chrom2!="!")'
-    pairsam select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
+    pairsamtools select '(pair_type=="UU") or (pair_type=="UR") or (pair_type=="RU")'
+    pairsamtools select 'chrom1==chrom2'
+    pairsamtools select 'COLS[1]==COLS[3]'
+    pairsamtools select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
+    pairsamtools select '(chrom1=="!") and (chrom2!="!")'
+    pairsamtools select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
 
-    pairsam select 'True' --chr-subset mm9.reduced.chromsizes
+    pairsamtools select 'True' --chr-subset mm9.reduced.chromsizes
 
     '''
     select_py(
