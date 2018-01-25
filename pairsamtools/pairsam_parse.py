@@ -704,6 +704,41 @@ def write_pairsam(
     out_file.write(_pairsam_format.PAIRSAM_SEP.join(cols) + '\n')
 
 
+def _parse_chunk_sams(
+        sams1_chunk, sams2_chunk, readids,
+        min_mapq, max_molecule_size, max_inter_align_gap, walks_policy,
+        report_3_alignment_end, chrom_enum):
+
+    algn1_chunk = []
+    algn2_chunk = []
+    all_algns_1_chunk = []
+    all_algns_2_chunk = []
+    flip_chunk = []
+
+    for sams1, sams2, readid in zip(sams1_chunk, sams2_chunk, readid_chunk):
+        algn1, algn2, all_algns1, all_algns2 = parse_sams_into_pair(
+            sams1,
+            sams2,
+            min_mapq,
+            max_molecule_size, 
+            kwargs['max_inter_align_gap'],
+            kwargs['walks_policy'],
+            kwargs['report_alignment_end']=='3',
+            )
+
+        flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
+
+        algn1_chunk.append(algn1)
+        algn2_chunk.append(algn1)
+        all_algn1_chunk.append(all_algn1)
+        all_algn2_chunk.append(all_algn2)
+        flip_chunk.append(flip_pair)
+
+    return algn1_chunk, algn2_chunk, all_algns_1_chunk, all_algns_2_chunk, flip_chunk
+
+import joblib
+
+
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size, 
                        drop_readid, drop_seq, drop_sam, add_columns, 
                        out_alignments_stream, out_stat, **kwargs):
@@ -712,58 +747,91 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     """
     chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes), 
                           range(len(chromosomes)+1)))
-    prev_read_id = ''
+    read_id = ''
     sams1 = []
     sams2 = []
+    sams1_chunk = []
+    sams2_chunk = []
+    readid_chunk = []
     line = ''
     
     instream = iter(instream)
-    while line is not None:
-        line = next(instream, None)
+    CHUNK_SIZE = 100000
+    with joblib.Parallel(n_jobs=5, batch_size=10000) as parallel:
+        while line is not None:
+            line = next(instream, None)
 
-        read_id = line.split('\t', 1)[0] if line else None
+            next_read_id = line.split('\t', 1)[0] if line else None
 
-        if not(line) or ((read_id != prev_read_id) and prev_read_id):
-            algn1, algn2, all_algns1, all_algns2 = parse_sams_into_pair(
-                sams1,
-                sams2,
-                min_mapq,
-                max_molecule_size, 
-                kwargs['max_inter_align_gap'],
-                kwargs['walks_policy'],
-                kwargs['report_alignment_end']=='3',
+            if not(line) or ((next_read_id != read_id) and read_id):
+                sams1_chunk.append(sams1)
+                sams2_chunk.append(sams2)
+                readid_chunk.append(read_id)
+                sams1 = []
+                sams2 = []
+
+            if (len(sams1_chunk) >= CHUNK_SIZE) or not(line):
+                res = parallel(
+                    joblib.delayed(parse_sams_into_pair)(
+                        sams1,
+                        sams2,
+                        min_mapq,
+                        max_molecule_size, 
+                        kwargs['max_inter_align_gap'],
+                        kwargs['walks_policy'],
+                        kwargs['report_alignment_end']=='3')
+                        for sams1, sams2 in zip(sams1_chunk, sams2_chunk)
                 )
+#            algn1, algn2, all_algns1, all_algns3 = parse_sams_into_pair(
+#                )
+#
 
-            flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
 
-            if flip_pair:
-                algn1, algn2 = algn2, algn1
-                sams1, sams2 = sams2, sams1
+#            algn1, algn2, all_algns1, all_algns2 = parse_sams_into_pair(
+#                sams1,
+#                sams2,
+#                min_mapq,
+#                max_molecule_size, 
+#                kwargs['max_inter_align_gap'],
+#                kwargs['walks_policy'],
+#                kwargs['report_alignment_end']=='3',
+#                )
 
-            write_pairsam(
-                algn1, algn2,
-                prev_read_id, 
-                sams1, sams2,
-                outstream,
-                drop_readid,
-                drop_sam,
-                add_columns)
+                for ((algn1, algn2, all_algns1, all_algns2), readid, sams1, sams2) in zip(
+                        res, readid_chunk, sams1_chunk, sams2_chunk):
 
-            # add a pair to PairCounter if stats output is requested:
-            if out_stat:
-                out_stat.add_pair(algn1['chrom'],  int(algn1['pos']),  algn1['strand'],
-                                  algn2['chrom'],  int(algn2['pos']),  algn2['strand'],
-                                  algn1['type'] + algn2['type'])
+                    flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
 
-            if out_alignments_stream:
-                write_all_algnments(all_algns1, all_algns2, out_alignments_stream)
-            
-            sams1.clear()
-            sams2.clear()
+                    if flip_pair:
+                        algn1, algn2 = algn2, algn1
+                        sams1, sams2 = sams2, sams1
 
-        if line is not None:
-            push_sam(line, drop_seq, sams1, sams2)
-            prev_read_id = read_id
+                    write_pairsam(
+                        algn1, algn2,
+                        read_id, 
+                        sams1, sams2,
+                        outstream,
+                        drop_readid,
+                        drop_sam,
+                        add_columns)
+
+                    # add a pair to PairCounter if stats output is requested:
+                    if out_stat:
+                        out_stat.add_pair(algn1['chrom'],  int(algn1['pos']),  algn1['strand'],
+                                          algn2['chrom'],  int(algn2['pos']),  algn2['strand'],
+                                          algn1['type'] + algn2['type'])
+
+                    if out_alignments_stream:
+                        write_all_algnments(all_algns1, all_algns2, out_alignments_stream)
+                    
+                    sams1.clear()
+                    sams2.clear()
+                sams1_chunk.clear()
+                sams2_chunk.clear()
+
+            if line is not None:
+                push_sam(line, drop_seq, sams1, sams2)
+                read_id = next_read_id
 
 if __name__ == '__main__':
     parse()
