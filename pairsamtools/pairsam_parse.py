@@ -27,6 +27,7 @@ EXTRA_COLUMNS = [
     'algn_read_span',
     'dist_to_5',
     'dist_to_3',
+    'seq'
 ]
 
 @cli.command()
@@ -289,7 +290,12 @@ def empty_alignment():
     }
 
 
-def parse_algn(samcols, min_mapq, report_3_alignment_end=False, sam_tags=None):
+def parse_algn(
+        samcols, 
+        min_mapq, 
+        report_3_alignment_end=False, 
+        sam_tags=None,
+        store_seq=False):
     is_mapped = (int(samcols[1]) & 0x04) == 0
     mapq = int(samcols[4])
     is_unique = (mapq >= min_mapq)
@@ -356,6 +362,9 @@ def parse_algn(samcols, min_mapq, report_3_alignment_end=False, sam_tags=None):
                 if col.startswith(tag+':'):
                     algn[tag] = col[5:]
                     continue
+
+    if store_seq:
+        algn['seq'] = samcols[9]  
 
     return algn
 
@@ -508,7 +517,8 @@ def parse_sams_into_pair(sams1,
                          max_inter_align_gap,
                          walks_policy,
                          report_3_alignment_end,
-                         sam_tags):
+                         sam_tags,
+                         store_seq):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments
     for a Hi-C pair. 
@@ -525,10 +535,10 @@ def parse_sams_into_pair(sams1,
 
     # Generate a sorted, gap-filled list of all alignments
     algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq, 
-                         report_3_alignment_end, sam_tags)
+                         report_3_alignment_end, sam_tags, store_seq)
               for sam in sams1]
     algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq, 
-                         report_3_alignment_end, sam_tags)
+                         report_3_alignment_end, sam_tags, store_seq)
               for sam in sams2]
     algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
     algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
@@ -732,6 +742,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     sams1 = []
     sams2 = []
     line = ''
+    store_seq = ('seq' in add_columns)
     
     instream = iter(instream)
     while line is not None:
@@ -748,7 +759,8 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 kwargs['max_inter_align_gap'],
                 kwargs['walks_policy'],
                 kwargs['report_alignment_end']=='3',
-                sam_tags
+                sam_tags,
+                store_seq
                 )
 
             flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
