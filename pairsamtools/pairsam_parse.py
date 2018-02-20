@@ -167,7 +167,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
                  if output_stats else None)
 
     if out_alignments_stream:
-        out_alignments_stream.write('side\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')
+        out_alignments_stream.write('readID\tside\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')
 
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
@@ -664,8 +664,10 @@ def push_sam(line, drop_seq, sams1, sams2):
     return
 
 
-def write_all_algnments(all_algns1, all_algns2, out_file):
+def write_all_algnments(read_id, all_algns1, all_algns2, out_file):
     for side_idx, all_algns in enumerate((all_algns1, all_algns2)):
+        out_file.write(read_id)
+        out_file.write('\t')
         out_file.write(str(side_idx+1))
         out_file.write('\t')
         for algn in sorted(all_algns, key=lambda x: x['dist_to_5']):
@@ -785,7 +787,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                                   algn1['type'] + algn2['type'])
 
             if out_alignments_stream:
-                write_all_algnments(all_algns1, all_algns2, out_alignments_stream)
+                write_all_algnments(prev_read_id, all_algns1, all_algns2, out_alignments_stream)
             
             sams1.clear()
             sams2.clear()
