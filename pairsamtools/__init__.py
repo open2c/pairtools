@@ -114,5 +114,6 @@ from .pairsam_markasdup import markasdup
 from .pairsam_select import select
 from .pairsam_split import split
 from .pairsam_restrict import restrict
+from .pairsam_phase import phase
 from .pairsam_parse import parse, parse_cigar, parse_algn
 from .pairsam_stats import stats
