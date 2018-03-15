@@ -115,34 +115,27 @@ def phase_py(
 
     def phase_side(chrom, XA, AS, XS, phase_suffixes):
         phase, chrom_base = get_chrom_phase(chrom, phase_suffixes)
-        XAs = XA.split(';')
+        XAs = [i for i in XA.split(';') if len(i)>0]
 
         if AS > XS:
             return phase, chrom_base
 
-        else:
-            # this should be technically impossible, b/c when AS==XS at least 
-            # one alternative alignment must be reported
-            if len(XAs) == 1 and len(XAs[0]) == 0:
-                return phase, chrom_base
+        elif len(XAs) == 1:
+            alt_chrom, alt_pos, alt_CIGAR, alt_NM = XAs[0].split(',')
+            alt_phase, alt_chrom_base = get_chrom_phase(alt_chrom, phase_suffixes)
 
-            elif len(XAs) == 1 and len(XAs[0]) > 0:
-
-                alt_chrom, alt_pos, alt_CIGAR, alt_NM = XAs[0].split(',')
-                alt_phase, alt_chrom_base = get_chrom_phase(alt_chrom, phase_suffixes)
-
-                alt_is_homologue = (
-                    (chrom_base == alt_chrom_base)
-                    and
-                    (
-                        ((phase=='0') and (alt_phase=='1'))
-                        or 
-                        ((phase=='1') and (alt_phase=='0'))
-                    )
+            alt_is_homologue = (
+                (chrom_base == alt_chrom_base)
+                and
+                (
+                    ((phase=='0') and (alt_phase=='1'))
+                    or 
+                    ((phase=='1') and (alt_phase=='0'))
                 )
-                
-                if alt_is_homologue:
-                    return '.', chrom_base
+            )
+            
+            if alt_is_homologue:
+                return '.', chrom_base
 
         return '!', '!'
 
