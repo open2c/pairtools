@@ -135,9 +135,9 @@ def phase_py(
                     (chrom_base == alt_chrom_base)
                     and
                     (
-                        ((phase=='0') and (phase=='1'))
+                        ((phase=='0') and (alt_phase=='1'))
                         or 
-                        ((phase=='1') and (phase=='0'))
+                        ((phase=='1') and (alt_phase=='0'))
                     )
                 )
                 
