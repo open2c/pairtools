@@ -126,6 +126,17 @@ MAX_LEN = 10000
     is_flag=True,
     help='If specified, duplicate pairs are marked as DD in "pair_type" and '
          'as a duplicate in the sam entries.')
+@click.option(
+    "--extra-col-pair", 
+    nargs=2,
+    #type=click.Tuple([str, str]),
+    multiple=True,
+    help='Extra columns that also must match for two pairs to be marked as '
+    'duplicates. Can be either provided as 0-based column indices or as column '
+    'names (requires the "#columns" header field). The option can be provided '
+    'multiple times if multiple column pairs must match. '
+    'Example: --extra-col-pair "phase1" "phase2"'
+    )
 
 @common_io_options
 
@@ -133,7 +144,7 @@ def dedup(pairsam_path, output, output_dups, output_unmapped,
     output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, **kwargs
+    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair, **kwargs
     ):
     '''find and remove PCR duplicates.
 
@@ -148,7 +159,7 @@ def dedup(pairsam_path, output, output_dups, output_unmapped,
         output_stats,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
-        c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups,
+        c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair,
         **kwargs
         )
 
@@ -158,7 +169,7 @@ def dedup_py(
     output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups,
+    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair,
     **kwargs
     ):
     sep = ast.literal_eval('"""' + sep + '"""')
@@ -216,8 +227,19 @@ def dedup_py(
             and (outstream_unmapped != outstream_dups)):
         outstream_unmapped.writelines((l+'\n' for l in header))
 
+    column_names = _headerops.extract_column_names(header)
+    extra_cols1 = []
+    extra_cols2 = []
+    if extra_col_pair is not None:
+        for col1, col2 in extra_col_pair:
+            extra_cols1.append(
+                int(col1) if col1.isdigit() else column_names.index(col1))
+            extra_cols2.append(
+                int(col2) if col2.isdigit() else column_names.index(col2))
+                            
+
     streaming_dedup( method, max_mismatch, sep,
-        c1, c2, p1, p2, s1, s2, unmapped_chrom,
+        c1, c2, p1, p2, s1, s2, extra_cols1, extra_cols2, unmapped_chrom,
         body_stream, outstream, outstream_dups,
         outstream_unmapped, out_stat, mark_dups)
 
@@ -255,11 +277,17 @@ def ar(mylist, val):
 
 def streaming_dedup(
         method, max_mismatch, sep,
-        c1ind, c2ind, p1ind, p2ind, s1ind, s2ind,
+        c1ind, c2ind, p1ind, p2ind, s1ind, s2ind, extra_cols1, extra_cols2,
         unmapped_chrom,
         instream, outstream, outstream_dups, outstream_unmapped,
         out_stat, mark_dups):
+
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
+    if bool(extra_cols1) and bool(extra_cols2):
+        maxind = max(maxind, max(extra_cols1), max(extra_cols2))
+
+    all_scols1 = [s1ind] + extra_cols1
+    all_scols2 = [s2ind] + extra_cols2
 
     # if we do stats in the dedup, we need PAIR_TYPE
     # i do not see way around this:
@@ -317,16 +345,20 @@ def streaming_dedup(
                 c2.append(fetchadd(cols[c2ind], chromDict))
                 p1.append(int(cols[p1ind]))
                 p2.append(int(cols[p2ind]))
-                s1.append(fetchadd(cols[s1ind], strandDict))
-                s2.append(fetchadd(cols[s2ind], strandDict))
+                if bool(extra_cols1) and bool(extra_cols2):
+                    s1.append(fetchadd(''.join(cols[i] for i in all_scols1), strandDict))
+                    s2.append(fetchadd(''.join(cols[i] for i in all_scols2), strandDict))
+                else:
+                    s1.append(fetchadd(cols[s1ind], strandDict))
+                    s2.append(fetchadd(cols[s2ind], strandDict))
                 
         if (not stripline) or (len(c1) == curMaxLen):
-            res = dd.push(ar(c1, 8), 
-                          ar(c2, 8), 
+            res = dd.push(ar(c1, 32), 
+                          ar(c2, 32), 
                           ar(p1, 32), 
                           ar(p2, 32), 
-                          ar(s1, 8), 
-                          ar(s2, 8))
+                          ar(s1, 32), 
+                          ar(s2, 32))
             if not stripline:
                 res = np.concatenate([res, dd.finish()])
 
