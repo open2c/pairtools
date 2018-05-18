@@ -86,24 +86,25 @@ def phase_py(
     header = _headerops._update_header_entry(
         header, 'columns', ' '.join(new_column_names))
 
-    if (   ('XA1' not in old_column_names) 
-        or ('XA2' not in old_column_names)  
+    if (   ('XB1' not in old_column_names) 
+        or ('XB2' not in old_column_names)  
         or ('AS1' not in old_column_names)  
         or ('AS2' not in old_column_names)
         or ('XS1' not in old_column_names)  
         or ('XS2' not in old_column_names)
         ):
         raise ValueError(
-            'The input pairs file must be parsed with the flag --add-columns XA,AS,XS --min-mapq 0')
+            'The input pairs file must be parsed with the flag --add-columns XB,AS,XS --min-mapq 0')
 
-    COL_XA1 = old_column_names.index('XA1')
-    COL_XA2 = old_column_names.index('XA2')
+    COL_XB1 = old_column_names.index('XB1')
+    COL_XB2 = old_column_names.index('XB2')
     COL_AS1 = old_column_names.index('AS1')
     COL_AS2 = old_column_names.index('AS2')
     COL_XS1 = old_column_names.index('XS1')
     COL_XS2 = old_column_names.index('XS2')
 
     outstream.writelines((l+'\n' for l in header))
+
 
     def get_chrom_phase(chrom, phase_suffixes):
         if chrom.endswith(phase_suffixes[0]):
@@ -113,15 +114,21 @@ def phase_py(
         else:
             return '!', chrom
 
-    def phase_side(chrom, XA, AS, XS, phase_suffixes):
+
+    def phase_side(chrom, XB, AS, XS, phase_suffixes):
         phase, chrom_base = get_chrom_phase(chrom, phase_suffixes)
-        XAs = [i for i in XA.split(';') if len(i)>0]
+        XBs = [i for i in XB.split(';') if len(i)>0]
 
         if AS > XS:
             return phase, chrom_base
 
-        elif len(XAs) == 1:
-            alt_chrom, alt_pos, alt_CIGAR, alt_NM = XAs[0].split(',')
+        elif len(XBs) >= 1:
+            if len(XBs) >= 2:
+                alt2_chrom, alt2_pos, alt2_CIGAR, alt2_NM, alt2_AS = XBs[1].split(',')
+                if alt2_AS == XS == AS:
+                    return '!', '!'
+
+            alt_chrom, alt_pos, alt_CIGAR, alt_NM, alt_AS = XBs[0].split(',')
             alt_phase, alt_chrom_base = get_chrom_phase(alt_chrom, phase_suffixes)
 
             alt_is_homologue = (
@@ -150,7 +157,7 @@ def phase_py(
 
             phase1, chrom_base1 = phase_side(
                 cols[_pairsam_format.COL_C1],
-                cols[COL_XA1], 
+                cols[COL_XB1], 
                 int(cols[COL_AS1]),
                 int(cols[COL_XS1]),
                 phase_suffixes
@@ -169,7 +176,7 @@ def phase_py(
 
             phase2, chrom_base2 = phase_side(
                 cols[_pairsam_format.COL_C2],
-                cols[COL_XA2], 
+                cols[COL_XB2], 
                 int(cols[COL_AS2]),
                 int(cols[COL_XS2]),
                 phase_suffixes
