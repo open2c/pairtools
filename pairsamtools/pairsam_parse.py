@@ -121,15 +121,24 @@ EXTRA_COLUMNS = [
     )
 @click.option(
     "--walks-policy", 
-    type=click.Choice(['mask', 'all']),
+    type=click.Choice(['mask', 'all', '5any', '5unique', '3any', '3unique']),
     default='mask',
     help='the policy for reporting unrescuable walks (reads containing more'
     ' than one alignment on one or both sides, that can not be explained by a'
     ' single ligation between two mappable DNA fragments).'
     ' "mask" - mask walks (chrom="!", pos=0, strand="-"); '
-    ' "all" - report all pairs of consecutive alignments [NOT IMPLEMENTED]; ',
+    ' "all" - report all pairs of consecutive alignments [NOT IMPLEMENTED]; '
+    ' "5any" - report the 5\'-most alignment on each side;'
+    ' "5unique" - report the 5\'-most unique alignment on each side, if present;'
+    ' "3any" - report the 3\'-most alignment on each side;'
+    ' "3unique" - report the 3\'-most unique alignment on each side, if present.',
     show_default=True
     )
+@click.option(
+    "--no-flip", 
+    is_flag=True,
+    help='If specified, do not flip pairs in genomic order and instead preserve ' 
+         'the order in which they were sequenced.')
 
 @common_io_options
 
@@ -562,53 +571,64 @@ def parse_sams_into_pair(sams1,
     if is_chimeric_1 or is_chimeric_2:
         # Pick two alignments to report as a Hi-C pair.
         rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
-        if rescued_linear_side is not None:
-            pass
-        
-        elif walks_policy == 'mask':
-            if is_chimeric_1 or is_chimeric_2:
-                hic_algn1 = _mask_alignment(dict(hic_algn1))
-                hic_algn2 = _mask_alignment(dict(hic_algn2))
-                #hic_algn1['type'] = hic_algn1['type'].lower()
-                #hic_algn2['type'] = hic_algn2['type'].lower()
-                hic_algn1['type'] = 'W'
-                hic_algn2['type'] = 'W'
 
-        elif walks_policy == 'all':
-            pass
+        # if the walk is unrescueable:
+        if rescued_linear_side is None:
+            if walks_policy == 'mask':
+                if is_chimeric_1 or is_chimeric_2:
+                    hic_algn1 = _mask_alignment(dict(hic_algn1))
+                    hic_algn2 = _mask_alignment(dict(hic_algn2))
+                    hic_algn1['type'] = 'W'
+                    hic_algn2['type'] = 'W'
 
-        #elif chimeras_policy == '5any':
-        #    hic_algn1 = algns1[0]
-        #    hic_algn2 = algns2[0]
+            elif walks_policy == '5any':
+                hic_algn1 = algns1[0]
+                hic_algn2 = algns2[0]
 
-        #elif chimeras_policy == '5unique':
-        #    hic_algn1 = algns1[0]
-        #    for algn in algns1:
-        #        if algn['is_mapped'] and algn['is_unique']:
-        #            hic_algn1 = algn
-        #            break
-        #    hic_algn2 = algns2[0]
-        #    for algn in algns2:
-        #        if algn['is_mapped'] and algn['is_unique']:
-        #            hic_algn2 = algn
-        #            break
+            elif walks_policy == '5unique':
+                hic_algn1 = algns1[0]
+                for algn in algns1:
+                    if algn['is_mapped'] and algn['is_unique']:
+                        hic_algn1 = algn
+                        break
 
-        #elif chimeras_policy == '3any':
-        #    hic_algn1 = algns1[-1]
-        #    hic_algn2 = algns2[-1]
+                hic_algn2 = algns2[0]
+                for algn in algns2:
+                    if algn['is_mapped'] and algn['is_unique']:
+                        hic_algn2 = algn
+                        break
 
-        #elif chimeras_policy == '3unique':
-        #    hic_algn1 = algns1[-1]
-        #    for algn in algns1[::-1]:
-        #        if algn['is_mapped'] and algn['is_unique']:
-        #            hic_algn1 = algn
-        #            break
-        #    hic_algn2 = algns2[-1]
-        #    for algn in algns2[::-1]:
-        #        if algn['is_mapped'] and algn['is_unique']:
-        #            hic_algn2 = algn
-        #            break
-        
+            elif walks_policy == '3any':
+                hic_algn1 = algns1[-1]
+                hic_algn2 = algns2[-1]
+
+            elif walks_policy == '3unique':
+                hic_algn1 = algns1[-1]
+                for algn in algns1[::-1]:
+                    if algn['is_mapped'] and algn['is_unique']:
+                        hic_algn1 = algn
+                        break
+
+                hic_algn2 = algns2[-1]
+                for algn in algns2[::-1]:
+                    if algn['is_mapped'] and algn['is_unique']:
+                        hic_algn2 = algn
+                        break
+            
+            elif walks_policy == 'all':
+                # TO BE IMPLEMENTED
+                pass
+
+
+            # lower-case reported walks on the chimeric side
+            if walks_policy != 'mask':
+                if is_chimeric_1:
+                    hic_algn1 = dict(hic_algn1)
+                    hic_algn1['type'] = hic_algn1['type'].lower()
+                if is_chimeric_2:
+                    hic_algn2 = dict(hic_algn2)
+                    hic_algn2['type'] = hic_algn2['type'].lower()
+
 
     return hic_algn1, hic_algn2, algns1, algns2
 
@@ -765,7 +785,8 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 store_seq
                 )
 
-            flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
+            flip_pair = (not kwargs['no_flip']) and (
+                    not check_pair_order(algn1, algn2, chrom_enum))
 
             if flip_pair:
                 algn1, algn2 = algn2, algn1
