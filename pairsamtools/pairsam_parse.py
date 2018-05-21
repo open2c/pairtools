@@ -203,7 +203,9 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     header = _headerops.make_standard_pairsheader(
         assembly = assembly,
         chromsizes = [(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
-        columns = columns
+        columns = columns, 
+        shape = 'whole matrix' if kwargs['no_flip'] else 'upper triangle'
+
     )
     
     header = _headerops.insert_samheader(header, samheader) 
