@@ -7,9 +7,9 @@ method ``OnlineDuplicateDetector`` which is implemented as a class.
 
 Note that for both methods data types are fixed:
 
-    * chromosomes are int16
+    * chromosomes are int32
     * position is int32
-    * strand is bool / int8, which is basically the same as C type "char".
+    * strand is int32, which is basically the same as C type "char".
 
 """
 import numpy as np 
@@ -20,12 +20,12 @@ cimport cython
 
 
 def mark_duplicates(
-        cython.short [:] c1,
-        cython.short [:] c2,
+        cython.int [:] c1,
+        cython.int [:] c2,
         cython.int [:] p1, 
         cython.int [:] p2, 
-        cython.char [:] s1, 
-        cython.char [:] s2, 
+        cython.int [:] s1, 
+        cython.int [:] s2, 
         #uncomment for testing probably since it will do boundary check
         #np.ndarray[np.int16_t, ndim=1]c2,
         #np.ndarray[np.int32_t, ndim=1] p1, 
@@ -54,13 +54,13 @@ def mark_duplicates(
     
     Parameters
     ----------
-    c1, c2 : int16 array
+    c1, c2 : int32 array
         chromosome IDs
     
     p1, p2 : int32 arrays
         positions
     
-    s1, s2 : int8 (or bool) arrays
+    s1, s2 : int32 (or bool) arrays
         strands
     
     max_mismatch : int
@@ -143,12 +143,12 @@ def mark_duplicates(
 
 
 cdef class OnlineDuplicateDetector(object):
-    cdef cython.short [:] c1
-    cdef cython.short [:] c2 
+    cdef cython.int [:] c1
+    cdef cython.int [:] c2 
     cdef cython.int [:] p1 
     cdef cython.int [:] p2 
-    cdef cython.char [:] s1 
-    cdef cython.char [:] s2 
+    cdef cython.int [:] s1 
+    cdef cython.int [:] s2 
     cdef cython.char [:] rm
     cdef int methodid
     cdef int low
@@ -163,12 +163,12 @@ cdef class OnlineDuplicateDetector(object):
         else:
             self.returnData = 1            
         self.N = 0 
-        self.c1 = np.zeros(0, np.int16)
-        self.c2 = np.zeros(0, np.int16)
+        self.c1 = np.zeros(0, np.int32)
+        self.c2 = np.zeros(0, np.int32)
         self.p1 = np.zeros(0, np.int32)
         self.p2 = np.zeros(0, np.int32)
-        self.s1 = np.zeros(0, np.int8)
-        self.s2 = np.zeros(0, np.int8) 
+        self.s1 = np.zeros(0, np.int32)
+        self.s2 = np.zeros(0, np.int32) 
         self.rm = np.zeros(0, np.int8)        
         if method == "max": 
             self.methodid = 0

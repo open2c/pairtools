@@ -119,11 +119,12 @@ def get_chrom_order(chroms_file, sam_chroms):
 def make_standard_pairsheader(
         assembly=None,
         chromsizes=None,
-        columns=_pairsam_format.COLUMNS):
+        columns=_pairsam_format.COLUMNS,
+        shape = 'upper triangle'):
     header = []
     header.append(
         '## pairs format v{}'.format(PAIRS_FORMAT_VERSION))
-    header.append('#shape: upper triangle')
+    header.append('#shape: {}'.format(shape))
 
     header.append('#genome_assembly: {}'.format(
         assembly if assembly is not None else 'unknown'))
