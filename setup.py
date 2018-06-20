@@ -51,6 +51,9 @@ extensions = [
     Extension(
         "pairsamtools._dedup", ["pairsamtools/_dedup.pyx"],
     ),
+    Extension(
+        "pairsamtools._multifilter", ["pairsamtools/_multifilter.pyx"],
+    ),
 ]
 
 packages = find_packages()
