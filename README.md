@@ -1,15 +1,15 @@
-# pairsamtools
+# pairtools
 
 [![Documentation Status](https://readthedocs.org/projects/pairsamtools/badge/?version=latest)](http://pairsamtools.readthedocs.org/en/latest/)
-[![Build Status](https://travis-ci.org/mirnylab/pairsamtools.svg?branch=master)](https://travis-ci.org/mirnylab/pairsamtools)
+[![Build Status](https://travis-ci.org/mirnylab/pairtools.svg?branch=master)](https://travis-ci.org/mirnylab/pairtools)
 [![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-## build Hi-C mapping pipelines with pairsamtools
+## build Hi-C mapping pipelines with pairtools
 
-pairsamtools is a simple and fast command-line framework to process sequencing
+pairtools is a simple and fast command-line framework to process sequencing
 data from a Hi-C experiment.
 
-pairsamtools process pair-end sequence alignments and perform the following
+pairtools process pair-end sequence alignments and perform the following
 operations:
 - detect and classify ligation sites (a.k.a. Hi-C pairs) produced in Hi-C experiments
 - sort .pairs files for downstream analyses
@@ -20,10 +20,10 @@ operations:
 
 To get started, check out the [documentation](http://pairsamtools.readthedocs.io).
 
-pairsamtools produce and operate on tab-separated files compliant with the
+pairtools produce and operate on tab-separated files compliant with the
 [.pairs](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) 
 format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/). All
-pairsamtools properly manage file headers and keep track of the data
+pairtools properly manage file headers and keep track of the data
 processing history.
 
 ## installation
@@ -38,7 +38,7 @@ Requirements:
 
 Install using pip:
 ```sh
-$ pip install git+https://github.com/mirnylab/pairsamtools
+$ pip install git+https://github.com/mirnylab/pairtools
 ```
 
 ### tools
@@ -94,11 +94,11 @@ $ pip install git+https://github.com/mirnylab/pairsamtools
 ### pipelines
 
 We provide a simple mapping bash pipeline in /examples/.
-It serves as an illustration to pairsamtools' functionality and
+It serves as an illustration to pairtools' functionality and
 will not be further developed.
 
 [distiller](https://github.com/mirnylab/distiller-nf) is a powerful
-Hi-C data analysis workflow, based on pairsamtools and 
+Hi-C data analysis workflow, based on pairtools and 
 [nextflow](https://www.nextflow.io/).
 
 
