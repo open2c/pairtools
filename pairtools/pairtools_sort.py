@@ -12,7 +12,7 @@ UTIL_NAME = 'pairtools_sort'
 @cli.command()
 
 @click.argument(
-    'pairsam_path', 
+    'pairs_path', 
     type=str,
     required=False)
 
@@ -20,7 +20,7 @@ UTIL_NAME = 'pairtools_sort'
     '-o', "--output", 
     type=str, 
     default="", 
-    help='output pairsam file.'
+    help='output pairs file.'
         ' If the path ends with .gz or .lz4, the output is compressed by pbgzip '
         'or lz4, correspondingly. By default, the output is printed into stdout.')
 
@@ -60,24 +60,24 @@ UTIL_NAME = 'pairtools_sort'
 
 @common_io_options
 
-def sort(pairsam_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
-    '''sort a pairs/pairsam file. 
+def sort(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
+    '''sort a .pairs/.pairsam file. 
     
     The resulting order is lexicographic along chrom1 and chrom2, numeric 
     along pos1 and pos2 and lexicographic along pair_type.
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the 
+    PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the 
     input is decompressed by pbgzip or lz4c, correspondingly. By default, the 
     input is read as text from stdin.
     '''
-    sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program, **kwargs)
+    sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs)
 
-def sort_py(pairsam_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
+def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
 
-    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+    instream = (_fileio.auto_open(pairs_path, mode='r', 
                                   nproc=kwargs.get('nproc_in'),
                                   command=kwargs.get('cmd_in', None)) 
-                if pairsam_path else sys.stdin)
+                if pairs_path else sys.stdin)
     outstream = (_fileio.auto_open(output, mode='w', 
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 

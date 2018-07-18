@@ -8,7 +8,7 @@ UTIL_NAME = 'pairtools_phase'
 
 @cli.command()
 @click.argument(
-    'pairsam_path', 
+    'pairs_path', 
     type=str,
     required=False)
 
@@ -42,20 +42,20 @@ def phase(
     clean_output,
     **kwargs
     ):
-    '''phase a pairsam file mapped to a diploid genome.
+    '''phase a .pairs/.pairsam file mapped to a diploid genome.
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the
+    PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the
     input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
 
     '''
     phase_py(
-        pairsam_path, output, phase_suffixes, clean_output,
+        pairs_path, output, phase_suffixes, clean_output,
         **kwargs
     )
 
     
 def phase_py(
-    pairsam_path, output, phase_suffixes, clean_output,
+    pairs_path, output, phase_suffixes, clean_output,
     **kwargs
     ):
 

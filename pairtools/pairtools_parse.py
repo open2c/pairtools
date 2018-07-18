@@ -101,7 +101,7 @@ EXTRA_COLUMNS = [
     "--output-stats", 
     type=str, 
     default="", 
-    help='output file for various statistics of pairsam file. '
+    help='output file for various statistics of pairs file. '
         ' By default, statistics is not generated.')
 @click.option(
     '--report-alignment-end', 
@@ -145,7 +145,7 @@ EXTRA_COLUMNS = [
 def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
           drop_readid, drop_seq, drop_sam, add_columns,
           output_parsed_alignments, output_stats, **kwargs):
-    '''parse .sam and make .pairsam.
+    '''parse .sam and make .pairs/.pairsam.
 
     SAM_PATH : input .sam file. If the path ends with .bam, the input is 
     decompressed from bam. By default, the input is read from stdin.

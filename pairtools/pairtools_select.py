@@ -13,7 +13,7 @@ UTIL_NAME = 'pairtools_select'
 )
 
 @click.argument(
-    'pairsam_path', 
+    'pairs_path', 
     type=str,
     required=False)
 
@@ -55,22 +55,22 @@ UTIL_NAME = 'pairtools_select'
 @common_io_options
 
 def select(
-    condition, pairsam_path, output, output_rest, send_comments_to,
+    condition, pairs_path, output, output_rest, send_comments_to,
     chrom_subset,
     **kwargs
     ):
-    '''select pairsam entries.
+    '''select pairs according to a specified condition.
 
     CONDITION : A Python expression; if it returns True, select the read pair.
     Any column declared in the #columns line of the pairs header can be 
     accessed by its name. If the header lacks the #columns line, the columns
-    are assumed to follow the pairs/pairsam standard (readID, chrom1, chrom2, 
+    are assumed to follow the .pairs/.pairsam standard (readID, chrom1, chrom2, 
     pos1, pos2, strand1, strand2, pair_type). Finally, CONDITION has access to 
     COLS list which contains the string values of columns. In Bash, quote 
     CONDITION with single quotes, and use double quotes for string variables
     inside CONDITION.
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the
+    PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the
     input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
 
     The following functions can be used in CONDITION besides the standard Python functions:
@@ -97,20 +97,20 @@ def select(
 
     '''
     select_py(
-        condition, pairsam_path, output, output_rest, send_comments_to, 
+        condition, pairs_path, output, output_rest, send_comments_to, 
         chrom_subset,
         **kwargs
     )
     
 def select_py(
-    condition, pairsam_path, output, output_rest, send_comments_to, chrom_subset,
+    condition, pairs_path, output, output_rest, send_comments_to, chrom_subset,
     **kwargs
     ):
 
-    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+    instream = (_fileio.auto_open(pairs_path, mode='r', 
                                   nproc=kwargs.get('nproc_in'),
                                   command=kwargs.get('cmd_in', None)) 
-                if pairsam_path else sys.stdin)
+                if pairs_path else sys.stdin)
     outstream = (_fileio.auto_open(output, mode='w', 
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 

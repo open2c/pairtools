@@ -31,7 +31,7 @@ UTIL_NAME = 'pairtools_stats'
     "--merge", 
     is_flag=True,
     help='If specified, merge multiple input stats files instead of calculating'
-        ' statistics of a pairsam file. Merging is performed via summation of'
+        ' statistics of a .pairs/.pairsam file. Merging is performed via summation of'
         ' all overlapping statistics. Non-overlapping statistics are appended to'
         ' the end of the file.',
     )
@@ -39,9 +39,9 @@ UTIL_NAME = 'pairtools_stats'
 @common_io_options
 
 def stats(input_path, output, merge, **kwargs):
-    '''calculate various statistics of a pairs/pairsam file. 
+    '''calculate various statistics of a .pairs/.pairsam file. 
 
-    INPUT_PATH : by default, a .pairsam file to calculate statistics.
+    INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
     If not provided, the input is read from stdin.
     If --merge is specified, then INPUT_PATH is interpreted as an arbitrary number 
     of stats files to merge.

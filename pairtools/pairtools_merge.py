@@ -12,7 +12,7 @@ UTIL_NAME = 'pairtools_merge'
 
 @cli.command()
 @click.argument(
-    'pairsam_path', 
+    'pairs_path', 
     nargs=-1, 
     type=str,
     )
@@ -105,7 +105,7 @@ UTIL_NAME = 'pairtools_merge'
 
 # Using custom IO options
 
-def merge(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
+def merge(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
     """merge sorted pairs/pairsam files. 
 
     Merge triu-flipped sorted pairs/pairsam files. If present, the @SQ records 
@@ -115,16 +115,16 @@ def merge(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program, np
     numeric suffix to produce unique records.
     The other unique SAM and non-SAM header lines are copied into the output header.
 
-    PAIRSAM_PATH : upper-triangular flipped sorted pairs/pairsam files to merge
-    or a group/groups of .pairsam files specified by a wildcard. For paths ending
-    in .gz/.lz4, the files are decompressed by pbgzip/lz4c.
+    PAIRS_PATH : upper-triangular flipped sorted .pairs/.pairsam files to merge
+    or a group/groups of .pairs/.pairsam files specified by a wildcard. For
+    paths ending in .gz/.lz4, the files are decompressed by pbgzip/lz4c.
     
     """
-    merge_py(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs)
+    merge_py(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs)
 
 
-def merge_py(pairsam_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
-    paths = sum([glob.glob(mask) for mask in pairsam_path], [])
+def merge_py(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
+    paths = sum([glob.glob(mask) for mask in pairs_path], [])
 
     outstream = (_fileio.auto_open(output, mode='w', 
                                    nproc=kwargs.get('nproc_out'),

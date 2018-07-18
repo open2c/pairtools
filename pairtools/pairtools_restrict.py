@@ -14,7 +14,7 @@ UTIL_NAME = 'pairtools_restrict'
 @cli.command()
 
 @click.argument(
-    'pairsam_path', 
+    'pairs_path', 
     type=str,
     required=False)
 
@@ -29,25 +29,25 @@ UTIL_NAME = 'pairtools_restrict'
     '-o', "--output", 
     type=str, 
     default="", 
-    help='output pairsam file.'
+    help='output .pairs/.pairsam file.'
         ' If the path ends with .gz/.lz4, the output is compressed by pbgzip/lz4c.'
         ' By default, the output is printed into stdout.')
 
 @common_io_options
 
-def restrict(pairsam_path, frags, output, **kwargs):
+def restrict(pairs_path, frags, output, **kwargs):
     '''identify the restriction fragments that got ligated into a Hi-C molecule.
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz/.lz4, the 
+    PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz/.lz4, the 
     input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
     '''
-    restrict_py(pairsam_path, frags, output, **kwargs)
+    restrict_py(pairs_path, frags, output, **kwargs)
 
-def restrict_py(pairsam_path, frags, output, **kwargs):
-    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+def restrict_py(pairs_path, frags, output, **kwargs):
+    instream = (_fileio.auto_open(pairs_path, mode='r', 
                                   nproc=kwargs.get('nproc_in'),
                                   command=kwargs.get('cmd_in', None)) 
-                if pairsam_path else sys.stdin)
+                if pairs_path else sys.stdin)
 
     outstream = (_fileio.auto_open(output, mode='w', 
                                    nproc=kwargs.get('nproc_out'),

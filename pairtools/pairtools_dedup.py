@@ -22,7 +22,7 @@ MAX_LEN = 10000
 
 @cli.command()
 @click.argument(
-    'pairsam_path', 
+    'pairs_path', 
     type=str,
     required=False)
 @click.option(
@@ -140,7 +140,7 @@ MAX_LEN = 10000
 
 @common_io_options
 
-def dedup(pairsam_path, output, output_dups, output_unmapped,
+def dedup(pairs_path, output, output_dups, output_unmapped,
     output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
@@ -151,11 +151,11 @@ def dedup(pairsam_path, output, output_dups, output_unmapped,
     Find PCR duplicates in an upper-triangular flipped sorted pairs/pairsam 
     file. Allow for a +/-N bp mismatch at each side of duplicated molecules.
 
-    PAIRSAM_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the
+    PAIRS_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the
     path ends with .gz/.lz4, the input is decompressed by pbgzip/lz4c. 
     By default, the input is read from stdin.
     '''
-    dedup_py(pairsam_path, output, output_dups, output_unmapped,
+    dedup_py(pairs_path, output, output_dups, output_unmapped,
         output_stats,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
@@ -165,7 +165,7 @@ def dedup(pairsam_path, output, output_dups, output_unmapped,
 
 
 def dedup_py(
-    pairsam_path, output, output_dups, output_unmapped,
+    pairs_path, output, output_dups, output_unmapped,
     output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
@@ -176,10 +176,10 @@ def dedup_py(
     send_header_to_dedup = send_header_to in ['both', 'dedup']
     send_header_to_dup = send_header_to in ['both', 'dups']
 
-    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+    instream = (_fileio.auto_open(pairs_path, mode='r', 
                                   nproc=kwargs.get('nproc_in'),
                                   command=kwargs.get('cmd_in', None)) 
-                if pairsam_path else sys.stdin)
+                if pairs_path else sys.stdin)
     outstream = (_fileio.auto_open(output, mode='w', 
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 
