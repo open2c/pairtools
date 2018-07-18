@@ -36,7 +36,7 @@ UTIL_NAME = 'pairsam_restrict'
 @common_io_options
 
 def restrict(pairsam_path, frags, output, **kwargs):
-    '''appends positions of restriction fragments to a pairs/pairsam file. 
+    '''identify the restriction fragments that got ligated into a Hi-C molecule.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz/.lz4, the 
     input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.

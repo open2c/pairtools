@@ -39,7 +39,7 @@ UTIL_NAME = 'pairsam_stats'
 @common_io_options
 
 def stats(input_path, output, merge, **kwargs):
-    '''Calculate various statistics of a pairs/pairsam file. 
+    '''calculate various statistics of a pairs/pairsam file. 
 
     INPUT_PATH : by default, a .pairsam file to calculate statistics.
     If not provided, the input is read from stdin.

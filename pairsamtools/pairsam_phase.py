@@ -42,7 +42,7 @@ def phase(
     clean_output,
     **kwargs
     ):
-    '''
+    '''phase a pairsam file mapped to a diploid genome.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the
     input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
