@@ -11,7 +11,7 @@ from collections import OrderedDict, Mapping
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
-UTIL_NAME = 'pairsam_stats'
+UTIL_NAME = 'pairtools_stats'
 
 @cli.command()
 

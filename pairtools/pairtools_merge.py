@@ -7,7 +7,7 @@ import click
 
 from . import _fileio, _pairsam_format, _headerops, cli
 
-UTIL_NAME = 'pairsam_merge'
+UTIL_NAME = 'pairtools_merge'
 
 
 @cli.command()

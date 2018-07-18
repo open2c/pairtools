@@ -4,7 +4,7 @@ import re, fnmatch
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
-UTIL_NAME = 'pairsam_phase'
+UTIL_NAME = 'pairtools_phase'
 
 @cli.command()
 @click.argument(

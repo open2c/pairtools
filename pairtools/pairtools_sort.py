@@ -7,7 +7,7 @@ import subprocess
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
-UTIL_NAME = 'pairsam_sort'
+UTIL_NAME = 'pairtools_sort'
 
 @cli.command()
 

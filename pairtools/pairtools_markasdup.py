@@ -6,7 +6,7 @@ import click
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
-UTIL_NAME = 'pairsam_markasdup'
+UTIL_NAME = 'pairtools_markasdup'
 
 @cli.command()
 @click.argument(

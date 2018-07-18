@@ -213,7 +213,7 @@ def _add_pg_to_samheader(samheader, ID='', PN='', VN=None, CL=None, force=False)
     header : list of str
     ID, PN, VN, CL : std
         The keys of a new @PG record. If absent, VN is the version of
-        pairsamtools and CL is taken from sys.argv.
+        pairtools and CL is taken from sys.argv.
     force : bool
         If True, ignore the inconsistencies among @PG records of the existing 
         header.

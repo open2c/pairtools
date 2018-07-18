@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-pairsamtools
-~~~~~~~~~~~~
+pairtools
+~~~~~~~~~
 
 CLI tools to process mapped Hi-C data
 
@@ -107,14 +107,14 @@ def common_io_options(func):
         return func(*args, **kwargs)
     return wrapper
 
-from .pairsam_dedup import dedup
-from .pairsam_sort import sort
-from .pairsam_merge import merge
-from .pairsam_markasdup import markasdup
-from .pairsam_select import select
-from .pairsam_split import split
-from .pairsam_restrict import restrict
-from .pairsam_phase import phase
-from .pairsam_parse import parse, parse_cigar, parse_algn
-from .pairsam_stats import stats
-from .pairsam_filterbycov import filterbycov
+from .pairtools_dedup import dedup
+from .pairtools_sort import sort
+from .pairtools_merge import merge
+from .pairtools_markasdup import markasdup
+from .pairtools_select import select
+from .pairtools_split import split
+from .pairtools_restrict import restrict
+from .pairtools_phase import phase
+from .pairtools_parse import parse, parse_cigar, parse_algn
+from .pairtools_stats import stats
+from .pairtools_filterbycov import filterbycov

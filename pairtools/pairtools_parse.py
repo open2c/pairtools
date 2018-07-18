@@ -11,10 +11,10 @@ import os
 import io
 
 from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
-from .pairsam_stats import PairCounter
+from .pairtools_stats import PairCounter
 
 
-UTIL_NAME = 'pairsam_parse'
+UTIL_NAME = 'pairtools_parse'
 
 EXTRA_COLUMNS = [
     'mapq',

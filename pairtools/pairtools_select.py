@@ -4,7 +4,7 @@ import re, fnmatch
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
-UTIL_NAME = 'pairsam_select'
+UTIL_NAME = 'pairtools_select'
 
 @cli.command()
 @click.argument(
@@ -86,14 +86,14 @@ def select(
 
     \b
     Examples:
-    pairsamtools select '(pair_type=="UU") or (pair_type=="UR") or (pair_type=="RU")'
-    pairsamtools select 'chrom1==chrom2'
-    pairsamtools select 'COLS[1]==COLS[3]'
-    pairsamtools select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
-    pairsamtools select '(chrom1=="!") and (chrom2!="!")'
-    pairsamtools select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
+    pairtools select '(pair_type=="UU") or (pair_type=="UR") or (pair_type=="RU")'
+    pairtools select 'chrom1==chrom2'
+    pairtools select 'COLS[1]==COLS[3]'
+    pairtools select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
+    pairtools select '(chrom1=="!") and (chrom2!="!")'
+    pairtools select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
 
-    pairsamtools select 'True' --chr-subset mm9.reduced.chromsizes
+    pairtools select 'True' --chr-subset mm9.reduced.chromsizes
 
     '''
     select_py(

@@ -10,10 +10,10 @@ import click
 import numpy as np
 
 from . import _dedup, _fileio, _pairsam_format, _headerops, cli, common_io_options
-from .pairsam_markasdup import mark_split_pair_as_dup
-from .pairsam_stats import PairCounter
+from .pairtools_markasdup import mark_split_pair_as_dup
+from .pairtools_stats import PairCounter
 
-UTIL_NAME = 'pairsam_filterbycov'
+UTIL_NAME = 'pairtools_filterbycov'
 
 ######################################
 ## TODO: - output stats after filtering

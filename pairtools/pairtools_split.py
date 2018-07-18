@@ -6,7 +6,7 @@ import click
 
 from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
 
-UTIL_NAME = 'pairsam_split'
+UTIL_NAME = 'pairtools_split'
 
 @cli.command()
 @click.argument(
