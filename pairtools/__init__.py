@@ -11,7 +11,7 @@ CLI tools to process mapped Hi-C data
 
 """
 
-__version__ = '0.0.1-dev'
+__version__ = '0.0.1-dev2'
 
 
 import click
