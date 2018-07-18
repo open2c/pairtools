@@ -345,11 +345,8 @@ def _filterbycov(c1_in, p1_in, c2_in, p2_in, max_mismatch, method):
     # unsort proximity count
     #proximity_count = proximity_count[ind_sorted]
     proximity_count[ind_sorted] = np.copy(proximity_count)
-    #print(M[ind_sorted])
+    #print(M)
     #print(proximity_count)
-    #print(ind_sorted)
-    print(M)
-    print(proximity_count)
 
     # if method is sum of pairs
     if method == 'sum':
