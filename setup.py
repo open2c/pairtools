@@ -62,6 +62,7 @@ setup(
     license='BSD3',
     description='CLI tools to process mapped Hi-C data',
     long_description=get_long_description(),
+    long_description_content_type="text/markdown",
     keywords=['genomics', 'bioinformatics', 'Hi-C', 'contact'],
     url='https://github.com/mirnylab/pairtools',
     packages=find_packages(),

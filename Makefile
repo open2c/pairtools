@@ -22,13 +22,10 @@ clean: clean-pyc clean-build
 
 build: clean-build
 	python setup.py sdist
-	python setup.py bdist_wheel
+	# python setup.py bdist_wheel
 
 publish: build
 	twine upload dist/*
-	# python setup.py register
-	# python setup.py sdist upload
-	# python setup.py bdist_wheel upload
 
 publish-test:
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
