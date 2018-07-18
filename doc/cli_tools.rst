@@ -1,7 +1,7 @@
 Command-line tools
 ==================
 
-.. click:: pairsamtools:cli
-   :prog: pairsamtools
+.. click:: pairtools:cli
+   :prog: pairtools
    :show-nested:
 

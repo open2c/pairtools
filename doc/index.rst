@@ -1,15 +1,15 @@
-.. pairsamtools documentation master file, created by
+.. pairtools documentation master file, created by
    sphinx-quickstart on Wed Dec  6 12:32:49 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-pairsamtools
-============
+pairtools
+=========
 
-pairsamtools is a set of simple and fast command-line tools to process 
+pairtools is a set of simple and fast command-line tools to process 
 sequencing data from Hi-C experiments.
 
-pairsamtools operate on sequence alignments and perform the following operations:
+pairtools operate on sequence alignments and perform the following operations:
 
 * detect and classify ligation sites (a.k.a. `Hi-C pairs`) produced in Hi-C experiments
 * sort Hi-C pairs for downstream analyses 
@@ -18,7 +18,7 @@ pairsamtools operate on sequence alignments and perform the following operations
 * select Hi-C pairs given flexibly defined criteria
 * restore and tag .sam files for selected subsets of Hi-C pairs
 
-pairsamtools produce .pairs files compliant with the 
+pairtools produce .pairs files compliant with the 
 `4DN standards <https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md>`_.
 
 

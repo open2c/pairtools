@@ -21,9 +21,9 @@ We highly recommend using the conda package manager to install scientific packag
     $ pip install click nose
 
 
-Install the latest version of pairsamtools using pip.
+Install the latest version of pairtools using pip.
 
 ::
 
-    $ pip install git+https://github.com/mirnylab/pairsamtools
+    $ pip install git+https://github.com/mirnylab/pairtools
 

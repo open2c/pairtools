@@ -14,7 +14,7 @@ were formed through ligations between DNA from different locations in the genome
 These ligation events imply that ligated loci were close to each other
 when the ligation enzyme was active, i.e. they formed "a contact".
 
-``pairsamtools parse`` detects ligation events in the aligned sequences of 
+``pairtools parse`` detects ligation events in the aligned sequences of 
 DNA molecules formed in Hi-C experiments and reports them in the .pairs/.pairsam 
 format.
 
@@ -47,12 +47,12 @@ But, sometimes, the parts of one or both sides may map
 to different locations on the genome, producing more than two alignments per
 DNA molecule (see :ref:`section-walks`).
 
-``pairsamtools parse`` converts alignments into **ligation events** (aka
+``pairtools parse`` converts alignments into **ligation events** (aka
 **Hi-C pairs** aka **pairs**). In the simplest case, when each side has only one 
 unique alignment (i.e. the whole side maps to a single unique segment of the 
 genome), for each side, we report the chromosome, the genomic position of the
 outer-most (5') aligned base pair and the strand of the reference genome that 
-the read aligns to.  ``pairsamtools parse`` assigns to such pairs the type ``UU``
+the read aligns to.  ``pairtools parse`` assigns to such pairs the type ``UU``
 (unique-unique).
 
 Unmapped/multimapped reads
@@ -68,13 +68,13 @@ reference genome:
 
    A read pair missing an alignment on one or both sides
 
-In this case, ``pairsamtools parse`` fills in the chromosome of the corresponding
+In this case, ``pairtools parse`` fills in the chromosome of the corresponding
 side of Hi-C pair with ``!``, the position with ``0`` and the strand with ``-``.
 Such pairs are reported as type ``NU`` (null-unique, when the other side has
 a unique alignment) or ``NN`` (null-null, when both sides lack any alignment).
 
 Similarly, when one or both sides map to many genome locations equally well (i.e.
-have non-unique, or, multi-mapping alignments), ``pairsamtools parse`` reports 
+have non-unique, or, multi-mapping alignments), ``pairtools parse`` reports 
 the corresponding sides as (chromosome= ``!``, position= ``0``, strand= ``-``) and 
 type ``MU`` (multi-unique) or ``MM`` (multi-multi) or ``NM`` (null-multi),
 depending on the type of the alignment on the other side.
@@ -86,7 +86,7 @@ depending on the type of the alignment on the other side.
 
    A read pair with a non-unique (multi-) alignment on one side
    
-``pairsamtools parse`` calls an alignment to be multi-mapping when its
+``pairtools parse`` calls an alignment to be multi-mapping when its
 `MAPQ score <https://bioinformatics.stackexchange.com/questions/2417/meaning-of-bwa-mem-mapq-scores>`_
 (which depends on the scoring gap between the two best candidate alignments for a segment)
 is equal or greater than the value specied with the ``--min-mapq`` flag (by default, 1).
@@ -106,7 +106,7 @@ Finally, a read pair may contain more than two alignments:
    A sequenced Hi-C molecule that was formed via multiple ligations
 
 Molecules like these typically form via multiple ligation events and we call them
-walks [1]_. Currently, ``pairsamtools parse`` does not
+walks [1]_. Currently, ``pairtools parse`` does not
 process such molecules and tags them with type ``WW``. Note that, each of the
 alignments
 
@@ -132,7 +132,7 @@ molecule was formed via a single ligation and has to be reported:
    an alignment or simply ignored
 
 Both options have their merits, depending on a dataset, quality of the reference
-genome and sequencing. `pairsamtools parse` ignores shorter *gaps* and keeps 
+genome and sequencing. `pairtools parse` ignores shorter *gaps* and keeps 
 longer ones as "null" alignments. The maximal size of ignored *gaps* is set by
 the ``--max-inter-align-gap`` flag and, by default, equals 20bp.
 
@@ -157,7 +157,7 @@ piece [2]_. The fraction of such molecules depends on the type of the restrictio
 enzyme, the typical size of DNA molecules in the Hi-C library and the read 
 length, and sometimes can be considerable.
 
-``pairsamtools parse`` detects such molecules and **rescues** them (i.e.
+``pairtools parse`` detects such molecules and **rescues** them (i.e.
 changes their type from a *walk* to a single-ligation molecule). It tests
 walks with three aligments using three criteria:
 
@@ -179,7 +179,7 @@ walks with three aligments using three criteria:
 
 Sometimes, the "inner" alignment is non-unique or "null" (i.e. when the unmapped
 segment is longer than ``--max-inter-align-gap``, as described in :ref:`section-gaps`).
-`pairsamtools parse` rescues such *walks* as well.
+`pairtools parse` rescues such *walks* as well.
 
 .. figure:: _static/read_pair_UR_MorN.png
    :scale: 50 %
