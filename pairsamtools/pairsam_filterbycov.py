@@ -20,11 +20,6 @@ UTIL_NAME = 'pairsam_filterbycov'
 ## edit/update mark as dup to mark as multi
 ###################################
 
-
-# you don't need to load more than 10k lines at a time b/c you get out of the 
-# CPU cache, so this parameter is not adjustable
-MAX_LEN = 10000
-
 @cli.command()
 @click.argument(
     'pairsam_path', 
@@ -34,14 +29,14 @@ MAX_LEN = 10000
     "-o", "--output", 
     type=str, 
     default="", 
-    help='output file for filtered pairs after multiple interactors removal.'
+    help='output file for pairs from low coverage regions.'
         ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' By default, the output is printed into stdout.')
 @click.option(
-    "--output-high-frequency-interactors",
+    "--output-highcov",
     type=str, 
     default="", 
-    help='output file for removed multiple interactor pairs. '
+    help='output file for pairs from high coverage regions.'
         ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' If the path is the same as in --output or -, output duplicates together '
         ' with deduped pairs. By default, duplicates are dropped.')
@@ -52,7 +47,7 @@ MAX_LEN = 10000
     help='output file for unmapped pairs. '
         'If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed. '
         'If the path is the same as in --output or -, output unmapped pairs together '
-        'with deduped pairs. If the path is the same as --output-high-frequency-interactors, '
+        'with deduped pairs. If the path is the same as --output-highcov, '
         'output unmapped reads together. By default, unmapped pairs are dropped.')
 @click.option(
     "--output-stats", 
@@ -63,24 +58,25 @@ MAX_LEN = 10000
         ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
         ' By default, statistics are not printed.')
 @click.option(
-    "--max-mismatch",
-    type=int, 
-    default=500,
-    help='This distance in (bp) from either end of a pair is used to count interacting pairs.')
-@click.option(
-    "--max-interactions",
+    "--max-cov",
     type=int, 
     default=8,
-    help='Number of maximum number of allowable interacting pairs. Interactions'
-    'are counted when either position of a pair maps to "max-mismatch" distance from another pair position. ')
+    help='The maximum allowed coverage per region.'
+    )
+@click.option(
+    "--max-dist",
+    type=int, 
+    default=500,
+    help='The resolution for calculating coverage. For each pair, the local '
+    'coverage around each end is calculated as (1 + the number of neighbouring '
+    'pairs within +/- max_dist bp) ')
 @click.option(
     '--method',
     type=click.Choice(['max', 'sum']),
     default="max",  
     help='calculate the number of neighbouring pairs as either the sum or the max'
     ' of the number of neighbours on the two sides',
-
-    show_default=True,)
+    show_default=True)
 @click.option(
     "--sep",
     type=str, 
@@ -94,7 +90,7 @@ MAX_LEN = 10000
     help="The first character of comment lines")
 @click.option(
     "--send-header-to", 
-    type=click.Choice(['low-frequency-interactors', 'high-frequency-interactors', 'both', 'none']),
+    type=click.Choice(['lowcov', 'highcov', 'both', 'none']),
     default="both", 
     help="Which of the outputs should receive header and comment lines")
 @click.option(
@@ -141,26 +137,27 @@ MAX_LEN = 10000
 @common_io_options
 
 def filterbycov(
-    pairsam_path, output, output_high_frequency_interactors,
+    pairsam_path, output, output_highcov,
     output_unmapped, output_stats,
-    max_mismatch,max_interactions, method, 
+    max_dist,max_cov, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_multi, **kwargs
     ):
     '''filter out pairs from locations with suspiciously high coverage. Useful
-    for single-cell Hi-C experiments, where the coverage is naturally limited
+    for single-cell Hi-C experiments, where coverage is naturally limited
     by the chromosome copy number.
 
-    Find and remove pairs with >MAX_INTERACTIONS neighbouring pairs
-    within a +/-N bp window around either side.
+    Find and remove pairs with >(MAX_COV-1) neighbouring pairs
+    within a +/- MAX_DIST bp window around either side.
 
     PAIRSAM_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the
     path ends with .gz/.lz4, the input is decompressed by pbgzip/lz4c. 
     By default, the input is read from stdin.
     '''
-    filterbycov_py(pairsam_path, output, output_high_frequency_interactors,
+    filterbycov_py(
+        pairsam_path, output, output_highcov,
         output_unmapped,output_stats,
-        max_mismatch,max_interactions, method, 
+        max_dist,max_cov, method, 
         sep, comment_char, send_header_to,
         c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_multi,
         **kwargs
@@ -168,9 +165,9 @@ def filterbycov(
     
     
 def filterbycov_py(
-    pairsam_path, output, output_high_frequency_interactors,
+    pairsam_path, output, output_highcov,
     output_unmapped, output_stats,
-    max_mismatch,max_interactions, method, 
+    max_dist,max_cov, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_multi,
     **kwargs
@@ -180,8 +177,8 @@ def filterbycov_py(
     ## Prepare input, output streams based on selected outputs
     ## Default ouput stream is low-frequency interactors
     sep = ast.literal_eval('"""' + sep + '"""')
-    send_header_to_lowinteractors = send_header_to in ['both', 'low-frequency-interactors']
-    send_header_to_highinteractors = send_header_to in ['both', 'high-frequency-interactors']
+    send_header_to_lowcov = send_header_to in ['both', 'lowcov']
+    send_header_to_highcov = send_header_to in ['both', 'highcov']
 
     instream = (_fileio.auto_open(pairsam_path, mode='r', 
                                   nproc=kwargs.get('nproc_in'),
@@ -200,13 +197,13 @@ def filterbycov_py(
     out_stat = PairCounter() if output_stats else None    
     
     # output the high-frequency interacting pairs
-    if not output_high_frequency_interactors:
+    if not output_highcov:
         outstream_high = None
-    elif (output_high_frequency_interactors == '-' or 
-          (pathlib.Path(output_high_frequency_interactors).absolute() == pathlib.Path(output).absolute())):
+    elif (output_highcov == '-' or 
+          (pathlib.Path(output_highcov).absolute() == pathlib.Path(output).absolute())):
         outstream_high = outstream
     else:
-        outstream_high = _fileio.auto_open(output_high_frequency_interactors, mode='w', 
+        outstream_high = _fileio.auto_open(output_highcov, mode='w', 
                                             nproc=kwargs.get('nproc_out'),
                                             command=kwargs.get('cmd_out', None)) 
     
@@ -216,7 +213,7 @@ def filterbycov_py(
     elif (output_unmapped == '-' or 
         (pathlib.Path(output_unmapped).absolute() == pathlib.Path(output).absolute())):
         outstream_unmapped = outstream
-    elif (pathlib.Path(output_unmapped).absolute() == pathlib.Path(output_high_frequency_interactors).absolute()):
+    elif (pathlib.Path(output_unmapped).absolute() == pathlib.Path(output_highcov).absolute()):
         outstream_unmapped = outstream_high
     else:
         outstream_unmapped = _fileio.auto_open(output_unmapped, mode='w', 
@@ -228,11 +225,11 @@ def filterbycov_py(
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
 
     # header for low-frequency interactors
-    if send_header_to_lowinteractors:
+    if send_header_to_lowcov:
         outstream.writelines((l+'\n' for l in header))
         
     # header for high-frequency interactors
-    if send_header_to_highinteractors and outstream_high and (outstream_high != outstream):
+    if send_header_to_highcov and outstream_high and (outstream_high != outstream):
         outstream_high.writelines((l+'\n' for l in header))
         
     # header for unmapped pairs
@@ -241,7 +238,7 @@ def filterbycov_py(
         outstream_unmapped.writelines((l+'\n' for l in header))
   
     # perform filtering of pairs based on low/high-frequency of interaction
-    streaming_filterbycov( method, max_mismatch,max_interactions, sep,
+    streaming_filterbycov( method, max_dist,max_cov, sep,
         c1, c2, p1, p2, s1, s2, unmapped_chrom,
         body_stream, outstream, outstream_high,
         outstream_unmapped, out_stat, mark_multi)
@@ -278,7 +275,7 @@ def ar(mylist, val):
     return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
 
 
-def _filterbycov(c1_in, p1_in, c2_in, p2_in, max_mismatch, method):
+def _filterbycov(c1_in, p1_in, c2_in, p2_in, max_dist, method):
     """
     This is a slow version of the filtering code used for testing purposes only
     Use cythonized version in the future!!
@@ -330,7 +327,7 @@ def _filterbycov(c1_in, p1_in, c2_in, p2_in, max_mismatch, method):
             continue
 
         # next, if positions are not proximal, increase low, and continue
-        elif np.abs(M[ind_sorted[high],1] - M[ind_sorted[low],1]) > max_mismatch:
+        elif np.abs(M[ind_sorted[high],1] - M[ind_sorted[low],1]) > max_dist:
             low += 1
             high = low + 1  # restart high 
             continue
@@ -360,7 +357,7 @@ def _filterbycov(c1_in, p1_in, c2_in, p2_in, max_mismatch, method):
     return pcounts
 
 
-def streaming_filterbycov( method, max_mismatch, max_interactions, sep,
+def streaming_filterbycov( method, max_dist, max_cov, sep,
         c1ind, c2ind, p1ind, p2ind, s1ind, s2ind, unmapped_chrom,
         instream, outstream, outstream_high,
         outstream_unmapped, out_stat, mark_multi):
@@ -382,7 +379,6 @@ def streaming_filterbycov( method, max_mismatch, max_interactions, sep,
     n_unmapped = 0
     n_high = 0
     n_low = 0
-    #curMaxLen = max(MAX_LEN, dd.getLen())
 
     instream = iter(instream)
     while True: 
@@ -427,11 +423,11 @@ def streaming_filterbycov( method, max_mismatch, max_interactions, sep,
     
         else: # when everything is loaded in memory... 
 
-            res = _filterbycov(c1, p1, c2, p2, max_mismatch, method)
+            res = _filterbycov(c1, p1, c2, p2, max_dist, method)
 
             for i in range(len(res)):
                 # not high-frequency interactor pairs:
-                if not res[i] > max_interactions:
+                if not res[i] > max_cov:
                     outstream.write(line_buffer[i])
                     # don't forget terminal newline
                     outstream.write("\n")
