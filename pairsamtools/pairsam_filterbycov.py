@@ -13,7 +13,7 @@ from . import _dedup, _fileio, _pairsam_format, _headerops, cli, common_io_optio
 from .pairsam_markasdup import mark_split_pair_as_dup
 from .pairsam_stats import PairCounter
 
-UTIL_NAME = 'pairsam_multifilter'
+UTIL_NAME = 'pairsam_filterbycov'
 
 ######################################
 ## TODO: - output stats after filtering
@@ -71,13 +71,15 @@ MAX_LEN = 10000
     "--max-interactions",
     type=int, 
     default=8,
-    help='Number of maximum number of allowable interacting pairs. Interactions are counted when either position of a pair maps to "max-mismatch" distance from another pair position. ')
+    help='Number of maximum number of allowable interacting pairs. Interactions'
+    'are counted when either position of a pair maps to "max-mismatch" distance from another pair position. ')
 @click.option(
     '--method',
-    type=click.Choice(['max']),
+    type=click.Choice(['max', 'sum']),
     default="max",  
-    help='define the mismatch as either the max or the sum of the mismatches of'
-        'the genomic locations of the both sides of the two compared molecules',
+    help='calculate the number of neighbouring pairs as either the sum or the max'
+    ' of the number of neighbours on the two sides',
+
     show_default=True,)
 @click.option(
     "--sep",
@@ -138,23 +140,25 @@ MAX_LEN = 10000
 
 @common_io_options
 
-def multifilter(pairsam_path, output, output_high_frequency_interactors,
+def filterbycov(
+    pairsam_path, output, output_high_frequency_interactors,
     output_unmapped, output_stats,
     max_mismatch,max_interactions, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_multi, **kwargs
     ):
-    '''filter promiscuously interacting pairs.
+    '''filter out pairs from locations with suspiciously high coverage. Useful
+    for single-cell Hi-C experiments, where the coverage is naturally limited
+    by the chromosome copy number.
 
-    Find and remove pairs that have more than MAX_INTERACTIONS interactions.
-    Find pairs in an upper-triangular flipped sorted pairs/pairsam file. 
-    Allow for a +/-N bp mismatch at each side of duplicated molecules.
+    Find and remove pairs with >MAX_INTERACTIONS neighbouring pairs
+    within a +/-N bp window around either side.
 
     PAIRSAM_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the
     path ends with .gz/.lz4, the input is decompressed by pbgzip/lz4c. 
     By default, the input is read from stdin.
     '''
-    multifilter_py(pairsam_path, output, output_high_frequency_interactors,
+    filterbycov_py(pairsam_path, output, output_high_frequency_interactors,
         output_unmapped,output_stats,
         max_mismatch,max_interactions, method, 
         sep, comment_char, send_header_to,
@@ -163,7 +167,7 @@ def multifilter(pairsam_path, output, output_high_frequency_interactors,
         )
     
     
-def multifilter_py(
+def filterbycov_py(
     pairsam_path, output, output_high_frequency_interactors,
     output_unmapped, output_stats,
     max_mismatch,max_interactions, method, 
@@ -237,7 +241,7 @@ def multifilter_py(
         outstream_unmapped.writelines((l+'\n' for l in header))
   
     # perform filtering of pairs based on low/high-frequency of interaction
-    streaming_multifilter( method, max_mismatch,max_interactions, sep,
+    streaming_filterbycov( method, max_mismatch,max_interactions, sep,
         c1, c2, p1, p2, s1, s2, unmapped_chrom,
         body_stream, outstream, outstream_high,
         outstream_unmapped, out_stat, mark_multi)
@@ -274,19 +278,18 @@ def ar(mylist, val):
     return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
 
 
-def _multifilter(c1_in,p1_in,c2_in,p2_in):
+def _filterbycov(c1_in, p1_in, c2_in, p2_in, max_mismatch, method):
     """
     This is a slow version of the filtering code used for testing purposes only
     Use cythonized version in the future!!
     """
 
     c1 = np.asarray(c1_in,dtype=int)
-    p1 = np.asarray(p2_in,dtype=int)
+    p1 = np.asarray(p1_in,dtype=int)
     c2 = np.asarray(c2_in,dtype=int)
     p2 = np.asarray(p2_in,dtype=int)
     
-    methodType = 0
-    M = np.r_[np.c_[c1,p1],np.c_[c2,p2]] # M has shape (chrom, pos)
+    M = np.r_[np.c_[c1,p1],np.c_[c2,p2]] # M is a table of (chrom, pos) with 2*N rows
 
     assert (c1.shape[0] == c2.shape[0])
     N = 2*c1.shape[0]
@@ -294,17 +297,18 @@ def _multifilter(c1_in,p1_in,c2_in,p2_in):
     ind_sorted = np.lexsort((M[:,1],M[:,0])) # sort by chromosomes, then positions
     # M[ind_sorted]
     # ind_sorted
-    M, M[ind_sorted]
+    # M, M[ind_sorted]
 
 
-    if methodType == 0:
-        proximity_count = 0.5*np.ones(N) # keeps track of how many molecules each framgent end is close to
+    if (method == 'sum'):
+        proximity_count = np.zeros(N) # keeps track of how many molecules each framgent end is close to
+    elif (method == 'max'):
+        proximity_count = np.zeros(N) 
     else:
-        assert (1==0)
+        raise ValueError('Unknown method: {}'.format(method))
 
     low = 0
     high = 1
-    min_dist = 0
     while True:
 
         # boundary case finish
@@ -326,7 +330,7 @@ def _multifilter(c1_in,p1_in,c2_in,p2_in):
             continue
 
         # next, if positions are not proximal, increase low, and continue
-        elif np.abs(M[ind_sorted[high],1] - M[ind_sorted[low],1]) > min_dist:
+        elif np.abs(M[ind_sorted[high],1] - M[ind_sorted[low],1]) > max_mismatch:
             low += 1
             high = low + 1  # restart high 
             continue
@@ -339,16 +343,27 @@ def _multifilter(c1_in,p1_in,c2_in,p2_in):
         high += 1
 
     # unsort proximity count
-    # proximity_count = proximity_count[ind_sorted]
+    #proximity_count = proximity_count[ind_sorted]
+    proximity_count[ind_sorted] = np.copy(proximity_count)
+    #print(M[ind_sorted])
+    #print(proximity_count)
+    #print(ind_sorted)
+    print(M)
+    print(proximity_count)
 
     # if method is sum of pairs
-    if methodType == 0:
-        pcounts = proximity_count[0:N//2]+proximity_count[N//2:]
+    if method == 'sum':
+        pcounts = proximity_count[0:N//2] + proximity_count[N//2:] + 1
+    elif method == 'max':
+        pcounts = np.maximum(proximity_count[0:N//2]+1,
+                             proximity_count[N//2:]+1)
+    else:
+        raise ValueError('Unknown method: {}'.format(method))
        
     return pcounts
 
 
-def streaming_multifilter( method, max_mismatch,max_interactions, sep,
+def streaming_filterbycov( method, max_mismatch, max_interactions, sep,
         c1ind, c2ind, p1ind, p2ind, s1ind, s2ind, unmapped_chrom,
         instream, outstream, outstream_high,
         outstream_unmapped, out_stat, mark_multi):
@@ -415,7 +430,7 @@ def streaming_multifilter( method, max_mismatch,max_interactions, sep,
     
         else: # when everything is loaded in memory... 
 
-            res = _multifilter(c1,p1,c2,p2)
+            res = _filterbycov(c1, p1, c2, p2, max_mismatch, method)
 
             for i in range(len(res)):
                 # not high-frequency interactor pairs:
@@ -444,7 +459,8 @@ def streaming_multifilter( method, max_mismatch,max_interactions, sep,
                     if outstream_high:
                         outstream_high.write(
                           # FF-marked pair:
-                          sep.join(mark_split_pair_as_dup(cols_buffer[i])) if mark_multi
+                          sep.join(mark_split_pair_as_dup(cols_buffer[i])) 
+                          if mark_multi
                           # pair as is:
                           else line_buffer[i] )
                         # don't forget terminal newline
@@ -467,4 +483,4 @@ def streaming_multifilter( method, max_mismatch,max_interactions, sep,
     
     
 if __name__ == '__main__':
-    multifilter()
+    filterbycov()

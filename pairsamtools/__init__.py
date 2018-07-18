@@ -117,4 +117,4 @@ from .pairsam_restrict import restrict
 from .pairsam_phase import phase
 from .pairsam_parse import parse, parse_cigar, parse_algn
 from .pairsam_stats import stats
-from .pairsam_multifilter import multifilter
+from .pairsam_filterbycov import filterbycov
