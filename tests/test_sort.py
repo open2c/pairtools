@@ -12,7 +12,7 @@ def test_mock_pairsam():
         result = subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'sort',
              mock_pairsam_path],
             ).decode('ascii')

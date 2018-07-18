@@ -14,7 +14,7 @@ def test_preserve():
         result = subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'select',
              'True',
              mock_pairsam_path],
@@ -37,7 +37,7 @@ def test_equal():
         result = subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'select',
              '(pair_type == "CX") or (pair_type == "LL")',
              mock_pairsam_path],
@@ -64,7 +64,7 @@ def test_csv():
         result = subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'select',
              'csv_match(pair_type, "CX,LL")',
              mock_pairsam_path],
@@ -91,7 +91,7 @@ def test_wildcard():
         result = subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'select',
              'wildcard_match(pair_type, "*L")',
              mock_pairsam_path],
@@ -118,7 +118,7 @@ def test_regex():
         result = subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'select',
              'regex_match(pair_type, "[NM]L")',
              mock_pairsam_path],
@@ -144,7 +144,7 @@ def test_chrom_subset():
         result = subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'select',
              'True',
              '--chrom-subset',

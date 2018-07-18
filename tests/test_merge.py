@@ -19,7 +19,7 @@ def setup_func():
         subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'sort',
              mock_pairsam_path_1,
              '--output',
@@ -30,7 +30,7 @@ def setup_func():
         subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'sort',
              mock_pairsam_path_2,
              '--output',
@@ -51,7 +51,7 @@ def test_mock_pairsam():
         result = subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'merge',
              mock_sorted_pairsam_path_1,
              mock_sorted_pairsam_path_2

@@ -24,7 +24,7 @@ def setup_func():
         subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'dedup',
              mock_pairsam_path,
              '--output',
@@ -40,7 +40,7 @@ def setup_func():
         subprocess.check_output(
             ['python',
              '-m',
-             'pairsamtools',
+             'pairtools',
              'dedup',
              mock_pairsam_path,
              '--mark-dups',
