@@ -46,26 +46,26 @@ bwa mem -SP -t "${N_THREADS}" "${INDEX}" "${FASTQ1}" "${FASTQ2}" | {
     #  * read id
     #  * type of a Hi-C molecule
     #  * corresponding sam entries
-    pairsamtools parse "{CHROM_SIZES}"
+    pairtools parse "{CHROM_SIZES}"
 } | {
     # Block-sort pairs together with SAM entries
-    pairsamtools sort
+    pairtools sort
 } | {
     # Set unmapped and ambiguous reads aside
-    pairsamtools select '(pair_type == "UU") or (pair_type == "UR") or (pair_type == "RU")' \
-        --output-rest >( pairsamtools split \
+    pairtools select '(pair_type == "UU") or (pair_type == "UR") or (pair_type == "RU")' \
+        --output-rest >( pairtools split \
             --output-pairs ${UNMAPPED_PAIRS_PATH} \
             --output-sam ${UNMAPPED_SAM_PATH} ) 
 } | {
     # Remove duplicates
-    pairsamtools dedup \
+    pairtools dedup \
         --output \
-            >( pairsamtools split \
+            >( pairtools split \
                 --output-pairs ${NODUPS_PAIRS_PATH} \
                 --output-sam ${NODUPS_SAM_PATH} ) \
         --output-dups \
-            >( pairsamtools markasdup \
-                | pairsamtools split \
+            >( pairtools markasdup \
+                | pairtools split \
                     --output-pairs ${DUPS_PAIRS_PATH} \
                     --output-sam ${DUPS_SAM_PATH} )
 }
