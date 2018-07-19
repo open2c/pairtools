@@ -69,7 +69,7 @@ Additionally, we will need a .chromsizes file, a TAB-separated plain text table 
 $ wget https://raw.githubusercontent.com/mirnylab/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
 ```
 
-With `pairtools parse`, we covert these paired-end sequence alignments into .pairs, a TAB-separated table of Hi-C ligation sites:
+With `pairtools parse`, we can convert paired-end sequence alignments stored in .sam/.bam format into .pairs, a TAB-separated table of Hi-C ligation sites:
 
 ```bash
 $ pairtools parse -c sacCer3.reduced.chrom.sizes -o MATalpha_R1.pairs.gz --drop-sam MATalpha_R1.bam 
