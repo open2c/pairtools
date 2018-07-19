@@ -1,0 +1,18 @@
+include CHANGES.md
+include README.md
+include requirements.txt
+include requirements_doc.txt
+include LICENSE
+
+graft tests
+graft doc
+prune doc/_build
+prune doc/_templates
+
+global-exclude __pycache__/*
+global-exclude *.so
+global-exclude *.pyd
+global-exclude *.pyc
+global-exclude .git*
+global-exclude .deps/*
+global-exclude .DS_Store
