@@ -57,6 +57,17 @@ $ pip install pairtools
 
 ## Quick example
 
+Setup a new test folder and download a small Hi-C dataset mapped to sacCer3 genome:
+```bash
+$ mkdir /tmp/test-pairtools
+$ cd /tmp/test-pairtools
+$ wget https://github.com/mirnylab/distiller-test-data/raw/master/bam/MATalpha_R1.bam
+```
+
+Additionally, we'll need .chromsizes, a TAB-separated file describing the names, sizes and the order of chromosomes in the genome assembly used during mapping:
+```bash
+$ wget https://raw.githubusercontent.com/mirnylab/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
+```
 
 
 ## Pipelines
