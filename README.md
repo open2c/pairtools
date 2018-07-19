@@ -12,7 +12,7 @@ data from a Hi-C experiment.
 `pairtools` process pair-end sequence alignments and perform the following
 operations:
 
-- detect ligation sites (a.k.a. Hi-C pairs) in aligned paired-end sequences of Hi-C DNA molecules
+- detect ligation junctions (a.k.a. Hi-C pairs) in aligned paired-end sequences of Hi-C DNA molecules
 - sort .pairs files for downstream analyses
 - detect, tag and remove PCR/optical duplicates 
 - generate extensive statistics of Hi-C datasets
@@ -69,7 +69,7 @@ Additionally, we will need a .chromsizes file, a TAB-separated plain text table 
 $ wget https://raw.githubusercontent.com/mirnylab/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
 ```
 
-With `pairtools parse`, we can convert paired-end sequence alignments stored in .sam/.bam format into .pairs, a TAB-separated table of Hi-C ligation sites:
+With `pairtools parse`, we can convert paired-end sequence alignments stored in .sam/.bam format into .pairs, a TAB-separated table of Hi-C ligation junctions:
 
 ```bash
 $ pairtools parse -c sacCer3.reduced.chrom.sizes -o MATalpha_R1.pairs.gz --drop-sam MATalpha_R1.bam 
