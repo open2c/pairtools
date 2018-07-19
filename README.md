@@ -61,10 +61,8 @@ $ pip install pairtools
 
 ## Pipelines
 
-We provide a simple mapping bash pipeline in /examples/. It serves as an illustration to pairtools' functionality and
-will not be further developed.
-
-[distiller](https://github.com/mirnylab/distiller-nf) is a powerful
+- We provide a simple working example of a mapping bash pipeline in /examples/.
+- [distiller](https://github.com/mirnylab/distiller-nf) is a powerful
 Hi-C data analysis workflow, based on `pairtools` and [nextflow](https://www.nextflow.io/).
 
 
