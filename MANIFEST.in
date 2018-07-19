@@ -9,6 +9,9 @@ graft doc
 prune doc/_build
 prune doc/_templates
 
+global-include *.pyx
+global-include *.pxd
+
 global-exclude __pycache__/*
 global-exclude *.so
 global-exclude *.pyd
