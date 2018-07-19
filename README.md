@@ -64,11 +64,22 @@ $ cd /tmp/test-pairtools
 $ wget https://github.com/mirnylab/distiller-test-data/raw/master/bam/MATalpha_R1.bam
 ```
 
-Additionally, we'll need .chromsizes, a TAB-separated file describing the names, sizes and the order of chromosomes in the genome assembly used during mapping:
+Additionally, we will need a .chromsizes file, a TAB-separated plain text table describing the names, sizes and the order of chromosomes in the genome assembly used during mapping:
 ```bash
 $ wget https://raw.githubusercontent.com/mirnylab/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
 ```
 
+With `pairtools parse`, we covert these paired-end sequence alignments into .pairs, a TAB-separated table of Hi-C ligation sites:
+
+```bash
+$ pairtools parse -c sacCer3.reduced.chrom.sizes -o MATalpha_R1.pairs.gz --drop-sam MATalpha_R1.bam 
+```
+
+Inspect the resulting table:
+
+```bash
+$ less MATalpha_R1.pairs.gz
+```
 
 ## Pipelines
 
