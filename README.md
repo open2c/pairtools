@@ -12,15 +12,16 @@ data from a Hi-C experiment.
 `pairtools` process pair-end sequence alignments and perform the following
 operations:
 
-- detect and classify ligation sites (a.k.a. Hi-C pairs) produced in Hi-C experiments
+- detect ligation sites (a.k.a. Hi-C pairs) in aligned paired-end sequences of Hi-C DNA molecules
 - sort .pairs files for downstream analyses
 - detect, tag and remove PCR/optical duplicates 
 - generate extensive statistics of Hi-C datasets
 - select Hi-C pairs given flexibly defined criteria
-- restore and tag .sam files for selected subsets of Hi-C pairs
+- restore .sam alignments from Hi-C pairs
 
 To get started:
-- Check out the [documentation](http://pairsamtools.readthedocs.io).
+- Take a look at a [quick example](https://github.com/mirnylab/pairtools#quick-example)
+- Check out the detailed [documentation](http://pairsamtools.readthedocs.io).
 
 ## Data formats
 
@@ -29,6 +30,10 @@ To get started:
 format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/). All
 pairtools properly manage file headers and keep track of the data
 processing history.
+
+Additionally, `pairtools` define the .pairsam format, an extension of .pairs that includes the SAM alignments 
+of a sequenced Hi-C molecule. .pairsam complies with the .pairs format, and can be processed by any tool that
+operates on .pairs files.
 
 ## Installation
 
@@ -49,6 +54,10 @@ Alternatively, install `pairtools` and only Python dependencies from PyPI using 
 ```sh
 $ pip install pairtools
 ```
+
+## Quick example
+
+
 
 ## Pipelines
 
@@ -108,8 +117,6 @@ Hi-C data analysis workflow, based on `pairtools` and [nextflow](https://www.nex
 - `stats`: calculate various statistics of .pairs files
 
 - `restrict`: identify the span of the restriction fragment forming a Hi-C junction
-
-
 
 ## Contributing
 
