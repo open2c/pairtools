@@ -4,13 +4,14 @@
 [![Build Status](https://travis-ci.org/mirnylab/pairtools.svg?branch=master)](https://travis-ci.org/mirnylab/pairtools)
 [![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-## build Hi-C mapping pipelines with pairtools
+## Process Hi-C pairs with pairtools
 
 pairtools is a simple and fast command-line framework to process sequencing
 data from a Hi-C experiment.
 
 pairtools process pair-end sequence alignments and perform the following
 operations:
+
 - detect and classify ligation sites (a.k.a. Hi-C pairs) produced in Hi-C experiments
 - sort .pairs files for downstream analyses
 - detect, tag and remove PCR/optical duplicates 
@@ -18,7 +19,10 @@ operations:
 - select Hi-C pairs given flexibly defined criteria
 - restore and tag .sam files for selected subsets of Hi-C pairs
 
-To get started, check out the [documentation](http://pairsamtools.readthedocs.io).
+To get started:
+- Check out the [documentation](http://pairsamtools.readthedocs.io).
+
+## Data formats
 
 pairtools produce and operate on tab-separated files compliant with the
 [.pairs](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) 
@@ -26,22 +30,38 @@ format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/). All
 pairtools properly manage file headers and keep track of the data
 processing history.
 
-## installation
+## Installation
 
 Requirements:
-- python 3.x
-- unix sort
-- bgzip
-- Cython
-- numpy
-- click
 
-Install using pip:
+- Python 3.x
+- Python packages `cython`, `numpy` and `click`.
+- command-line utilities `sort` (the Unix version), `bgzip` (shipped with `tabix`)  and `samtools`. If available, `pairtools` can compress outputs with `pbgzip` and `lz4`.
+
+We highly recommend using the `conda` package manager to install `pairtools` together with all its dependencies. To get it, you can either install the full [Anaconda](https://www.continuum.io/downloads) Python distribution or just the standalone [conda](http://conda.pydata.org/miniconda.html) package manager.
+
+With `conda`, you can install `pairtools` and all of its dependencies from the [bioconda](https://bioconda.github.io/index.html) channel.
 ```sh
-$ pip install git+https://github.com/mirnylab/pairtools
+$ conda install -c conda-forge -c bioconda pairtools
 ```
 
-### tools
+Alternatively, install `pairtools` and only Python dependencies from PyPI using pip:
+```sh
+$ pip install pairtools
+```
+
+## Pipelines
+
+We provide a simple mapping bash pipeline in /examples/.
+It serves as an illustration to pairtools' functionality and
+will not be further developed.
+
+[distiller](https://github.com/mirnylab/distiller-nf) is a powerful
+Hi-C data analysis workflow, based on pairtools and 
+[nextflow](https://www.nextflow.io/).
+
+
+## Tools
 
 - parse: read .sam files produced by bwa and form Hi-C pairs
     - form Hi-C pairs by reporting the outer-most mapped positions and the strand
@@ -91,14 +111,21 @@ $ pip install git+https://github.com/mirnylab/pairtools
 
 - restrict: identify the span of the restriction fragment forming a Hi-C junction
 
-### pipelines
 
-We provide a simple mapping bash pipeline in /examples/.
-It serves as an illustration to pairtools' functionality and
-will not be further developed.
 
-[distiller](https://github.com/mirnylab/distiller-nf) is a powerful
-Hi-C data analysis workflow, based on pairtools and 
-[nextflow](https://www.nextflow.io/).
+## Contributing
+
+[Pull requests](https://akrabat.com/the-beginners-guide-to-contributing-to-a-github-project/) are welcome.
+
+For development, clone and install in "editable" (i.e. development) mode with the `-e` option. This way you can also pull changes on the fly.
+```sh
+$ git clone https://github.com/mirnylab/pairtools.git
+$ cd pairtools
+$ pip install -e .
+```
+
+## License
+
+MIT
 
 
