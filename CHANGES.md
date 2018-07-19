@@ -1,3 +1,3 @@
-### 0.1 (2018-07-19) ###
+### 0.1.0 (2018-07-19) ###
 
-* Working initial prototype.
+* First release.
