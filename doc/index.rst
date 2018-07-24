@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-pairtools
-=========
+Overview
+========
 
 `pairtools` is a simple and fast command-line framework to process sequencing
 data from a Hi-C experiment.
@@ -32,6 +32,11 @@ The list of available pairtools includes:
 Contents:
 
 .. toctree::
+   :hidden:
+
+   self
+
+.. toctree::
    :maxdepth: 3
 
    quickstart
@@ -42,10 +47,5 @@ Contents:
    cli_tools
 
 
-Indices and tables
-==================
-
 * :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
