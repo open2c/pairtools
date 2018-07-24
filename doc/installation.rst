@@ -19,7 +19,7 @@ distribution or just the standalone
 [conda](http://conda.pydata.org/miniconda.html) package manager.
 
 With `conda`, you can install pre-compiled `pairtools` and all of its
-dependencies from the [bioconda](https://bioconda.github.io/index.html) channel.
+dependencies from the [bioconda](https://bioconda.github.io/index.html) channel:
 
 .. code-block:: bash
 
