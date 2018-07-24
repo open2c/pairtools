@@ -28,8 +28,8 @@ Contents:
    :maxdepth: 3
 
    overview
-   installation
    quickstart
+   installation
    parsing
    sorting
    formats 

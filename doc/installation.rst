@@ -14,12 +14,12 @@ Install using conda
 
 We highly recommend using the `conda` package manager to install pre-compiled
 `pairtools` together with all its dependencies. To get it, you can either 
-install the full [Anaconda](https://www.continuum.io/downloads) Python 
+install the full `Anaconda <https://www.continuum.io/downloads>`_ Python 
 distribution or just the standalone 
-[conda](http://conda.pydata.org/miniconda.html) package manager.
+`conda <http://conda.pydata.org/miniconda.html>`_ package manager.
 
 With `conda`, you can install pre-compiled `pairtools` and all of its
-dependencies from the [bioconda](https://bioconda.github.io/index.html) channel:
+dependencies from the `bioconda <https://bioconda.github.io/index.html>`_ channel:
 
 .. code-block:: bash
 
@@ -47,7 +47,7 @@ github. First, make a local clone of the github repository:
     $ git clone https://github.com/mirnylab/pairtools 
 
 Then, you can compile and install `pairtools` in 
-[the development mode](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode), 
+`the development mode <https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_, 
 which installs the package without moving it to a system folder and thus allows
 immediate live-testing any changes in the python code. Please, make sure that you 
 have `cython` installed!

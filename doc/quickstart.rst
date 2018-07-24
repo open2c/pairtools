@@ -2,8 +2,8 @@ Quickstart
 ==========
 
 Install `pairtools` and all of its dependencies using the 
-[conda](https://conda.io/docs/user-guide/install/index.html) package manager and 
-the [bioconda](https://bioconda.github.io/index.html) channel for bioinformatics 
+`conda <https://conda.io/docs/user-guide/install/index.html>`_ package manager and 
+the `bioconda <https://bioconda.github.io/index.html>`_ channel for bioinformatics 
 software.
 
 .. code-block:: bash
