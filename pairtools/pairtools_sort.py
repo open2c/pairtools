@@ -61,10 +61,11 @@ UTIL_NAME = 'pairtools_sort'
 @common_io_options
 
 def sort(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
-    '''sort a .pairs/.pairsam file. 
+    '''Sort a .pairs/.pairsam file. 
     
-    The resulting order is lexicographic along chrom1 and chrom2, numeric 
-    along pos1 and pos2 and lexicographic along pair_type.
+    Sort pairs in the lexicographic order along chrom1 and chrom2, in the 
+    numeric order along pos1 and pos2 and in the lexicographic order along 
+    pair_type.
 
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the 
     input is decompressed by pbgzip or lz4c, correspondingly. By default, the 

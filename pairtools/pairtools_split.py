@@ -34,7 +34,10 @@ UTIL_NAME = 'pairtools_split'
 @common_io_options
 
 def split(pairsam_path, output_pairs, output_sam, **kwargs):
-    '''split a .pairsam file into pairs and sam.
+    '''Split a .pairsam file into .pairs and .sam.
+
+    Restore a .sam file from sam1 and sam2 fields of a .pairsam file. Create 
+    a .pairs file without sam1/sam2 fields.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the
     input is decompressed by pbgzip or lz4c. By default, the input is read from 

@@ -36,7 +36,9 @@ UTIL_NAME = 'pairtools_restrict'
 @common_io_options
 
 def restrict(pairs_path, frags, output, **kwargs):
-    '''identify the restriction fragments that got ligated into a Hi-C molecule.
+    '''Assign restriction fragments to pairs.
+
+    Identify the restriction fragments that got ligated into a Hi-C molecule.
 
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz/.lz4, the 
     input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.

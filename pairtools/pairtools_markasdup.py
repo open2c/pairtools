@@ -24,10 +24,13 @@ UTIL_NAME = 'pairtools_markasdup'
 @common_io_options
 
 def markasdup(pairsam_path, output, **kwargs):
-    '''tag all pairsam entries with a duplicate tag.
+    '''Tag pairs as duplicates.
 
-    PAIRSAM_PATH : input .pairsam file. If the path ends with .gz, the input is
-    gzip-decompressed. By default, the input is read from stdin.
+    Change the type of all pairs inside a .pairs/.pairsam file to DD. If sam
+    entries are present, change the pair type in the Yt SAM tag to 'Yt:Z:DD'.
+
+    PAIRSAM_PATH : input .pairs/.pairsam file. If the path ends with .gz, the 
+    input is gzip-decompressed. By default, the input is read from stdin.
     '''
     markasdup_py(pairsam_path, output, **kwargs)
 

@@ -145,10 +145,11 @@ EXTRA_COLUMNS = [
 def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
           drop_readid, drop_seq, drop_sam, add_columns,
           output_parsed_alignments, output_stats, **kwargs):
-    '''parse .sam and make .pairs/.pairsam.
+    '''Find ligation junctions in .sam, make .pairs.
 
-    SAM_PATH : input .sam file. If the path ends with .bam, the input is 
-    decompressed from bam. By default, the input is read from stdin.
+    SAM_PATH : an input .sam/.bam file with paired-end sequence alignments of
+    Hi-C molecules. If the path ends with .bam, the input is decompressed from
+    bam with samtools. By default, the input is read from stdin.
     '''
     parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size, 
              drop_readid, drop_seq, drop_sam, add_columns,

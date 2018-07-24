@@ -143,12 +143,12 @@ def filterbycov(
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_multi, **kwargs
     ):
-    '''filter out pairs from locations with suspiciously high coverage. Useful
-    for single-cell Hi-C experiments, where coverage is naturally limited
-    by the chromosome copy number.
-
+    '''Remove pairs from regions of high coverage. 
+    
     Find and remove pairs with >(MAX_COV-1) neighbouring pairs
-    within a +/- MAX_DIST bp window around either side.
+    within a +/- MAX_DIST bp window around either side. Useful for single-cell 
+    Hi-C experiments, where coverage is naturally limited by the chromosome 
+    copy number.
 
     PAIRS_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the
     path ends with .gz/.lz4, the input is decompressed by pbgzip/lz4c. 

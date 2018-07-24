@@ -59,7 +59,7 @@ def select(
     chrom_subset,
     **kwargs
     ):
-    '''select pairs according to a specified condition.
+    '''Select pairs according to some condition.
 
     CONDITION : A Python expression; if it returns True, select the read pair.
     Any column declared in the #columns line of the pairs header can be 

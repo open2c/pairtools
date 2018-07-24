@@ -106,7 +106,7 @@ UTIL_NAME = 'pairtools_merge'
 # Using custom IO options
 
 def merge(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
-    """merge sorted pairs/pairsam files. 
+    """Merge sorted .pairs/.pairsam files. 
 
     Merge triu-flipped sorted pairs/pairsam files. If present, the @SQ records 
     of the SAM header must be identical; the sorting order of 

@@ -146,7 +146,7 @@ def dedup(pairs_path, output, output_dups, output_unmapped,
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair, **kwargs
     ):
-    '''find and remove PCR duplicates.
+    '''Find and remove PCR/optical duplicates.
 
     Find PCR duplicates in an upper-triangular flipped sorted pairs/pairsam 
     file. Allow for a +/-N bp mismatch at each side of duplicated molecules.
