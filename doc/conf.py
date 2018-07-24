@@ -57,7 +57,7 @@ author = 'Mirny Lab'
 # The short X.Y version.
 
 def _read(*parts, **kwargs):
-    import os, re
+    import os, io
     filepath = os.path.join(os.path.dirname(__file__), *parts)
     encoding = kwargs.pop('encoding', 'utf-8')
     with io.open(filepath, encoding=encoding) as fh:
