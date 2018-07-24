@@ -1,29 +1,35 @@
 Quickstart
 ==========
 
-Installation
-------------
+Install `pairtools` and all of its dependencies using the 
+[conda](https://conda.io/docs/user-guide/install/index.html) package manager and 
+the [bioconda](https://bioconda.github.io/index.html) channel for bioinformatics 
+software.
+```sh
+$ conda install -c conda-forge -c bioconda pairtools
+```
 
-Requirements:
+Setup a new test folder and download a small Hi-C dataset mapped to sacCer3 genome:
+```bash
+$ mkdir /tmp/test-pairtools
+$ cd /tmp/test-pairtools
+$ wget https://github.com/mirnylab/distiller-test-data/raw/master/bam/MATalpha_R1.bam
+```
 
-- python 3.4 and higher
-- unix sort
-- bgzip
-- pbgzip (optional)
-- samtools >= 1.4
-- Python packages ``Cython``, ``numpy``,  ``click``, ``nose``
+Additionally, we will need a .chromsizes file, a TAB-separated plain text table describing the names, sizes and the order of chromosomes in the genome assembly used during mapping:
+```bash
+$ wget https://raw.githubusercontent.com/mirnylab/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
+```
 
-We highly recommend using the conda package manager to install scientific packages and their dependencies. To get ``conda``, you can download either the full `Anaconda <https://www.continuum.io/downloads>`_ Python distribution which comes with lots of data science software or the minimal `Miniconda <http://conda.pydata.org/miniconda.html>`_ distribution which is just the standalone package manager plus Python. In the latter case, you can install the packages as follows:
+With `pairtools parse`, we can convert paired-end sequence alignments stored in .sam/.bam format into .pairs, a TAB-separated table of Hi-C ligation junctions:
 
-::
+```bash
+$ pairtools parse -c sacCer3.reduced.chrom.sizes -o MATalpha_R1.pairs.gz --drop-sam MATalpha_R1.bam 
+```
 
-    $ conda install samtools sort bgzip pbgzip Cython numpy pip
-    $ pip install click nose
+Inspect the resulting table:
 
-
-Install the latest version of pairtools using pip.
-
-::
-
-    $ pip install git+https://github.com/mirnylab/pairtools
+```bash
+$ less MATalpha_R1.pairs.gz
+```
 

@@ -6,30 +6,33 @@
 pairtools
 =========
 
-pairtools is a set of simple and fast command-line tools to process 
-sequencing data from Hi-C experiments.
+`pairtools` is a simple and fast command-line framework to process sequencing
+data from a Hi-C experiment.
 
-pairtools operate on sequence alignments and perform the following operations:
+`pairtools` process pair-end sequence alignments and perform the following
+operations:
 
-* detect and classify ligation sites (a.k.a. `Hi-C pairs`) produced in Hi-C experiments
-* sort Hi-C pairs for downstream analyses 
-* detect, tag and remove PCR/optical duplicates
-* generate extensive statistics of Hi-C datasets
-* select Hi-C pairs given flexibly defined criteria
-* restore and tag .sam files for selected subsets of Hi-C pairs
+- detect ligation junctions (a.k.a. Hi-C pairs) in aligned paired-end sequences of Hi-C DNA molecules
+- sort .pairs files for downstream analyses
+- detect, tag and remove PCR/optical duplicates 
+- generate extensive statistics of Hi-C datasets
+- select Hi-C pairs given flexibly defined criteria
+- restore .sam alignments from Hi-C pairs
 
 pairtools produce .pairs files compliant with the 
 `4DN standards <https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md>`_.
-
 
 Contents:
 
 .. toctree::
    :maxdepth: 3
 
+   overview
    quickstart
+   installation
    parsing
-   pairsam
+   sorting
+   formats 
    cli_tools
 
 

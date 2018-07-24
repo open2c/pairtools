@@ -1,5 +1,5 @@
-Parsing alignments into pairs
-=============================
+Parsing sequence alignments into Hi-C pairs
+===========================================
 
 Overview
 --------
@@ -188,11 +188,9 @@ segment is longer than ``--max-inter-align-gap``, as described in :ref:`section-
 
    A walk with three alignments get rescued, when the middle alignment is multi- or null.
 
-Pair flipping
--------------
+Pair types
+----------
 
-Other reporting options
------------------------
 
 .. [1] Following the lead of `C-walks <https://www.nature.com/articles/nature20158>`_
 
