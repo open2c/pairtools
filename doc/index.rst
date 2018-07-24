@@ -22,6 +22,13 @@ operations:
 pairtools produce .pairs files compliant with the 
 `4DN standards <https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md>`_.
 
+The list of available pairtools includes:
+
+.. click_subcommand_table:: pairtools:cli
+   :prog: pairtools
+   :column_names: Pairtool,Description
+
+
 Contents:
 
 .. toctree::
