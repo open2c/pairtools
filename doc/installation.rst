@@ -20,18 +20,20 @@ distribution or just the standalone
 
 With `conda`, you can install pre-compiled `pairtools` and all of its
 dependencies from the [bioconda](https://bioconda.github.io/index.html) channel.
-```sh
-$ conda install -c conda-forge -c bioconda pairtools
-```
+
+.. code-block:: bash
+
+    $ conda install -c conda-forge -c bioconda pairtools
 
 Install using pip
 -----------------
 
 Alternatively, compile and install `pairtools` and its Python dependencies from
 PyPI using pip:
-```sh
-$ pip install pairtools
-```
+
+.. code-block:: bash
+
+    $ pip install pairtools
 
 
 Install the development version
@@ -40,9 +42,9 @@ Install the development version
 Finally, you can install the latest development version of `pairtools` from
 github. First, make a local clone of the github repository:
 
-```sh
-$ git clone https://github.com/mirnylab/pairtools 
-```
+.. code-block:: bash
+
+    $ git clone https://github.com/mirnylab/pairtools 
 
 Then, you can compile and install `pairtools` in 
 [the development mode](https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode), 
@@ -50,9 +52,9 @@ which installs the package without moving it to a system folder and thus allows
 immediate live-testing any changes in the python code. Please, make sure that you 
 have `cython` installed!
 
-```sh
-$ cd pairtools 
-$ pip install -e ./
-```
+.. code-block:: bash
+
+    $ cd pairtools 
+    $ pip install -e ./
 
 
