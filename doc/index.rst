@@ -27,7 +27,6 @@ Contents:
 .. toctree::
    :maxdepth: 3
 
-   overview
    quickstart
    installation
    parsing
