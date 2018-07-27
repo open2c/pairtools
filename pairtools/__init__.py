@@ -40,6 +40,12 @@ CONTEXT_SETTINGS = {
     default=''
 )
 def cli(post_mortem, output_profile):
+    '''Flexible tools for Hi-C data processing.
+
+    All pairtools have a few common options, which should be typed _before_ 
+    the command name.
+
+    '''
     if post_mortem:
         import traceback
         try:
