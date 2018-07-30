@@ -474,11 +474,15 @@ def rescue_walk(algns1, algns2, max_molecule_size):
     
     if can_rescue:
         if first_read_is_chimeric:
-            algns1[1]['type'] = 'X'
+            # changing the type of the 3' alignment on side 1, does not show up
+            # in the output
+            algns1[1]['type'] = 'X' 
             algns2[0]['type'] = 'R'
             return 2
         else:
             algns1[0]['type'] = 'R'
+            # changing the type of the 3' alignment on side 2, does not show up
+            # in the output
             algns2[1]['type'] = 'X'
             return 1
     else:
