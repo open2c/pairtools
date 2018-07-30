@@ -75,34 +75,44 @@ identify which side has an alignment of a "poorer" quality
 (unmapped < multimapped < unique alignment)
 and which side has a "better" alignment and find the corresponding row in the table.
 
-=============== ========= ==================== ========= =================== ======================== ========== ===========
-  .              Less informative alignment     More informative alignment    .                        .          .        
---------------- ------------------------------ ----------------------------- ------------------------ ---------- -----------
- >2 alignments   Mapped    Unique               Mapped    Unique              Pair type                Code       Sidedness                           
- |check|         |cross|   |cross|              |cross|   |cross|             chimeric-chimeric        CC         0 [1]_
- |cross|         |cross|                        |cross|                       null                     NN         0     
- |cross|         |cross|                        |check|   |cross|             null-multi               NM         0     
- |cross|         |cross|                        |check|   |check|             null-unique              NU         1     
- |check|         |cross|                        |check|   |check|             null-rescued-chimeric    NR         1 [2]_
- |cross|         |check|   |cross|              |check|   |cross|             multi-multi              MM         0     
- |cross|         |check|   |cross|              |check|   |check|             multi-unique             MU         1     
- |check|         |check|   |cross|              |check|   |check|             multi-rescued-chimeric   MR         2 [2]_
- |cross|         |check|   |check|              |check|   |check|             unique-unique            UU         2     
- |check|         |check|   |check|              |check|   |check|             rescured-chimeric        UR or RU   2 [2]_
- |cross|         |check|   |check|              |check|   |check|             duplicate                DD         2 [3]_
-=============== ========= ==================== ========= =================== ======================== ========== ===========
+=============== ========= ================== ========= ================== ======================== ====== ===========
+  .              Less informative alignment   More informative alignment   .                        .      .        
+--------------- ---------------------------- ---------------------------- ------------------------ ------ -----------
+ >2 alignments   Mapped    Unique             Mapped    Unique             Pair type                Code   Sidedness                           
+ |check|         |cross|   |cross|            |cross|   |cross|            walk-walk                WW     0 [1]_
+ |cross|         |cross|                      |cross|                      null                     NN     0     
+ |cross|         |cross|                      |check|   |cross|            null-multi               NM     0     
+ |check|         |cross|                      |check|   |check|            null-rescued             NR     1 [2]_
+ |cross|         |cross|                      |check|   |check|            null-unique              NU     1     
+ |cross|         |check|   |cross|            |check|   |cross|            multi-multi              MM     0     
+ |check|         |check|   |cross|            |check|   |check|            multi-rescued            MR     1 [2]_
+ |cross|         |check|   |cross|            |check|   |check|            multi-unique             MU     1     
+ |check|         |check|   |check|            |check|   |check|            rescued-unique           RU     2 [2]_
+ |check|         |check|   |check|            |check|   |check|            unique-rescued           UR     2 [2]_
+ |cross|         |check|   |check|            |check|   |check|            unique-unique            UU     2     
+ |cross|         |check|   |check|            |check|   |check|            duplicate                DD     2 [3]_
+=============== ========= ================== ========= ================== ======================== ====== ===========
 
-.. [1] chimeric reads represent Hi-C molecules formed via multiple ligation
-   events and thus cannot be reported as a single pair.
+.. [1] "walks", or, `C-walks <https://www.nature.com/articles/nature20158>`_ are
+   Hi-C molecules formed via multiple ligation events which cannot be reported 
+   as a single pair.  
 
-.. [2] some chimeric reads correspond to valid Hi-C molecules formed via a single
-   ligation event, with the ligation junction sequenced through on one side. 
+.. [2] "rescued" pairs have two non-overlapping alignments on one of the sides
+   (referred below as the chimeric side/read), but the inner (3'-) one extends the 
+   only alignment on the other side (referred as the non-chimeric side/read).
+   Such pairs form when one of the two ligated DNA fragments is shorter than
+   the read length. In this case, one of the reads contains this short fragment
+   entirely, together with the ligation junction and a chunk of the other DNA fragment 
+   (thus, this read ends up having two non-overlapping alignments).
    Following the procedure introduced in `HiC-Pro <https://github.com/nservant/HiC-Pro>`_
-   and `Juicer <https://github.com/theaidenlab/juicer>`_, `pairtools` rescue such 
-   molecules, report their outer-most mapped positions and tag them as "UR" or "RU" pair type.
-   Such molecules can and should be used in downstream analysis.
+   and `Juicer <https://github.com/theaidenlab/juicer>`_, `pairtools parse` 
+   rescues such Hi-C molecules, reports the position of the 5' alignment on the
+   chimeric side, and tags them as "NU", "MU", "UR" or "RU" pair type, depending 
+   on the type of the 5' alignment on the chimeric side. Such molecules can and
+   should be used in downstream analysis.
+   Read more on the rescue procedure in :doc:`the section on parsing <parsing>`.
 
-.. [3] pairtools detect molecules that could be formed via PCR duplication and
+.. [3] `pairtools dedup` detects molecules that could be formed via PCR duplication and
    tags them as "DD" pair type. These pairs should be excluded from downstream 
    analyses.
 
@@ -131,19 +141,26 @@ Finally, sam1 and sam2 can store multiple .sam alignments, separated by a string
 Technical notes
 ---------------
 
-The motivation behind some of the technical decisions in the definition
-of .pairsam:
+The motivation behind some of the technical decisions in the pairtools' flavor
+of .pairs/.pairsam:
 
-- while the information in columns 1-8 may appear redundant to sam alignments in
-  the columns 9+, extracting this information is non-trivial and thus is better 
-  done only once with results stored.
-- storing sam entries together with pairs drastically speeds up and simplifies 
-  several operations like filtering and tagging of unmapped/ambiguous/duplicated 
-  Hi-C molecules.
-- the exclamation mark "!" is used as a character for unmapped chromosomes
-  because it has a lexicographic sorting order lower than that of "0", good 
-  interpretability and no other reserved technical roles.
-
+- `pairtools` store SAM entries together with pairs in .pairsam files to enable 
+  easy tagging/filtering of paired-end alignments based on their Hi-C 
+  information.
+- `pairtools` use the exclamation mark "!" instead of '.' as 'chrom' of 
+  unmapped reads because it has the lowest lexicographic sorting order among all
+  characters. The use of '0' and '-' in the 'pos' and 'strand' fields of unmapped
+  reads allows to keep the type of these fields as 'unsigned int' and
+  enum{'+','-'}, respectively.
+- "rescued" pairs have two types "UR" and "RU" instead of just "RU", because
+  they are two-sided and thus flipped based on (chrom, pos), and not based on
+  the side types. With two pair types, `pairtools` can keep track of which side
+  of the pair was rescued.
+- in "rescued" pairs, the type "R" is assigned to the non-chimeric side.
+  This may seem counter-intuitive at first, since it is the chimeric side that
+  gets rescued, but this way `pairtools` can keep track of the type of the
+  5' alignment on the chimeric side (the alignment on the non-chimeric side
+  has to be unique for the pair to be rescued).
 
 
 .. |check| unicode:: U+2714 .. check
