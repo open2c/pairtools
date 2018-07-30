@@ -37,7 +37,7 @@ def test_mock_pairsam():
     assert stats['trans'] == 2
     assert stats['pair_types/UU'] == 4
     assert stats['pair_types/NU'] == 1
-    assert stats['pair_types/CC'] == 1
+    assert stats['pair_types/WW'] == 1
     assert stats['pair_types/UR'] == 1
     assert stats['pair_types/MU'] == 1
     assert stats['chrom_freq/chr1/chr2'] ==  1

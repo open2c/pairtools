@@ -17,4 +17,4 @@ readid04	chr1	1	chr1	3	+	+	UR	readid04129chr1160101Mchr130CGFFXS:i:0
 readid05	chr2	1	chr3	2	+	+	UU	readid05129chr2160101Mchr320CGFFXS:i:0Yt:Z:UU	readid0565chr3260101Mchr210ATIIXS:i:0Yt:Z:UU	
 readid06	!	0	chr1	3	-	+	NU	readid06129chr1160101Mchr130CGFFXS:i:0Yt:Z:NU	readid0665chr1360101Mchr110ATIIXS:i:0Yt:Z:NU	
 readid07	!	0	chr1	3	-	+	MU	readid07129chr1160101Mchr130CGFFXS:i:0Yt:Z:NU	readid0765chr1360101Mchr110ATIIXS:i:0Yt:Z:NU	
-readid08	!	0	!	0	-	-	CC	readid08129chr1160101Mchr130CGFFXS:i:0Yt:Z:CC	readid0865chr1360101Mchr110ATIIXS:i:0Yt:Z:CC	
+readid08	!	0	!	0	-	-	WW	readid08129chr1160101Mchr130CGFFXS:i:0Yt:Z:WW	readid0865chr1360101Mchr110ATIIXS:i:0Yt:Z:WW	
