@@ -56,6 +56,7 @@ Contents:
    parsing
    sorting
    formats 
+   technotes
    cli_tools
 
 

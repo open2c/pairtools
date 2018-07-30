@@ -138,30 +138,6 @@ sam2 columns with a UNIT SEPARATOR character (\\031).
 Finally, sam1 and sam2 can store multiple .sam alignments, separated by a string
 '\\031NEXT_SAM\\031'
 
-Technical notes
----------------
-
-The motivation behind some of the technical decisions in the pairtools' flavor
-of .pairs/.pairsam:
-
-- `pairtools` store SAM entries together with pairs in .pairsam files to enable 
-  easy tagging/filtering of paired-end alignments based on their Hi-C 
-  information.
-- `pairtools` use the exclamation mark "!" instead of '.' as 'chrom' of 
-  unmapped reads because it has the lowest lexicographic sorting order among all
-  characters. The use of '0' and '-' in the 'pos' and 'strand' fields of unmapped
-  reads allows to keep the type of these fields as 'unsigned int' and
-  enum{'+','-'}, respectively.
-- "rescued" pairs have two types "UR" and "RU" instead of just "RU", because
-  they are two-sided and thus flipped based on (chrom, pos), and not based on
-  the side types. With two pair types, `pairtools` can keep track of which side
-  of the pair was rescued.
-- in "rescued" pairs, the type "R" is assigned to the non-chimeric side.
-  This may seem counter-intuitive at first, since it is the chimeric side that
-  gets rescued, but this way `pairtools` can keep track of the type of the
-  5' alignment on the chimeric side (the alignment on the non-chimeric side
-  has to be unique for the pair to be rescued).
-
 
 .. |check| unicode:: U+2714 .. check
 .. |cross| unicode:: U+274C .. cross
