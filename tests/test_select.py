@@ -39,7 +39,7 @@ def test_equal():
              '-m',
              'pairtools',
              'select',
-             '(pair_type == "CX") or (pair_type == "LL")',
+             '(pair_type == "RU") or (pair_type == "UR") or (pair_type == "UU")',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -53,10 +53,10 @@ def test_equal():
     output_body  = [l.strip() for l in result.split('\n')
                     if not l.startswith('#') and l.strip()]
 
-    assert all(l.split('\t')[7] in ['CX', 'LL'] for l in output_body)
+    assert all(l.split('\t')[7] in ['RU', 'UR', 'UU'] for l in output_body)
     assert all(l in output_body
                for l in pairsam_body 
-               if l.split('\t')[7] in ['CX', 'LL'])
+               if l.split('\t')[7] in ['RU', 'UR', 'UU'])
 
 
 def test_csv():
@@ -66,7 +66,7 @@ def test_csv():
              '-m',
              'pairtools',
              'select',
-             'csv_match(pair_type, "CX,LL")',
+             'csv_match(pair_type, "RU,UR,UU")',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -80,10 +80,10 @@ def test_csv():
     output_body  = [l.strip() for l in result.split('\n')
                     if not l.startswith('#') and l.strip()]
 
-    assert all(l.split('\t')[7] in ['CX', 'LL'] for l in output_body)
+    assert all(l.split('\t')[7] in ['RU','UR', 'UU'] for l in output_body)
     assert all(l in output_body
                for l in pairsam_body 
-               if l.split('\t')[7] in ['CX', 'LL'])
+               if l.split('\t')[7] in ['RU', 'UR', 'UU'])
 
 
 def test_wildcard():
@@ -93,7 +93,7 @@ def test_wildcard():
              '-m',
              'pairtools',
              'select',
-             'wildcard_match(pair_type, "*L")',
+             'wildcard_match(pair_type, "*U")',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -107,10 +107,10 @@ def test_wildcard():
     output_body  = [l.strip() for l in result.split('\n')
                     if not l.startswith('#') and l.strip()]
 
-    assert all(l.split('\t')[7] in ['NL', 'ML', 'CL', 'LL'] for l in output_body)
+    assert all(l.split('\t')[7] in ['NU', 'MU', 'RU', 'UU'] for l in output_body)
     assert all(l in output_body
                for l in pairsam_body 
-               if l.split('\t')[7] in ['NL', 'ML', 'CL', 'LL'])
+               if l.split('\t')[7] in ['NU', 'MU', 'RU', 'UU'])
 
 
 def test_regex():
@@ -120,7 +120,7 @@ def test_regex():
              '-m',
              'pairtools',
              'select',
-             'regex_match(pair_type, "[NM]L")',
+             'regex_match(pair_type, "[NM]U")',
              mock_pairsam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -134,10 +134,10 @@ def test_regex():
     output_body  = [l.strip() for l in result.split('\n')
                     if not l.startswith('#') and l.strip()]
 
-    assert all(l.split('\t')[7] in ['NL', 'ML'] for l in output_body)
+    assert all(l.split('\t')[7] in ['NU', 'MU'] for l in output_body)
     assert all(l in output_body
                for l in pairsam_body 
-               if l.split('\t')[7] in ['NL', 'ML'])
+               if l.split('\t')[7] in ['NU', 'MU'])
     
 def test_chrom_subset():
     try:

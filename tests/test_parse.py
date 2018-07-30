@@ -116,7 +116,7 @@ def test_parse_algn():
          'type':'U'}
 
     sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
-          '\tFLAG1\tFLAG2\tSIMULATED:readid01,chr1,chr1,10,200,+,+,LL')
+          '\tFLAG1\tFLAG2\tSIMULATED:readid01,chr1,chr1,10,200,+,+,UU')
     samcols = sam.split('\t')
     parsed_algn = parse_algn(samcols, min_mapq, True)
     assert parsed_algn == {
