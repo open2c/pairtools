@@ -82,7 +82,7 @@ CLI
   is spent on compression/decompression, parsing, loading data into memory and 
   sending it over network (for cloud/clusters). Packing multiple functions
   into one tool cuts down the amount of such time consuming operations.
-- `pairtools parse` requires a .chromsizes file to know the order of chromosomes
+- ``pairtools parse`` requires a .chromsizes file to know the order of chromosomes
   and perform pair flipping.
 - `pairtools` use `bgzip <http://www.htslib.org/doc/bgzip.html>`_ compression by
   default instead of gzip. Using `bgzip` allows us to create an index with 
