@@ -25,7 +25,7 @@ Throughout this document we will be using the same visual language to describe
 how DNA sequences (in the .fastq format) are transformed into sequence alignments 
 (.sam/.bam) and into ligation events (.pairs).
 
-.. figure:: _static/terminology.png
+    .. figure:: _static/terminology.png
    :scale: 50 %
    :alt: The visual language to describe transformation of Hi-C data
    :align: center
@@ -58,15 +58,15 @@ the read aligns to.  ``pairtools parse`` assigns to such pairs the type ``UU``
 Unmapped/multimapped reads
 --------------------------
 
-Sometimes one side or both sides of a read pair may not align to the 
+Sometimes, one side or both sides of a read pair may not align to the 
 reference genome:
 
 .. figure:: _static/read_pair_NU_NN.png
    :scale: 50 %
-   :alt: A read pair missing an alignment on one or both sides
+   :alt: Read pairs missing an alignment on one or both sides
    :align: center
 
-   A read pair missing an alignment on one or both sides
+   Read pairs missing an alignment on one or both sides
 
 In this case, ``pairtools parse`` fills in the chromosome of the corresponding
 side of Hi-C pair with ``!``, the position with ``0`` and the strand with ``-``.
@@ -81,10 +81,10 @@ depending on the type of the alignment on the other side.
 
 .. figure:: _static/read_pair_MU_MM_NM.png
    :scale: 50 %
-   :alt: A read pair with a non-unique alignment on one or both sides
+   :alt: Read pairs with a non-unique alignment on one or both sides
    :align: center
 
-   A read pair with a non-unique (multi-) alignment on one side
+   Read pairs with a non-unique (multi-) alignment on one side
    
 ``pairtools parse`` calls an alignment to be multi-mapping when its
 `MAPQ score <https://bioinformatics.stackexchange.com/questions/2417/meaning-of-bwa-mem-mapq-scores>`_
@@ -106,16 +106,15 @@ Finally, a read pair may contain more than two alignments:
    A sequenced Hi-C molecule that was formed via multiple ligations
 
 Molecules like these typically form via multiple ligation events and we call them
-walks [1]_. Currently, ``pairtools parse`` does not
-process such molecules and tags them with type ``WW``. Note that, each of the
-alignments
+walks [1]_. Currently, ``pairtools parse`` does not process such molecules and
+tags them as type ``WW``.
 
 .. _section-gaps:
 
 Interpreting gaps between alignments
 ------------------------------------
 
-Reads that are only partially aligned to the genome can be interpreted it in 
+Reads that are only partially aligned to the genome can be interpreted in 
 two different ways. One possibility is to assume that this molecule
 was formed via at least two ligations (i.e. it's a *walk*) but the non-aligned 
 part (a **gap**) was missing from the reference genome for one reason or another.
@@ -132,9 +131,9 @@ molecule was formed via a single ligation and has to be reported:
    an alignment or simply ignored
 
 Both options have their merits, depending on a dataset, quality of the reference
-genome and sequencing. `pairtools parse` ignores shorter *gaps* and keeps 
+genome and sequencing. ``pairtools parse`` ignores shorter *gaps* and keeps 
 longer ones as "null" alignments. The maximal size of ignored *gaps* is set by
-the ``--max-inter-align-gap`` flag and, by default, equals 20bp.
+the ``--max-inter-align-gap`` flag (by default, 20bp).
 
 
 Rescuing single ligations
@@ -152,8 +151,8 @@ may still end up with three alignments:
 
 A molecule formed via a single ligation gets three alignments when one of the 
 two ligated DNA pieces is shorter than the read length, such that that read on 
-the corresponding side sequences through the ligation site and into the other 
-piece [2]_. The fraction of such molecules depends on the type of the restriction 
+the corresponding side sequences through the ligation junction and into the other 
+piece [2]_. The amount of such molecules depends on the type of the restriction 
 enzyme, the typical size of DNA molecules in the Hi-C library and the read 
 length, and sometimes can be considerable.
 
@@ -166,20 +165,22 @@ walks with three aligments using three criteria:
    :alt: The three criteria used for "rescue"
    :align: center
 
-   The three criteria used for "rescue"
+   The three criteria used to "rescue" three-alignment walks: cis, point towards each other, short distance
 
-1. On the side with two alignments, the "inner" one must be on the same chromosome
-   as the alignment on the other side.
+1. On the side with two alignments (the **chimeric** side), the "inner" (or, 3') 
+   alignment must be on the same chromosome as the alignment on the non-chimeric
+   side.
 
-2. The "inner" alignment and the alignment on the other side must point toward
-   each other.
+2. The "inner" alignment on the chimeric side and the alignment on the 
+   non-chimeric side must point toward each other.
 
 3. These two alignments must be within the distance specified with the
    ``--max-molecule-size`` flag (by default, 2000bp).
 
-Sometimes, the "inner" alignment is non-unique or "null" (i.e. when the unmapped
-segment is longer than ``--max-inter-align-gap``, as described in :ref:`section-gaps`).
-`pairtools parse` rescues such *walks* as well.
+Sometimes, the "inner" alignment on the chimeric side can be non-unique or "null" 
+(i.e. when the unmapped segment is longer than ``--max-inter-align-gap``, 
+as described in :ref:`section-gaps`). ``pairtools parse`` ignores such alignments
+altogether and thus rescues such *walks* as well.
 
 .. figure:: _static/read_pair_UR_MorN.png
    :scale: 50 %
@@ -187,9 +188,6 @@ segment is longer than ``--max-inter-align-gap``, as described in :ref:`section-
    :align: center
 
    A walk with three alignments get rescued, when the middle alignment is multi- or null.
-
-Pair types
-----------
 
 
 .. [1] Following the lead of `C-walks <https://www.nature.com/articles/nature20158>`_
