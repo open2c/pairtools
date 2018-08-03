@@ -56,22 +56,6 @@ of .pairs/.pairsam:
   container formats, which would mitigate these downsides.
 
 
-Sorting
--------
-
-- `pairtools` sort pairs by chromosomal blocks 
-  (i.e. the sorting order is chrom1, chrom2, pos1, pos2) instead of rows (i.e. 
-  chrom1, pos1, chrom2, pos2). Block-sorting cleanly separates cis interactions
-  from trans ones and thus is a more optimal solution for typical use cases.
-- `pairtools` sort chromosomes in the lexicographic order 
-  (chr1, chr10, chr11, ..., chr2, chr21,...) instead of the "natural" order
-  (chr1, chr2, chr3, ...). We chose the former because it is the only order
-  that is well defined technically and is robust against unconventional choices
-  in chromosomal naming schemes (e.g., sacCer3 uses Roman literals to enumerate 
-  chromosomes; dm3 splits each physical chromosome into 4 different "digital" 
-  chromosomes for which no sorting algorithm can guess the proper sorting order).
-
-
 CLI
 ---
 
