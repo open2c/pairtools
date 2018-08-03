@@ -1,6 +1,6 @@
 # pairtools
 
-[![Documentation Status](https://readthedocs.org/projects/pairsamtools/badge/?version=latest)](http://pairsamtools.readthedocs.org/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/pairtools/badge/?version=latest)](http://pairtools.readthedocs.org/en/latest/)
 [![Build Status](https://travis-ci.org/mirnylab/pairtools.svg?branch=master)](https://travis-ci.org/mirnylab/pairtools)
 [![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -21,7 +21,7 @@ operations:
 
 To get started:
 - Take a look at a [quick example](https://github.com/mirnylab/pairtools#quick-example)
-- Check out the detailed [documentation](http://pairsamtools.readthedocs.io).
+- Check out the detailed [documentation](http://pairtools.readthedocs.io).
 
 ## Data formats
 
