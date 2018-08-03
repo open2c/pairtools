@@ -115,6 +115,7 @@ def common_io_options(func):
 
 from .pairtools_dedup import dedup
 from .pairtools_sort import sort
+from .pairtools_flip import flip
 from .pairtools_merge import merge
 from .pairtools_markasdup import markasdup
 from .pairtools_select import select
