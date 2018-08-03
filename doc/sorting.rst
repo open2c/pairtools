@@ -39,7 +39,7 @@ which would complicate finding PCR/optical duplicates.
 To ensure that Hi-C pairs with similar coordinates end up in the same location of the sorted list,
 we **flip** pairs, i.e. we choose *side1* as the side with the lowest genomic coordinate. 
 Thus, after flipping, for *trans* pairs (chrom1!=chrom2), order(chrom1)<order(chrom2);
-and for *cis* pairs (chrom1==chrom2), pos1<pos2.
+and for *cis* pairs (chrom1==chrom2), pos1<=pos2.
 In a matrix representation, flipping is equal to reflecting the lower triangle
 of the Hi-C matrix onto its upper triangle, such that the resulting matrix 
 is upper-triangular.
