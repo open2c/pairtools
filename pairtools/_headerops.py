@@ -91,27 +91,27 @@ def get_chromsizes_from_sam_header(samheader):
     return OrderedDict(chromsizes)
 
 
-def get_chrom_order(chroms_file, sam_chroms):
+def get_chrom_order(chroms_file, sam_chroms=None):
     """
     Produce an "enumeration" of chromosomes based on the list
     of chromosomes
-
     """
     chrom_enum = OrderedDict()
     i = 1
     with open(chroms_file, 'rt') as f:
         for line in f:
             chrom = line.strip().split('\t')[0]
-            if chrom and (chrom in sam_chroms):
+            if chrom and ((not sam_chroms) or (chrom in sam_chroms)):
                 chrom_enum[chrom] = i
                 i += 1
 
-    remaining = sorted(chrom for chrom in sam_chroms
-                       if chrom not in chrom_enum.keys())
+    if sam_chroms:
+        remaining = sorted(chrom for chrom in sam_chroms
+                           if chrom not in chrom_enum.keys())
 
-    for chrom in remaining:
-        chrom_enum[chrom] = i
-        i += 1
+        for chrom in remaining:
+            chrom_enum[chrom] = i
+            i += 1
 
     return chrom_enum
 
