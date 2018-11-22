@@ -25,7 +25,7 @@ Throughout this document we will be using the same visual language to describe
 how DNA sequences (in the .fastq format) are transformed into sequence alignments 
 (.sam/.bam) and into ligation events (.pairs).
 
-    .. figure:: _static/terminology.png
+.. figure:: _static/terminology.png
    :scale: 50 %
    :alt: The visual language to describe transformation of Hi-C data
    :align: center
