@@ -36,10 +36,22 @@ can perform following operations:
 
 The full list of available pairtools:
 
-.. click_subcommand_table:: pairtools:cli
-   :prog: pairtools
-   :column_names: Pairtool,Description
-
+============ ==============================================
+Pairtool     Description
+============ ==============================================
+dedup        Find and remove PCR/optical duplicates.
+filterbycov  Remove pairs from regions of high coverage.
+flip         Flip pairs to get an upper-triangular matrix.
+markasdup    Tag pairs as duplicates.
+merge        Merge sorted .pairs/.pairsam files.
+parse        Find ligation junctions in .sam, make .pairs.
+phase        Phase pairs mapped to a diploid genome.
+restrict     Assign restriction fragments to pairs.
+select       Select pairs according to some condition.
+sort         Sort a .pairs/.pairsam file.
+split        Split a .pairsam file into .pairs and .sam.
+stats        Calculate pairs statistics.
+============ ==============================================
 
 Contents:
 
