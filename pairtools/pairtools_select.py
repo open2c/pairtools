@@ -163,7 +163,7 @@ def select_py(
                           'and (chrom2 in new_chroms)').format(condition)
 
     for i,col in enumerate(column_names):
-        if col in ['pos1', 'pos2']:
+        if col in ['pos1', 'pos2', 'mapq1', 'mapq2']:
             condition = condition.replace(col, 'int(COLS[{}])'.format(i))
         else:
             condition = condition.replace(col, 'COLS[{}]'.format(i))
