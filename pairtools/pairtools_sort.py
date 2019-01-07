@@ -4,6 +4,8 @@ import io
 import sys
 import click
 import subprocess
+import shutil
+import warnings
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
@@ -51,11 +53,13 @@ UTIL_NAME = 'pairtools_sort'
 @click.option(
     "--compress-program",
     type=str,
-    default='',
+    default='auto',
     show_default=True,
     help='A binary to compress temporary sorted chunks. '
     'Must decompress input when the flag -d is provided. '
-    'Suggested alternatives: gzip, lzop, lz4c, snzip.'
+    'Suggested alternatives: gzip, lzop, lz4c, snzip. '
+    'If "auto", then use lz4c if available, and gzip ' 
+    'otherwise.'
      )
 
 @common_io_options
@@ -91,6 +95,16 @@ def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwarg
     outstream.writelines((l+'\n' for l in header))
 
     outstream.flush()
+    
+    if compress_program == 'auto':
+        if shutil.which('lz4c') is not None:
+            compress_program = 'lz4c'
+        else:
+            warnings.warn(
+                'lz4c is not found. Using gzip for compression of sorted chunks, '
+                'which results in a minor decrease in performance. Please install '
+                'lz4c for faster sorting.')
+            compress_program = 'gzip'
 
     command = r'''
         /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort 
