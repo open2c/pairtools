@@ -61,6 +61,7 @@ MAX_LEN = 10000
     "--max-mismatch",
     type=int, 
     default=3,
+    show_default=True,
     help='Pairs with both sides mapped within this distance (bp) from each '
          'other are considered duplicates.')
 @click.option(
