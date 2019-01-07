@@ -1,3 +1,7 @@
+### 0.2.2 (2019-01-07) ###
+
+* sort: enable lz4c compression of sorted chunks by default
+
 ### 0.2.1 (2018-12-21) ###
 
 * automatically convert mapq1 and mapq2 to int in `select`
