@@ -52,11 +52,29 @@ UTIL_NAME = 'pairtools_select'
     "and #chromsize: header fields accordingly."
     )
 
+@click.option(
+    "--startup-code",
+    type=str,
+    default=None, 
+    help="An auxiliary code to execute before filtering. "
+         "Use to define functions that can be evaluated in the CONDITION statement"
+    )
+
+@click.option(
+    "-t", "--type-cast", 
+    type=(str,str),
+    default=(), 
+    multiple=True,
+    help="Cast a given column to a given type. By default, only pos and mapq " 
+         "are cast to int, other columns are kept as str. Provide as " 
+         "-t <column_name> <type>, e.g. -t read_len1 int. Multiple entries are allowed."
+    )
+
 @common_io_options
 
 def select(
     condition, pairs_path, output, output_rest, send_comments_to,
-    chrom_subset,
+    chrom_subset, startup_code, type_cast,
     **kwargs
     ):
     '''Select pairs according to some condition.
@@ -98,12 +116,13 @@ def select(
     '''
     select_py(
         condition, pairs_path, output, output_rest, send_comments_to, 
-        chrom_subset,
+        chrom_subset, startup_code, type_cast,
         **kwargs
     )
     
 def select_py(
     condition, pairs_path, output, output_rest, send_comments_to, chrom_subset,
+    startup_code, type_cast,
     **kwargs
     ):
 
@@ -145,6 +164,13 @@ def select_py(
     if chrom_subset is not None:
         new_chroms = [l.strip().split('\t')[0] for l in open(chrom_subset, 'r')]
 
+    TYPES = {'pos1':'int',
+             'pos2':'int',
+             'mapq1':'int',
+             'mapq2':'int'}
+
+    TYPES.update(dict(type_cast))
+
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     if new_chroms is not None:
@@ -157,14 +183,18 @@ def select_py(
     if len(column_names) == 0:
         column_names = _pairsam_format.COLUMNS
 
+    if startup_code is not None:
+        exec(startup_code, globals())
+
     condition = condition.strip()
     if new_chroms is not None:
         condition = ('({}) and (chrom1 in new_chroms) '
                           'and (chrom2 in new_chroms)').format(condition)
 
     for i,col in enumerate(column_names):
-        if col in ['pos1', 'pos2', 'mapq1', 'mapq2']:
-            condition = condition.replace(col, 'int(COLS[{}])'.format(i))
+        if col in TYPES:
+            col_type = TYPES[col]
+            condition = condition.replace(col, '{}(COLS[{}])'.format(col_type,i))
         else:
             condition = condition.replace(col, 'COLS[{}]'.format(i))
 
