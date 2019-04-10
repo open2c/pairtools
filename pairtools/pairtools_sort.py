@@ -122,7 +122,7 @@ def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwarg
                 _pairsam_format.COL_P2+1,
                 _pairsam_format.COL_PTYPE+1,
                 _pairsam_format.PAIRSAM_SEP_ESCAPE,
-                ' --parallel={} '.format(nproc) if nproc > 1 else ' ',
+                ' --parallel={} '.format(nproc) if nproc > 0 else ' ',
                 ' --temporary-directory={} '.format(tmpdir) if tmpdir else ' ',
                 memory,
                 (' --compress-program={} '.format(compress_program)
