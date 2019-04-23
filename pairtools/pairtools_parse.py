@@ -298,7 +298,6 @@ def empty_alignment():
         'clip5_ref': 0, 
         'read_len': 0,
         'type':'N'
-
     }
 
 
@@ -548,6 +547,14 @@ def parse_sams_into_pair(sams1,
         All alignments, sorted according to their order in on a read.
 
     """
+
+    # Check if there is at least one SAM entry per side: 
+    if (len(sams1) == 0) or (len(sams2) == 0):
+        algns1 = [empty_alignment()]
+        algns2 = [empty_alignment()]
+        algns1[0]['type'] = 'X'
+        algns2[0]['type'] = 'X'
+        return algns1[0], algns2[0], algns1, algns2
 
     # Generate a sorted, gap-filled list of all alignments
     algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq, 

@@ -81,21 +81,25 @@ and which side has a "better" alignment and find the corresponding row in the ta
  >2 alignments   Mapped    Unique             Mapped    Unique             Pair type                Code   Sidedness                           
  |check|         |cross|   |cross|            |cross|   |cross|            walk-walk                WW     0 [1]_
  |cross|         |cross|                      |cross|                      null                     NN     0     
+ |cross|         |cross|                      |cross|                      corrupt                  XX     0 [2]_    
  |cross|         |cross|                      |check|   |cross|            null-multi               NM     0     
- |check|         |cross|                      |check|   |check|            null-rescued             NR     1 [2]_
+ |check|         |cross|                      |check|   |check|            null-rescued             NR     1 [3]_
  |cross|         |cross|                      |check|   |check|            null-unique              NU     1     
  |cross|         |check|   |cross|            |check|   |cross|            multi-multi              MM     0     
- |check|         |check|   |cross|            |check|   |check|            multi-rescued            MR     1 [2]_
+ |check|         |check|   |cross|            |check|   |check|            multi-rescued            MR     1 [3]_
  |cross|         |check|   |cross|            |check|   |check|            multi-unique             MU     1     
- |check|         |check|   |check|            |check|   |check|            rescued-unique           RU     2 [2]_
- |check|         |check|   |check|            |check|   |check|            unique-rescued           UR     2 [2]_
+ |check|         |check|   |check|            |check|   |check|            rescued-unique           RU     2 [3]_
+ |check|         |check|   |check|            |check|   |check|            unique-rescued           UR     2 [3]_
  |cross|         |check|   |check|            |check|   |check|            unique-unique            UU     2     
- |cross|         |check|   |check|            |check|   |check|            duplicate                DD     2 [3]_
+ |cross|         |check|   |check|            |check|   |check|            duplicate                DD     2 [4]_
 =============== ========= ================== ========= ================== ======================== ====== ===========
 
 .. [1] "walks", or, `C-walks <https://www.nature.com/articles/nature20158>`_ are
    Hi-C molecules formed via multiple ligation events which cannot be reported 
    as a single pair.  
+
+.. [2] "corrupt" pairs are those with technical issues - e.g. missing a 
+   FASTQ sequence/SAM entry from one side of the molecule.
 
 .. [2] "rescued" pairs have two non-overlapping alignments on one of the sides
    (referred below as the chimeric side/read), but the inner (3'-) one extends the 
