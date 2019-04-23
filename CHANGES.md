@@ -1,3 +1,7 @@
+### 0.3.0 (2019-04-23) ###
+
+* parse: tag pairs with missing FASTQ/SAM on one side as corrupt, pair type "XX"
+
 ### 0.2.2 (2019-01-07) ###
 
 * sort: enable lz4c compression of sorted chunks by default

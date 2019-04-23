@@ -5,13 +5,13 @@ pairtools
 
 CLI tools to process mapped Hi-C data
 
-:copyright: (c) 2017 Massachusetts Institute of Technology
+:copyright: (c) 2017-2019 Massachusetts Institute of Technology
 :author: Mirny Lab
 :license: MIT
 
 """
 
-__version__ = '0.2.2'
+__version__ = '0.3.0'
 
 
 import click
