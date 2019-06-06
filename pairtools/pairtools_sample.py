@@ -5,7 +5,7 @@ import random
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
-UTIL_NAME = 'pairtools_subsample'
+UTIL_NAME = 'pairtools_sample'
 
 @cli.command()
 
@@ -35,7 +35,7 @@ UTIL_NAME = 'pairtools_subsample'
 
 @common_io_options
 
-def subsample(
+def sample(
     fraction, pairs_path, output, seed,
     **kwargs
     ):
@@ -47,12 +47,12 @@ def subsample(
     input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
 
     '''
-    subsample_py(
+    sample_py(
         fraction, pairs_path, output, seed,
         **kwargs
     )
     
-def subsample_py(
+def sample_py(
     fraction, pairs_path, output, seed,
     **kwargs
     ):

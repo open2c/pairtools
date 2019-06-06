@@ -124,5 +124,5 @@ from .pairtools_restrict import restrict
 from .pairtools_phase import phase
 from .pairtools_parse import parse, parse_cigar, parse_algn
 from .pairtools_stats import stats
-from .pairtools_subsample import subsample
+from .pairtools_sample import sample
 from .pairtools_filterbycov import filterbycov
