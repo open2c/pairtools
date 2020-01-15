@@ -30,14 +30,14 @@ MAX_LEN = 10000
     type=str, 
     default="", 
     help='output file for pairs after duplicate removal.'
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' By default, the output is printed into stdout.')
 @click.option(
     "--output-dups",
     type=str, 
     default="", 
     help='output file for duplicated pairs. '
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' If the path is the same as in --output or -, output duplicates together '
         ' with deduped pairs. By default, duplicates are dropped.')
 @click.option(
@@ -45,7 +45,7 @@ MAX_LEN = 10000
     type=str, 
     default="", 
     help='output file for unmapped pairs. '
-        'If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed. '
+        'If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed. '
         'If the path is the same as in --output or -, output unmapped pairs together '
         'with deduped pairs. If the path is the same as --output-dups, output '
         'unmapped reads together with dups. By default, unmapped pairs are dropped.')
@@ -55,7 +55,7 @@ MAX_LEN = 10000
     default="", 
     help='output file for duplicate statistics. '
         ' If file exists, it will be open in the append mode.'
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' By default, statistics are not printed.')
 @click.option(
     "--max-mismatch",
@@ -153,7 +153,7 @@ def dedup(pairs_path, output, output_dups, output_unmapped,
     file. Allow for a +/-N bp mismatch at each side of duplicated molecules.
 
     PAIRS_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the
-    path ends with .gz/.lz4, the input is decompressed by pbgzip/lz4c. 
+    path ends with .gz/.lz4, the input is decompressed by bgzip/lz4c. 
     By default, the input is read from stdin.
     '''
     dedup_py(pairs_path, output, output_dups, output_unmapped,

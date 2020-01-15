@@ -23,7 +23,7 @@ UTIL_NAME = 'pairtools_select'
     type=str, 
     default="", 
     help='output file.'
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' By default, the output is printed into stdout.')
 
 @click.option(
@@ -31,7 +31,7 @@ UTIL_NAME = 'pairtools_select'
     type=str, 
     default="", 
     help='output file for pairs of other types. '
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' By default, such pairs are dropped.')
 
 @click.option(
@@ -89,7 +89,7 @@ def select(
     inside CONDITION.
 
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the
-    input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
+    input is decompressed by bgzip/lz4c. By default, the input is read from stdin.
 
     The following functions can be used in CONDITION besides the standard Python functions:
 

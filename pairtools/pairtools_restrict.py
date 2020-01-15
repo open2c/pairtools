@@ -30,7 +30,7 @@ UTIL_NAME = 'pairtools_restrict'
     type=str, 
     default="", 
     help='output .pairs/.pairsam file.'
-        ' If the path ends with .gz/.lz4, the output is compressed by pbgzip/lz4c.'
+        ' If the path ends with .gz/.lz4, the output is compressed by bgzip/lz4c.'
         ' By default, the output is printed into stdout.')
 
 @common_io_options
@@ -41,7 +41,7 @@ def restrict(pairs_path, frags, output, **kwargs):
     Identify the restriction fragments that got ligated into a Hi-C molecule.
 
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz/.lz4, the 
-    input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
+    input is decompressed by bgzip/lz4c. By default, the input is read from stdin.
     '''
     restrict_py(pairs_path, frags, output, **kwargs)
 

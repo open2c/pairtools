@@ -19,7 +19,7 @@ def auto_open(path, mode, nproc=1, command=None):
 
     Supported extensions and binaries (with comments):
     .bam - samtools view (allows parallel writing)
-    .gz - pbgzip 
+    .gz - pbgzip if available, otherwise bgzip 
     .lz4 - lz4c (does not support parallel execution)
     '''
     if command:
@@ -34,6 +34,7 @@ def auto_open(path, mode, nproc=1, command=None):
         else:
             raise ValueError("Unknown mode : {}".format(mode))
         return f
+
     elif path.endswith('.bam'):
         if shutil.which('samtools') is None:
             raise ValueError({
@@ -53,28 +54,49 @@ def auto_open(path, mode, nproc=1, command=None):
         else:
             raise ValueError("Unknown mode for .bam : {}".format(mode))
         return f
+
     elif path.endswith('.gz'):
-        if shutil.which('pbgzip') is None:
-            raise ValueError({
-                'w':'pbgzip is not found, cannot compress output',
-                'a':'pbgzip is not found, cannot compress output',
-                'r':'pbgzip is not found, cannot decompress input'
-                    }[mode])
-        if mode =='w': 
-            t = pipes.Template()
-            t.append('pbgzip -c -n {}'.format(nproc), '--')
-            f = t.open(path, 'w')
-        elif mode =='a': 
-            t = pipes.Template()
-            t.append('pbgzip -c -n {} $IN >> $OUT'.format(nproc), 'ff')
-            f = t.open(path, 'w')
-        elif mode =='r': 
-            t = pipes.Template()
-            t.append('pbgzip -dc -n {}'.format(nproc), '--')
-            f = t.open(path, 'r')
+        if shutil.which('pbgzip') is not None:
+            if mode =='w': 
+                t = pipes.Template()
+                t.append('pbgzip -c -n {}'.format(nproc), '--')
+                f = t.open(path, 'w')
+            elif mode =='a': 
+                t = pipes.Template()
+                t.append('pbgzip -c -n {} $IN >> $OUT'.format(nproc), 'ff')
+                f = t.open(path, 'w')
+            elif mode =='r': 
+                t = pipes.Template()
+                t.append('pbgzip -dc -n {}'.format(nproc), '--')
+                f = t.open(path, 'r')
+            else:
+                raise ValueError("Unknown mode for .gz : {}".format(mode))
+            return f
+            
+        elif shutil.which('bgzip') is not None:
+            if mode =='w': 
+                t = pipes.Template()
+                t.append('bgzip -c -@ {}'.format(nproc), '--')
+                f = t.open(path, 'w')
+            elif mode =='a': 
+                t = pipes.Template()
+                t.append('bgzip -c -@ {} $IN >> $OUT'.format(nproc), 'ff')
+                f = t.open(path, 'w')
+            elif mode =='r': 
+                t = pipes.Template()
+                t.append('bgzip -dc -@ {}'.format(nproc), '--')
+                f = t.open(path, 'r')
+            else:
+                raise ValueError("Unknown mode for .gz : {}".format(mode))
+            return f
+
         else:
-            raise ValueError("Unknown mode for .gz : {}".format(mode))
-        return f
+            raise ValueError({
+                'w':'neither pbgzip nor bgzip are found, cannot compress output',
+                'a':'neither pbgzip nor bgzip are found, cannot compress output',
+                'r':'neither pbgzip nor bgzip are found, cannot decompress input'
+                    }[mode])
+        
     elif path.endswith('.lz4'):
         if shutil.which('lz4c') is None:
             raise ValueError({

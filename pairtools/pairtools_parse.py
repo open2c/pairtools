@@ -48,7 +48,7 @@ EXTRA_COLUMNS = [
     type=str, 
     default="", 
     help='output file. '
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed.'
          'By default, the output is printed into stdout. ')
 @click.option(
     "--assembly", 
@@ -94,7 +94,7 @@ EXTRA_COLUMNS = [
     help='output file for all parsed alignments, including walks.'
         ' Useful for debugging and rnalysis of walks.'
         ' If file exists, it will be open in the append mode.'
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed.'
         ' By default, not used.'
         )
 @click.option(

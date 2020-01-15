@@ -23,7 +23,7 @@ UTIL_NAME = 'pairtools_sort'
     type=str, 
     default="", 
     help='output pairs file.'
-        ' If the path ends with .gz or .lz4, the output is compressed by pbgzip '
+        ' If the path ends with .gz or .lz4, the output is compressed by bgzip '
         'or lz4, correspondingly. By default, the output is printed into stdout.')
 
 @click.option(
@@ -72,7 +72,7 @@ def sort(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
     pair_type.
 
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the 
-    input is decompressed by pbgzip or lz4c, correspondingly. By default, the 
+    input is decompressed by bgzip or lz4c, correspondingly. By default, the 
     input is read as text from stdin.
     '''
     sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs)

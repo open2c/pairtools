@@ -21,7 +21,7 @@ UTIL_NAME = 'pairtools_merge'
     type=str, 
     default="", 
     help='output file.'
-        ' If the path ends with .gz/.lz4, the output is compressed by pbgzip/lz4c.'
+        ' If the path ends with .gz/.lz4, the output is compressed by bgzip/lz4c.'
         ' By default, the output is printed into stdout.')
 
 @click.option(
@@ -117,7 +117,7 @@ def merge(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, npro
 
     PAIRS_PATH : upper-triangular flipped sorted .pairs/.pairsam files to merge
     or a group/groups of .pairs/.pairsam files specified by a wildcard. For
-    paths ending in .gz/.lz4, the files are decompressed by pbgzip/lz4c.
+    paths ending in .gz/.lz4, the files are decompressed by bgzip/lz4c.
     
     """
     merge_py(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs)
@@ -186,7 +186,7 @@ def merge_py(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, n
         if kwargs.get('cmd_in', None):
             command += r''' <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path, kwargs['cmd_in'])
         elif path.endswith('.gz'):
-            command += r''' <(pbgzip -dc -n {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(kwargs['nproc_in'], path)
+            command += r''' <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(kwargs['nproc_in'], path)
         elif path.endswith('.lz4'):
             command += r''' <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path)
         else:
