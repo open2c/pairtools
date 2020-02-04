@@ -9,6 +9,7 @@ import pipes
 import sys
 import os
 import io
+import copy  # TODO: check if we actually need it
 
 from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
 from .pairtools_stats import PairCounter
@@ -27,6 +28,10 @@ EXTRA_COLUMNS = [
     'algn_read_span',
     'dist_to_5',
     'dist_to_3',
+    'rfrag',
+    'rfrag_dist',
+    'rfrag_dist_upstream',
+    'rfrag_dist_downstream',
     'seq'
 ]
 
@@ -120,8 +125,13 @@ EXTRA_COLUMNS = [
          ' and affect how they get reported as a Hi-C pair (see --walks-policy).' 
     )
 @click.option(
+    "--no-flip", 
+    is_flag=True,
+    help='If specified, do not flip pairs in genomic order and instead preserve ' 
+         'the order in which they were sequenced.')
+@click.option(
     "--walks-policy", 
-    type=click.Choice(['mask', 'all', '5any', '5unique', '3any', '3unique']),
+    type=click.Choice(['mask', 'all', '5any', '5unique', '3any', '3unique', 'ORBITA']),
     default='mask',
     help='the policy for reporting unrescuable walks (reads containing more'
     ' than one alignment on one or both sides, that can not be explained by a'
@@ -131,14 +141,27 @@ EXTRA_COLUMNS = [
     ' "5any" - report the 5\'-most alignment on each side;'
     ' "5unique" - report the 5\'-most unique alignment on each side, if present;'
     ' "3any" - report the 3\'-most alignment on each side;'
-    ' "3unique" - report the 3\'-most unique alignment on each side, if present.',
+    ' "3unique" - report the 3\'-most unique alignment on each side, if present;'
+    ' "ORBITA" - One-Read Based Interactions Annotation, '
+    ' report ordinary pairs (P) and consecutive walks of two types: '
+    ' junctions (J, supported by restriction sites) and hops (H, not '
+    ' supported by restriction sites). ',
     show_default=True
     )
 @click.option(
-    "--no-flip", 
-    is_flag=True,
-    help='If specified, do not flip pairs in genomic order and instead preserve ' 
-         'the order in which they were sequenced.')
+    "--rfrag",
+		default="",
+    type=str,
+    required=False,
+    help='a tab-separated BED file with the positions of restriction fragments '
+         '(chrom, start, end) used with ORBITA. Any other genomic breakpoints can be used instead. ')
+@click.option(
+    "--rdist",
+		default=10,
+    type=int,
+    required=False,
+    help='Allowed distance to restriction site to categorize junctions (J) vs hops (H) for ORBITA.')
+
 
 @common_io_options
 
@@ -206,7 +229,6 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
         chromsizes = [(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
         columns = columns, 
         shape = 'whole matrix' if kwargs['no_flip'] else 'upper triangle'
-
     )
     
     header = _headerops.insert_samheader(header, samheader) 
@@ -307,6 +329,7 @@ def parse_algn(
         report_3_alignment_end=False, 
         sam_tags=None,
         store_seq=False):
+
     is_mapped = (int(samcols[1]) & 0x04) == 0
     mapq = int(samcols[4])
     is_unique = (mapq >= min_mapq)
@@ -314,7 +337,7 @@ def parse_algn(
 
     cigar = parse_cigar(samcols[5])
 
-    if is_mapped: 
+    if is_mapped:
         if ((int(samcols[1]) & 0x10) == 0):
             strand = '+'
             dist_to_5 = cigar['clip5_ref']
@@ -325,7 +348,7 @@ def parse_algn(
             dist_to_3 = cigar['clip5_ref']
 
         if is_unique:
-            chrom = samcols[2] 
+            chrom = samcols[2]
             if strand == '+':
                 pos5 = int(samcols[3])
                 pos3 = int(samcols[3]) + cigar['algn_ref_span'] - 1
@@ -522,6 +545,11 @@ def _mask_alignment(algn):
     algn['pos'] = _pairsam_format.UNMAPPED_POS
     algn['strand'] = _pairsam_format.UNMAPPED_STRAND
 
+    algn['rfrag'] = _pairsam_format.UNANNOTATED_RFRAG
+    algn['rfrag_dist'] = _pairsam_format.UNANNOTATED_RFRAG
+    algn['rfrag_dist_upstream'] = _pairsam_format.UNANNOTATED_RFRAG
+    algn['rfrag_dist_downstream'] = _pairsam_format.UNANNOTATED_RFRAG
+
     return algn
 
 
@@ -533,7 +561,9 @@ def parse_sams_into_pair(sams1,
                          walks_policy,
                          report_3_alignment_end,
                          sam_tags,
-                         store_seq):
+                         store_seq,
+                         rfrags,
+                         dist_rsite):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments
     for a Hi-C pair. 
@@ -581,70 +611,105 @@ def parse_sams_into_pair(sams1,
     hic_algn2 = algns2[0]
 
     # Parse chimeras
-    rescued_linear_side = None
-    if is_chimeric_1 or is_chimeric_2:
-        # Pick two alignments to report as a Hi-C pair.
-        rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
+    if walks_policy != 'ORBITA':
 
-        # if the walk is unrescueable:
-        if rescued_linear_side is None:
-            if walks_policy == 'mask':
-                if is_chimeric_1 or is_chimeric_2:
-                    hic_algn1 = _mask_alignment(dict(hic_algn1))
-                    hic_algn2 = _mask_alignment(dict(hic_algn2))
-                    hic_algn1['type'] = 'W'
-                    hic_algn2['type'] = 'W'
+        rescued_linear_side = None
+        if is_chimeric_1 or is_chimeric_2:
+            # Pick two alignments to report as a Hi-C pair.
+            rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
 
-            elif walks_policy == '5any':
-                hic_algn1 = algns1[0]
-                hic_algn2 = algns2[0]
+            # if the walk is unrescueable:
+            if rescued_linear_side is None:
+                if walks_policy == 'mask':
+                    if is_chimeric_1 or is_chimeric_2:
+                        hic_algn1 = _mask_alignment(dict(hic_algn1))
+                        hic_algn2 = _mask_alignment(dict(hic_algn2))
+                        hic_algn1['type'] = 'W'
+                        hic_algn2['type'] = 'W'
 
-            elif walks_policy == '5unique':
-                hic_algn1 = algns1[0]
-                for algn in algns1:
-                    if algn['is_mapped'] and algn['is_unique']:
-                        hic_algn1 = algn
-                        break
+                elif walks_policy == '5any':
+                    hic_algn1 = algns1[0]
+                    hic_algn2 = algns2[0]
 
-                hic_algn2 = algns2[0]
-                for algn in algns2:
-                    if algn['is_mapped'] and algn['is_unique']:
-                        hic_algn2 = algn
-                        break
+                elif walks_policy == '5unique':
+                    hic_algn1 = algns1[0]
+                    for algn in algns1:
+                        if algn['is_mapped'] and algn['is_unique']:
+                            hic_algn1 = algn
+                            break
 
-            elif walks_policy == '3any':
-                hic_algn1 = algns1[-1]
-                hic_algn2 = algns2[-1]
+                    hic_algn2 = algns2[0]
+                    for algn in algns2:
+                        if algn['is_mapped'] and algn['is_unique']:
+                            hic_algn2 = algn
+                            break
 
-            elif walks_policy == '3unique':
-                hic_algn1 = algns1[-1]
-                for algn in algns1[::-1]:
-                    if algn['is_mapped'] and algn['is_unique']:
-                        hic_algn1 = algn
-                        break
+                elif walks_policy == '3any':
+                    hic_algn1 = algns1[-1]
+                    hic_algn2 = algns2[-1]
 
-                hic_algn2 = algns2[-1]
-                for algn in algns2[::-1]:
-                    if algn['is_mapped'] and algn['is_unique']:
-                        hic_algn2 = algn
-                        break
-            
-            elif walks_policy == 'all':
-                # TO BE IMPLEMENTED
-                pass
+                elif walks_policy == '3unique':
+                    hic_algn1 = algns1[-1]
+                    for algn in algns1[::-1]:
+                        if algn['is_mapped'] and algn['is_unique']:
+                            hic_algn1 = algn
+                            break
 
+                    hic_algn2 = algns2[-1]
+                    for algn in algns2[::-1]:
+                        if algn['is_mapped'] and algn['is_unique']:
+                            hic_algn2 = algn
+                            break
 
-            # lower-case reported walks on the chimeric side
-            if walks_policy != 'mask':
-                if is_chimeric_1:
-                    hic_algn1 = dict(hic_algn1)
-                    hic_algn1['type'] = hic_algn1['type'].lower()
-                if is_chimeric_2:
-                    hic_algn2 = dict(hic_algn2)
-                    hic_algn2['type'] = hic_algn2['type'].lower()
+                elif walks_policy == 'all': # TODO: check compatibility; TODO: add duplicates removal on the flight
+                    if is_chimeric_1 or is_chimeric_2:
+                        MARK_ALGNS_WRITTEN = False
+                        for hic_algn1 in algns1:
+                            for hic_algn2 in algns2:
+                                # Some alternatives for multiple mapping reporting listed
+                                # if hic_algn1['type']!='M' and hic_algn2['type']!='M':
+                                hic_algn1['type'] = 'W'  # if hic_algn1['type']=='U' else 'Y'
+                                hic_algn2['type'] = 'W'
+                                if not MARK_ALGNS_WRITTEN:
+                                    MARK_ALGNS_WRITTEN = True
+                                    yield hic_algn1, hic_algn2, algns1, algns2
+                                else:
+                                    yield hic_algn1, hic_algn2, [], []
+                        return
 
+                # lower-case reported walks on the chimeric side
+                if walks_policy != 'mask':
+                    if is_chimeric_1:
+                        hic_algn1 = dict(hic_algn1)
+                        hic_algn1['type'] = hic_algn1['type'].lower()
+                    if is_chimeric_2:
+                        hic_algn2 = dict(hic_algn2)
+                        hic_algn2['type'] = hic_algn2['type'].lower()
 
-    return hic_algn1, hic_algn2, algns1, algns2
+        yield hic_algn1, hic_algn2, algns1, algns2  # TODO: check compatibility with ORBITA modifications
+
+    elif walks_policy == 'ORBITA':
+        # Multiple pairs might be written for a single read, thus we switch to yield instead of return.
+
+        rescued, algns1, algns2 = rescue_junctions(algns1, algns2, rfrags, dist_rsite=dist_rsite)
+
+        if not rescued:
+            yield _mask_alignment(copy.deepcopy(algns1[0])), \
+                _mask_alignment(copy.deepcopy(algns1[0])), algns1, algns2
+            return
+
+        MARK_ALGNS_WRITTEN = False
+
+        for hic_algn1, hic_algn2 in zip(algns1, algns2):
+            #print('-1', hic_algn1['type'], hic_algn2['type'])
+            if not MARK_ALGNS_WRITTEN:
+                MARK_ALGNS_WRITTEN = True
+                #print('0', hic_algn1['type'], hic_algn2['type'])
+                yield hic_algn1, hic_algn2, algns1, algns2
+            else:
+                yield hic_algn1, hic_algn2, [], []
+
+        return
 
 def check_pair_order(algn1, algn2, chrom_enum):
     '''
@@ -699,6 +764,8 @@ def push_sam(line, drop_seq, sams1, sams2):
 
 
 def write_all_algnments(read_id, all_algns1, all_algns2, out_file):
+    if len(all_algns1)<1: # TODO: check compatibility  with ORBITA (2 lines)
+        return
     for side_idx, all_algns in enumerate((all_algns1, all_algns2)):
         out_file.write(read_id)
         out_file.write('\t')
@@ -756,7 +823,6 @@ def write_pairsam(
                 ])
             )
 
-    
     for col in add_columns:
         # use get b/c empty alignments would not have sam tags (NM, AS, etc)
         cols.append(str(algn1.get(col, '')))
@@ -778,6 +844,31 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     sams1 = []
     sams2 = []
     line = ''
+
+    rfrags = {}
+    if len(kwargs['rfrag'])>0: # TODO: write a separate function for that!
+        frags = kwargs['rfrag']
+
+        import numpy as np
+        from numpy.lib.recfunctions import append_fields  # for rfrags indexing
+
+        rfrags = np.genfromtxt(
+            frags, delimiter='\t', comments='#', dtype=None,
+            names=['chrom', 'start', 'end', 'idx'])
+
+        rfrags.sort(order=['chrom', 'start', 'end'])
+
+        rfrags = append_fields(rfrags, 'idx', np.arange(len(rfrags)))
+        rfrags['end'] += 1
+
+        chrom_borders = np.r_[0,
+                              1 + np.where(rfrags['chrom'][:-1] != rfrags['chrom'][1:])[0],
+                              rfrags.shape[0]]
+        rfrags = {rfrags['chrom'][i]: rfrags[['end', 'idx']][i:j]
+                  for i, j in zip(chrom_borders[:-1], chrom_borders[1:])}
+
+        print('Rfrags read')
+
     store_seq = ('seq' in add_columns)
     
     instream = iter(instream)
@@ -786,46 +877,51 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 
         read_id = line.split('\t', 1)[0] if line else None
 
-        if not(line) or ((read_id != prev_read_id) and prev_read_id):
-            algn1, algn2, all_algns1, all_algns2 = parse_sams_into_pair(
+        if not(line) or ((read_id != prev_read_id) and prev_read_id): # TODO: Check compatibility with ORBITA
+
+            for algn1, algn2, all_algns1, all_algns2 in parse_sams_into_pair(
                 sams1,
                 sams2,
                 min_mapq,
-                max_molecule_size, 
+                max_molecule_size,
                 kwargs['max_inter_align_gap'],
                 kwargs['walks_policy'],
-                kwargs['report_alignment_end']=='3',
+                kwargs['report_alignment_end'] == '3',
                 sam_tags,
-                store_seq
-                )
+                store_seq,
+                rfrags,
+                dist_rsite=kwargs['rdist']
+            ):
 
-            flip_pair = (not kwargs['no_flip']) and (
-                    not check_pair_order(algn1, algn2, chrom_enum))
+                flip_pair = (not kwargs['no_flip']) and (
+                        not check_pair_order(algn1, algn2, chrom_enum))
 
-            if flip_pair:
-                algn1, algn2 = algn2, algn1
-                sams1, sams2 = sams2, sams1
+                if flip_pair:
+                    algn1['strand'] = '+' if algn1['strand']=='-' else '-' # TODO: Check compatibility with ORBITA
+                    algn2['strand'] = '+' if algn2['strand']=='-' else '-'
+                    algn1, algn2 = algn2, algn1
+                    sams1, sams2 = sams2, sams1
 
-            write_pairsam(
-                algn1, algn2,
-                prev_read_id, 
-                sams1, sams2,
-                outstream,
-                drop_readid,
-                drop_sam,
-                add_columns)
+                write_pairsam(
+                    algn1, algn2,
+                    prev_read_id,
+                    sams1, sams2,
+                    outstream,
+                    drop_readid,
+                    drop_sam,
+                    add_columns)
 
-            # add a pair to PairCounter if stats output is requested:
-            if out_stat:
-                out_stat.add_pair(algn1['chrom'],  int(algn1['pos']),  algn1['strand'],
-                                  algn2['chrom'],  int(algn2['pos']),  algn2['strand'],
-                                  algn1['type'] + algn2['type'])
+                # add a pair to PairCounter if stats output is requested:
+                if out_stat:
+                    out_stat.add_pair(algn1['chrom'],  int(algn1['pos']),  algn1['strand'],
+                                      algn2['chrom'],  int(algn2['pos']),  algn2['strand'],
+                                      algn1['type'] + algn2['type'])
 
-            if out_alignments_stream:
-                write_all_algnments(prev_read_id, all_algns1, all_algns2, out_alignments_stream)
-            
-            sams1.clear()
-            sams2.clear()
+                if out_alignments_stream: # TODO: check prev_read_id compatibility with ORBITA
+                    write_all_algnments(prev_read_id, all_algns1, all_algns2, out_alignments_stream)
+
+                sams1.clear()
+                sams2.clear()
 
         if line is not None:
             push_sam(line, drop_seq, sams1, sams2)
@@ -910,3 +1006,139 @@ def parse_alternative_algns(samcols):
 #            })
 #
 #    return supp_algns
+
+# Below are the functions used in ORBITA only.
+def find_rfrag(rfrags, chrom, pos):
+    if chrom.encode('ascii') in rfrags.keys():
+        rsites_chrom = rfrags[chrom.encode('ascii')]['end']
+        rsites_idx = rfrags[chrom.encode('ascii')]['idx']
+        idx = min(max(0, rsites_chrom.searchsorted(pos, 'right') - 1), len(rsites_chrom) - 2)
+        return rsites_idx[idx], rsites_chrom[idx], rsites_chrom[idx + 1]
+    else:
+        return -1, -1, -1
+
+
+def rescue_pair(algn1, algn2, type, rfrags=None, gap_limit=0, dist_rsite=10):
+    """
+    Rescue particular pair of sequential alignments, used in rescue_junctions
+    :param algn1:   First alignment
+    :param algn2:   Second alignment
+    :param type:    Type of alignment: J - sequential in one read, algn1 is left, algn2 is right, rrags are checked
+                                       P - ending alignments in R1 and R2, no need to check rfrags
+    :param rfrags:  rfrags to find positions for "J" case
+    :param gap_limit:   Not checked if 0 or if type=="H".
+                        Otherwise, check the possibility of fitting some other alignement in between.
+    :return: Rescued pair
+    """
+
+    algn1 = copy.deepcopy(algn1)
+    algn2 = copy.deepcopy(algn2)
+
+    if (algn1['is_mapped'] and algn1['is_unique'] and algn2['is_mapped'] and algn2['is_unique']):
+
+        rfrag1, dist1_up, dist1_down = \
+            find_rfrag(rfrags, algn1['chrom'], algn1['pos3'] + (-10 if algn1['strand'] == "+" else 10))
+        rfrag2, dist2_up, dist2_down = \
+            find_rfrag(rfrags, algn2['chrom'], algn2['pos5'] + (10 if algn2['strand'] == "+" else -10))
+
+        dist_to_rfrag1 = min(abs(dist1_up - algn1['pos3']),
+                             abs(dist1_down - algn1['pos3']))
+        dist_to_rfrag2 = min(abs(dist2_up - algn2['pos5']),
+                             abs(dist2_down - algn2['pos5']))
+        if type == 'J':
+
+            if dist_to_rfrag1 > dist_rsite or dist_to_rfrag2 > dist_rsite:
+                algn1['type'] = 'H'  # hop
+                algn2['type'] = 'H'
+            else:
+                algn1['type'] = 'J'  # junction
+                algn2['type'] = 'J'
+
+        else:
+            algn1['type'] = 'P'  # pair
+            algn2['type'] = 'P'
+
+        algn1['rfrag'], algn2['rfrag'] = rfrag1, rfrag2
+        algn1['rfrag_dist'], algn2['rfrag_dist'] = dist_to_rfrag1, dist_to_rfrag2
+        algn1['rfrag_dist_upstream'], algn1['rfrag_dist_downstream'] = dist1_up, dist1_down
+        algn2['rfrag_dist_upstream'], algn2['rfrag_dist_downstream'] = dist2_up, dist2_down
+
+    else:
+        algn1['rfrag'] = -1
+        algn1['rfrag_dist'] = -1
+        algn1['rfrag_dist_upstream'] = -1
+        algn1['rfrag_dist_downstream'] = -1
+        algn2['rfrag'] = -1
+        algn2['rfrag_dist'] = -1
+        algn2['rfrag_dist_upstream'] = -1
+        algn2['rfrag_dist_downstream'] = -1
+
+    # print(algn1, algn2)
+    return (algn1, algn2)
+
+
+def rescue_junctions(algns1_orig, algns2_orig, rfrags, dist_rsite=10):
+    """
+    Rescue all the junctions in a set of ligation that appears as a walk.
+
+    Returns
+    -------
+    rescued_flag : int
+        If the case of a successful rescue, returns True.
+
+    """
+
+    algns1 = copy.deepcopy(algns1_orig)
+    algns2 = copy.deepcopy(algns2_orig)
+
+    n_algns1 = len(algns1)
+    n_algns2 = len(algns2)
+
+    # print(n_algns1, n_algns2)
+    # If both sides have more that two alignments, we expect too short alignements,
+    # but this might be improved with sequencing length
+    if (n_algns1 > 2) and (n_algns2 > 2):
+        return (0, algns1_orig, algns2_orig)
+    # If both sides have one alignment or none, we drop it, no ligation through rsite observed
+    if (n_algns1 < 1) and (n_algns2 < 1):
+        return (0, algns1_orig, algns2_orig)
+
+    resulting_algns1 = []
+    resulting_algns2 = []
+
+    PAIR_PRESENT = 1
+
+    if n_algns1 == 2:
+        for_pair1 = algns1[1]
+        algn1, algn2 = rescue_pair(algns1[0], algns1[1], "J", rfrags=rfrags, gap_limit=0, dist_rsite=dist_rsite)
+        resulting_algns1.append(copy.deepcopy(algn1))
+        resulting_algns2.append(copy.deepcopy(algn2))
+    elif n_algns1 == 1:
+        for_pair1 = algns1[0]
+    else:
+        # no pair
+        PAIR_PRESENT = 0
+
+    if n_algns2 == 2:
+        for_pair2 = algns2[1]
+        algn1, algn2 = rescue_pair(algns2[0], algns2[1], "J", rfrags=rfrags, gap_limit=0, dist_rsite=dist_rsite)
+        resulting_algns1.append(copy.deepcopy(algn1))
+        resulting_algns2.append(copy.deepcopy(algn2))
+    elif n_algns2 == 1:
+        for_pair2 = algns2[0]
+    else:
+        # no pair
+        PAIR_PRESENT = 0
+
+    if PAIR_PRESENT:
+        algn1, algn2 = rescue_pair(for_pair1, for_pair2, "P", rfrags=rfrags, gap_limit=0, dist_rsite=0)
+        resulting_algns1.append(copy.deepcopy(algn1))
+        resulting_algns2.append(copy.deepcopy(algn2))
+
+    if len(resulting_algns1) > 0:
+        algns1_orig = copy.deepcopy(resulting_algns1)
+        algns2_orig = copy.deepcopy(resulting_algns2)
+        # print(resulting_algns1, resulting_algns2)
+        return (1, algns1_orig, algns2_orig)
+    else:
+        return (0, algns1_orig, algns2_orig)

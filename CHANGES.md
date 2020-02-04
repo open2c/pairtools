@@ -1,3 +1,7 @@
+### 0.3.0 agalitsyna fork (2020-02-04) ###
+
+* One-Read-Based Interactions Annotation (ORBITA) option added
+
 ### 0.3.0 (2019-04-23) ###
 
 * parse: tag pairs with missing FASTQ/SAM on one side as corrupt, pair type "XX"
