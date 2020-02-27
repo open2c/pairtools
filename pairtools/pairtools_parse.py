@@ -135,6 +135,16 @@ EXTRA_COLUMNS = [
     show_default=True
     )
 @click.option(
+    "--readid-transform", 
+    type=str,
+    default=None,
+    help='A Python expression to modify read IDs. Useful when read ID differ '
+    'between the two reads of a pair. Must be valid Python expression that '
+    'use a variable called readID and return a new value, e.g. "readID[:-2]".',
+    show_default=True
+    )
+
+@click.option(
     "--no-flip", 
     is_flag=True,
     help='If specified, do not flip pairs in genomic order and instead preserve ' 
@@ -698,9 +708,9 @@ def push_sam(line, drop_seq, sams1, sams2):
     return
 
 
-def write_all_algnments(read_id, all_algns1, all_algns2, out_file):
+def write_all_algnments(readID, all_algns1, all_algns2, out_file):
     for side_idx, all_algns in enumerate((all_algns1, all_algns2)):
-        out_file.write(read_id)
+        out_file.write(readID)
         out_file.write('\t')
         out_file.write(str(side_idx+1))
         out_file.write('\t')
@@ -725,7 +735,7 @@ def write_all_algnments(read_id, all_algns1, all_algns2, out_file):
         out_file.write('\n')
 
 def write_pairsam(
-        algn1, algn2, read_id, sams1, sams2, out_file, 
+        algn1, algn2, readID, sams1, sams2, out_file, 
         drop_readid, drop_sam, add_columns):
     """
     SAM is already tab-separated and
@@ -735,7 +745,7 @@ def write_pairsam(
 
     """
     cols = [
-        '.' if drop_readid else read_id,
+        '.' if drop_readid else readID,
         algn1['chrom'],
         str(algn1['pos']),
         algn2['chrom'],
@@ -774,19 +784,25 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes), 
                           range(len(chromosomes)+1)))
     sam_tags = [col for col in add_columns if len(col)==2 and col.isupper()]
-    prev_read_id = ''
+    prev_readID = ''
     sams1 = []
     sams2 = []
     line = ''
     store_seq = ('seq' in add_columns)
     
+    readID_transform = kwargs.get('readid_transform', None)
+    if readID_transform is not None:
+        readID_transform = compile(readID_transform, '<string>', 'eval')
+    
     instream = iter(instream)
     while line is not None:
         line = next(instream, None)
 
-        read_id = line.split('\t', 1)[0] if line else None
+        readID = line.split('\t', 1)[0] if line else None
+        if readID_transform is not None and readID is not None:
+            readID = eval(readID_transform)
 
-        if not(line) or ((read_id != prev_read_id) and prev_read_id):
+        if not(line) or ((readID != prev_readID) and prev_readID):
             algn1, algn2, all_algns1, all_algns2 = parse_sams_into_pair(
                 sams1,
                 sams2,
@@ -808,7 +824,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 
             write_pairsam(
                 algn1, algn2,
-                prev_read_id, 
+                prev_readID, 
                 sams1, sams2,
                 outstream,
                 drop_readid,
@@ -822,17 +838,19 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                                   algn1['type'] + algn2['type'])
 
             if out_alignments_stream:
-                write_all_algnments(prev_read_id, all_algns1, all_algns2, out_alignments_stream)
+                write_all_algnments(prev_readID, all_algns1, all_algns2, out_alignments_stream)
             
             sams1.clear()
             sams2.clear()
 
         if line is not None:
             push_sam(line, drop_seq, sams1, sams2)
-            prev_read_id = read_id
+            prev_readID = readID
+
 
 if __name__ == '__main__':
     parse()
+
 
 def parse_alternative_algns(samcols):
     alt_algns = []
