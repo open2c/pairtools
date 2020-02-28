@@ -138,9 +138,9 @@ EXTRA_COLUMNS = [
     "--readid-transform", 
     type=str,
     default=None,
-    help='A Python expression to modify read IDs. Useful when read ID differ '
-    'between the two reads of a pair. Must be valid Python expression that '
-    'use a variable called readID and return a new value, e.g. "readID[:-2]".',
+    help='A Python expression to modify read IDs. Useful when read IDs differ '
+    'between the two reads of a pair. Must be a valid Python expression that '
+    'uses a variable called readID and returns a new value, e.g. "readID[:-2]".',
     show_default=True
     )
 
