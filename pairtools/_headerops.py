@@ -85,6 +85,22 @@ def extract_column_names(header):
         return []
 
 
+def extract_chromsizes(header):
+    '''
+    Extract chromosome sizes from header lines.
+    '''
+    
+    chromsizes_str = pairtools._headerops.extract_fields(
+        header,
+        'chromsize')
+    chromsizes_str = list(zip(*[s.split(' ') for s in chromsizes_str]))
+    chromsizes = pd.Series(
+        data = chromsizes_str[1],
+        index = chromsizes_str[0]).astype(np.int64)
+    
+    return chromsizes
+
+
 def get_chromsizes_from_sam_header(samheader):
     SQs = [l.split('\t') for l in samheader if l.startswith('@SQ')]
     chromsizes = [(sq[1][3:], int(sq[2][3:])) for sq in SQs]
