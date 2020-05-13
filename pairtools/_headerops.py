@@ -13,21 +13,17 @@ PAIRS_FORMAT_VERSION = '1.0.0'
 def get_header(instream, comment_char='#'):
     '''Returns a header from the stream and an the reaminder of the stream
     with the actual data.
-
     Parameters
     ----------
     instream : a file object
         An input stream.
-
     comment_char : str
         The character prepended to header lines (use '@' when parsing sams, 
         '#' when parsing pairsams).
-
     Returns
     -------
     header : list
         The header lines, stripped of terminal spaces and newline characters.
-
     remainder_stream : stream/file-like object
         Stream with the remaining lines.
     
@@ -37,21 +33,31 @@ def get_header(instream, comment_char='#'):
         raise ValueError('Please, provide a comment char!')
     comment_byte = comment_char.encode()
     # get peekable buffer for the instream
-    inbuffer = instream.buffer
-    current_peek = inbuffer.peek()
+    read_f, peek_f = None, None
+    if hasattr(instream, 'buffer'):
+        peek_f = instream.buffer.peek
+        readline_f = instream.buffer.readline
+    elif hasattr(instream, 'peek'):
+        peek_f = instream.peek
+        readline_f = instream.readline
+    else:
+        raise ValueError('Cannot find the peek() function of the provided stream!')
+        
+    current_peek = peek_f(1)
     while current_peek.startswith(comment_byte):
         # consuming a line from buffer guarantees
         # that the remainder of the buffer starts 
         # with the beginning of the line.
-        line = inbuffer.readline()
+        line = readline_f()
+        if isinstance(line, bytes):
+            line = line.decode()
         # append line to header, since it does start with header
-        header.append(line.decode().strip())
+        header.append(line.strip())
         # peek into the remainder of the instream
-        current_peek = inbuffer.peek()
+        current_peek = peek_f(1)
     # apparently, next line does not start with the comment
     # return header and the instream, advanced to the beginning of the data
     return header, instream
-
 
 def extract_fields(header, field_name, save_rest=False):
     '''
