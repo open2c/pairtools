@@ -117,6 +117,17 @@ MAX_LEN = 10000
     type=int, 
     default=_pairsam_format.COL_S2,  
     help='Strand 2 column; default {}'.format(_pairsam_format.COL_S2))
+# Provide MAPQ value for choosing the best mapped pair of duplicates to keep. Default is choosing the first one.
+# The first one might be a low MAPQ pair, which might be filtered out in downstream analysis, such as
+# pairtools select with MAPQ threshold. With the MAPQ value, the high MAPQ "duplicated" pair can be selected 
+# to avoide the problem.   
+@click.option(
+    "--mapq-cols", 
+    nargs=2, 
+    help='MAPQ columns 1 and 2; Can be either provided as 0-based column indices or as column '
+    'name (requires the "#columns" header field). Example: \'--mapq "mapq1" "mapq2"\' or \'--mapq 10 11\' '
+    'The MAPQ values will be used to select the best pair which will be kept when there are duplicats. '
+    'The best pair is the one has the highest value of min(mapq1, mapq2).')
 @click.option(
     "--unmapped-chrom", 
     type=str, 
@@ -145,7 +156,7 @@ def dedup(pairs_path, output, output_dups, output_unmapped,
     output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair, **kwargs
+    c1, c2, p1, p2, s1, s2, mapq_cols, unmapped_chrom, mark_dups, extra_col_pair, **kwargs
     ):
     '''Find and remove PCR/optical duplicates.
 
@@ -160,7 +171,7 @@ def dedup(pairs_path, output, output_dups, output_unmapped,
         output_stats,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
-        c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair,
+        c1, c2, p1, p2, s1, s2, mapq_cols, unmapped_chrom, mark_dups, extra_col_pair,
         **kwargs
         )
 
@@ -170,7 +181,7 @@ def dedup_py(
     output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair,
+    c1, c2, p1, p2, s1, s2, mapq_cols, unmapped_chrom, mark_dups, extra_col_pair,
     **kwargs
     ):
     sep = ast.literal_eval('"""' + sep + '"""')
@@ -229,6 +240,15 @@ def dedup_py(
         outstream_unmapped.writelines((l+'\n' for l in header))
 
     column_names = _headerops.extract_column_names(header)
+
+    # consider mapq1 and mapq2 in dedup if exist 
+    mapq1 = None
+    mapq2 = None
+    if len(mapq_cols):
+        mapq1 = int(mapq_cols[0]) if mapq_cols[0].isdigit() else column_names.index(mapq_cols[0])
+        mapq2 = int(mapq_cols[1]) if mapq_cols[1].isdigit() else column_names.index(mapq_cols[1])
+        # print("MAPQ cols:", mapq1, mapq2)
+
     extra_cols1 = []
     extra_cols2 = []
     if extra_col_pair is not None:
@@ -240,7 +260,7 @@ def dedup_py(
                             
 
     streaming_dedup( method, max_mismatch, sep,
-        c1, c2, p1, p2, s1, s2, extra_cols1, extra_cols2, unmapped_chrom,
+        c1, c2, p1, p2, s1, s2, mapq1, mapq2, extra_cols1, extra_cols2, unmapped_chrom,
         body_stream, outstream, outstream_dups,
         outstream_unmapped, out_stat, mark_dups)
 
@@ -278,12 +298,15 @@ def ar(mylist, val):
 
 def streaming_dedup(
         method, max_mismatch, sep,
-        c1ind, c2ind, p1ind, p2ind, s1ind, s2ind, extra_cols1, extra_cols2,
+        c1ind, c2ind, p1ind, p2ind, s1ind, s2ind, mapq1ind, mapq2ind, extra_cols1, extra_cols2,
         unmapped_chrom,
         instream, outstream, outstream_dups, outstream_unmapped,
         out_stat, mark_dups):
 
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
+    if bool(mapq1ind) and bool(mapq2ind):
+        maxind = max(maxind, mapq1ind, mapq2ind)
+
     if bool(extra_cols1) and bool(extra_cols2):
         maxind = max(maxind, max(extra_cols1), max(extra_cols2))
 
@@ -298,7 +321,7 @@ def streaming_dedup(
 
     dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False)
 
-    c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []
+    c1 = []; c2 = []; p1 = []; p2 = []; s1 = []; s2 = []; min_mapq = []
     line_buffer = []
     cols_buffer = []
     chromDict = {}
@@ -353,13 +376,20 @@ def streaming_dedup(
                     s1.append(fetchadd(cols[s1ind], strandDict))
                     s2.append(fetchadd(cols[s2ind], strandDict))
                 
+                # get min_mapq 
+                if bool(mapq1ind) and bool(mapq2ind):
+                    min_mapq.append(min(int(cols[mapq1ind]), int(cols[mapq2ind])))
+                else:
+                    min_mapq.append(0)
+                
         if (not stripline) or (len(c1) == curMaxLen):
             res = dd.push(ar(c1, 32), 
                           ar(c2, 32), 
                           ar(p1, 32), 
                           ar(p2, 32), 
                           ar(s1, 32), 
-                          ar(s2, 32))
+                          ar(s2, 32),
+                          ar(min_mapq, 32))
             if not stripline:
                 res = np.concatenate([res, dd.finish()])
 

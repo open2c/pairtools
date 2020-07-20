@@ -149,6 +149,7 @@ cdef class OnlineDuplicateDetector(object):
     cdef cython.int [:] p2 
     cdef cython.int [:] s1 
     cdef cython.int [:] s2 
+    cdef cython.int [:] min_mapq
     cdef cython.char [:] rm
     cdef int methodid
     cdef int low
@@ -168,7 +169,8 @@ cdef class OnlineDuplicateDetector(object):
         self.p1 = np.zeros(0, np.int32)
         self.p2 = np.zeros(0, np.int32)
         self.s1 = np.zeros(0, np.int32)
-        self.s2 = np.zeros(0, np.int32) 
+        self.s2 = np.zeros(0, np.int32)
+        self.min_mapq = np.zeros(0, np.int32)
         self.rm = np.zeros(0, np.int8)        
         if method == "max": 
             self.methodid = 0
@@ -206,10 +208,16 @@ cdef class OnlineDuplicateDetector(object):
     def _run(self, finish=False):
         cdef int finishing = 0 
         cdef int extraCondition
+        cdef int best_ind
+        cdef int best_minmapq
 
         if finish:
             finishing = 1 
-
+        
+        if self.low < self.N:
+            best_ind = self.low
+            best_minmapq = self.min_mapq[self.low]
+        
         while True:            
             if self.low == self.N:
                 break
@@ -218,6 +226,9 @@ cdef class OnlineDuplicateDetector(object):
                 if finishing == 1: 
                     self.low += 1
                     self.high = self.low + 1
+                    if self.low < self.N:
+                        best_ind = self.low
+                        best_minmapq = self.min_mapq[self.low]
                     continue
                 else:
                     break 
@@ -225,6 +236,9 @@ cdef class OnlineDuplicateDetector(object):
             if self.rm[self.low] == 1:
                 self.low += 1
                 self.high = self.low+1
+                if self.low < self.N:
+                    best_ind = self.low
+                    best_minmapq = self.min_mapq[self.low]
                 continue
 
             # if high already removed, just continue
@@ -238,6 +252,9 @@ cdef class OnlineDuplicateDetector(object):
                 (self.p1[self.high] - self.p1[self.low] < 0  )):
                 self.low += 1
                 self.high = self.low + 1  # restart high
+                if self.low < self.N:
+                    best_ind = self.low
+                    best_minmapq = self.min_mapq[self.low]
                 continue
 
             if self.methodid == 0: 
@@ -259,20 +276,27 @@ cdef class OnlineDuplicateDetector(object):
                     (self.s1[self.low] == self.s1[self.high]) and 
                     (self.s2[self.low] == self.s2[self.high]) and 
                     extraCondition):
-                self.rm[self.high] = 1
+                # compare the min_mapq
+                if(self.min_mapq[self.high] > best_minmapq):
+                    self.rm[best_ind] = 1
+                    best_ind = self.high
+                    best_minmapq = self.min_mapq[self.high]
+                else:
+                    self.rm[self.high] = 1
                 self.high += 1
                 continue
             self.high += 1
 
         return self._shrink()
 
-    def push(self, c1, c2, p1, p2, s1, s2):            
+    def push(self, c1, c2, p1, p2, s1, s2, min_mapq):            
         self.c1 = np.concatenate([self.c1, c1])
         self.c2 = np.concatenate([self.c2, c2])
         self.p1 = np.concatenate([self.p1, p1])
         self.p2 = np.concatenate([self.p2, p2])
         self.s1 = np.concatenate([self.s1, s1])
         self.s2 = np.concatenate([self.s2, s2])
+        self.min_mapq = np.concatenate([self.min_mapq, min_mapq])
         self.rm = np.concatenate([self.rm, np.zeros(len(c1), dtype=np.int8)])
         self.N = self.N + len(c1)        
         return self._run(finish=False)
