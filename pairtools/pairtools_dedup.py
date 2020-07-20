@@ -379,6 +379,7 @@ def streaming_dedup(
                 # get min_mapq 
                 if bool(mapq1ind) and bool(mapq2ind):
                     min_mapq.append(min(int(cols[mapq1ind]), int(cols[mapq2ind])))
+                    # print(min(int(cols[mapq1ind]), int(cols[mapq2ind])))
                 else:
                     min_mapq.append(0)
                 
