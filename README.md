@@ -21,7 +21,7 @@ operations:
 - restore .sam alignments from Hi-C pairs
 
 To get started:
-- Take a look at a [quick example](https://github.com/mirnylab/pairtools#quick-example)
+- Take a look at a [quick example](https://github.com/open2c/pairtools#quick-example)
 - Check out the detailed [documentation](http://pairtools.readthedocs.io).
 
 ## Data formats
@@ -62,12 +62,12 @@ Setup a new test folder and download a small Hi-C dataset mapped to sacCer3 geno
 ```bash
 $ mkdir /tmp/test-pairtools
 $ cd /tmp/test-pairtools
-$ wget https://github.com/mirnylab/distiller-test-data/raw/master/bam/MATalpha_R1.bam
+$ wget https://github.com/open2c/distiller-test-data/raw/master/bam/MATalpha_R1.bam
 ```
 
 Additionally, we will need a .chromsizes file, a TAB-separated plain text table describing the names, sizes and the order of chromosomes in the genome assembly used during mapping:
 ```bash
-$ wget https://raw.githubusercontent.com/mirnylab/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
+$ wget https://raw.githubusercontent.com/open2c/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
 ```
 
 With `pairtools parse`, we can convert paired-end sequence alignments stored in .sam/.bam format into .pairs, a TAB-separated table of Hi-C ligation junctions:
@@ -85,7 +85,7 @@ $ less MATalpha_R1.pairs.gz
 ## Pipelines
 
 - We provide a simple working example of a mapping bash pipeline in /examples/.
-- [distiller](https://github.com/mirnylab/distiller-nf) is a powerful
+- [distiller](https://github.com/open2c/distiller-nf) is a powerful
 Hi-C data analysis workflow, based on `pairtools` and [nextflow](https://www.nextflow.io/).
 
 
@@ -145,7 +145,7 @@ Hi-C data analysis workflow, based on `pairtools` and [nextflow](https://www.nex
 
 For development, clone and install in "editable" (i.e. development) mode with the `-e` option. This way you can also pull changes on the fly.
 ```sh
-$ git clone https://github.com/mirnylab/pairtools.git
+$ git clone https://github.com/open2c/pairtools.git
 $ cd pairtools
 $ pip install -e .
 ```

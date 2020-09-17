@@ -91,15 +91,15 @@ class build_ext(_build_ext):
 
 setup(
     name='pairtools',
-    author='Mirny Lab',
-    author_email='espresso@mit.edu',
+    author='Open2C',
+    author_email='goloborodko.anton@gmail.com',
     version=get_version(),
     license='MIT',
     description='CLI tools to process mapped Hi-C data',
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords=['genomics', 'bioinformatics', 'Hi-C', 'contact'],
-    url='https://github.com/mirnylab/pairtools',
+    url='https://github.com/open2c/pairtools',
     ext_modules=get_ext_modules(),
     cmdclass = {'build_ext': build_ext},
     zip_safe=False,

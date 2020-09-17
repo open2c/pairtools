@@ -44,7 +44,7 @@ github. First, make a local clone of the github repository:
 
 .. code-block:: bash
 
-    $ git clone https://github.com/mirnylab/pairtools 
+    $ git clone https://github.com/open2c/pairtools 
 
 Then, you can compile and install `pairtools` in 
 `the development mode <https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_, 

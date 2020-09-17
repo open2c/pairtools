@@ -48,8 +48,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pairtools'
-copyright = '2017-2018, Mirny Lab'
-author = 'Mirny Lab'
+copyright = '2017-2020, Open2C'
+author = 'Open2C'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -245,7 +245,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'pairtools.tex', 'pairtools Documentation',
-     'Mirny Lab', 'manual'),
+     'Open2C', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
