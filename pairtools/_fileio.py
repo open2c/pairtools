@@ -134,7 +134,7 @@ def auto_open(path, mode, nproc=1, command=None):
 
 
 
-class PipedFile:
+class PipedIO:
     def __init__(self, file_or_path, command, mode='r'):
         """
         An experimental class that reads/writes a file, piping the contents 
@@ -169,27 +169,38 @@ class PipedFile:
                 self._proc = subprocess.Popen(command + [file_or_path], universal_newlines=True, stdout=subprocess.PIPE)
             else:
                 self._proc = subprocess.Popen(command, universal_newlines=True, stdin=file_or_path, stdout=subprocess.PIPE)
-            self.buffer = self._proc.stdout.buffer
-            self.read = self._proc.stdout.read
-            self.readline = self._proc.stdout.readline
-            self.readlines = self._proc.stdout.readlines
-            self.seekable = self._proc.stdout.seekable
+            self._stream = self._proc.stdout
             
             self._close_stream = self._proc.stdout.close
                 
         elif mode.startswith('w') or mode.startswith('a'):
             f = open(file_or_path, mode=mode) if issubclass(type(file_or_path), str) else file_or_path
             self._proc = subprocess.Popen(command, universal_newlines=True, stdin=subprocess.PIPE, stdout=f)
-        
-            self.buffer = self._proc.stdin.buffer
-            self.flush = self._proc.stdin.flush
-            self.write = self._proc.stdin.writelines
-            self.seekable = self._proc.stdout.seekable
+            self._stream = self._proc.stdin
 
-            self._close_stream = self._proc.stdin.close
+
+        self.buffer = self._stream.buffer
+        self.closed = self._stream.closed
+        self.flush = self._stream.flush
+        self.fileno = self._stream.fileno
+
+        self.read = self._stream.read
+        self.readline = self._stream.readline
+        self.readlines = self._stream.readlines
+        
+        
+        self.seek = self._stream.seek
+        self.seekable = self._stream.seekable
+        self.truncate = self._stream.truncate
+        self.tell = self._stream.tell
+
+        self.writable = self._stream.writable
+        self.write = self._stream.write
+        self.writelines = self._stream.writelines
+    
             
     def close(self, timeout=None):
-        self._close_stream()
+        self._stream.close()
         retcode = self._proc.wait(timeout=timeout)
         return retcode
         
