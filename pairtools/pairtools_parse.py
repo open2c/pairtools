@@ -140,7 +140,8 @@ EXTRA_COLUMNS = [
     default=None,
     help='A Python expression to modify read IDs. Useful when read IDs differ '
     'between the two reads of a pair. Must be a valid Python expression that '
-    'uses a variable called readID and returns a new value, e.g. "readID[:-2]". '
+    'uses variables called readID and/or i (the 0-based index of the read pair '
+    'in the bam file) and returns a new value, e.g. "readID[:-2]+\'_\'+str(i)". '
     'Make sure that transformed readIDs remain unique!',
     show_default=True
     )
@@ -790,6 +791,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     sams2 = []
     line = ''
     store_seq = ('seq' in add_columns)
+    i = 0
     
     readID_transform = kwargs.get('readid_transform', None)
     if readID_transform is not None:
@@ -843,6 +845,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
             
             sams1.clear()
             sams2.clear()
+            i += 1
 
         if line is not None:
             push_sam(line, drop_seq, sams1, sams2)
