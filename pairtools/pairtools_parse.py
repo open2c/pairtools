@@ -140,7 +140,8 @@ EXTRA_COLUMNS = [
     default=None,
     help='A Python expression to modify read IDs. Useful when read IDs differ '
     'between the two reads of a pair. Must be a valid Python expression that '
-    'uses a variable called readID and returns a new value, e.g. "readID[:-2]".',
+    'uses a variable called readID and returns a new value, e.g. "readID[:-2]". '
+    'Make sure that transformed readIDs remain unique!',
     show_default=True
     )
 
