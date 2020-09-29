@@ -6,8 +6,8 @@ Requirements
 
 - Python 3.x
 - Python packages `numpy` and `click`
-- Command-line utilities `sort` (the Unix version), `bgzip` (shipped with `tabix`) 
-  and `samtools`. If available, `pairtools` can compress outputs with `pbgzip` and `lz4`.
+- Command-line utilities `sort` (the Unix version), `bgzip` (shipped with `samtools`) 
+  and `samtools`. If available, `pairtools` can compress outputs with `bgzip`, `pbgzip` and `lz4`.
 
 Install using conda
 -------------------

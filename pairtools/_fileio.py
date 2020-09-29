@@ -20,7 +20,7 @@ def auto_open(path, mode, nproc=1, command=None):
 
     Supported extensions and binaries (with comments):
     .bam - samtools view (allows parallel writing)
-    .gz - pbgzip 
+    .gz - pbgzip if available, otherwise bgzip 
     .lz4 - lz4c (does not support parallel execution)
     '''
     if command:
@@ -35,6 +35,7 @@ def auto_open(path, mode, nproc=1, command=None):
         else:
             raise ValueError("Unknown mode : {}".format(mode))
         return f
+
     elif path.endswith('.bam'):
         if shutil.which('samtools') is None:
             raise ValueError({
@@ -54,6 +55,7 @@ def auto_open(path, mode, nproc=1, command=None):
         else:
             raise ValueError("Unknown mode for .bam : {}".format(mode))
         return f
+
     elif path.endswith('.gz'):
         if shutil.which('pbgzip') is not None:
             if mode =='w': 

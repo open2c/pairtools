@@ -42,7 +42,7 @@ Requirements:
 
 - Python 3.x
 - Python packages `cython`, `numpy` and `click`.
-- Command-line utilities `sort` (the Unix version), `bgzip` (shipped with `tabix`)  and `samtools`. If available, `pairtools` can compress outputs with `pbgzip` and `lz4`.
+- Command-line utilities `sort` (the Unix version), `bgzip` (shipped with `samtools`)  and `samtools`. If available, `pairtools` can compress outputs with `pbgzip` and `lz4`.
 
 We highly recommend using the `conda` package manager to install `pairtools` together with all its dependencies. To get it, you can either install the full [Anaconda](https://www.continuum.io/downloads) Python distribution or just the standalone [conda](http://conda.pydata.org/miniconda.html) package manager.
 
