@@ -19,7 +19,7 @@ UTIL_NAME = 'pairtools_split'
     type=str, 
     default="", 
     help='output pairs file.'
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' If -, pairs are printed to stdout.'
         ' If not specified, pairs are dropped.')
 @click.option(
@@ -40,7 +40,7 @@ def split(pairsam_path, output_pairs, output_sam, **kwargs):
     a .pairs file without sam1/sam2 fields.
 
     PAIRSAM_PATH : input .pairsam file. If the path ends with .gz or .lz4, the
-    input is decompressed by pbgzip or lz4c. By default, the input is read from 
+    input is decompressed by bgzip or lz4c. By default, the input is read from 
     stdin.
     '''
     split_py(pairsam_path, output_pairs, output_sam, **kwargs)

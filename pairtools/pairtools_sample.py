@@ -24,7 +24,7 @@ UTIL_NAME = 'pairtools_sample'
     type=str, 
     default="", 
     help='output file.'
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' By default, the output is printed into stdout.')
 
 @click.option(
@@ -44,7 +44,7 @@ def sample(
     FRACTION: the fraction of the randomly selected pairs subset 
 
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the
-    input is decompressed by pbgzip/lz4c. By default, the input is read from stdin.
+    input is decompressed by bgzip/lz4c. By default, the input is read from stdin.
 
     '''
     sample_py(

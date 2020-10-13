@@ -16,13 +16,13 @@ Setup a new test folder and download a small Hi-C dataset mapped to sacCer3 geno
 
     $ mkdir /tmp/test-pairtools
     $ cd /tmp/test-pairtools
-    $ wget https://github.com/mirnylab/distiller-test-data/raw/master/bam/MATalpha_R1.bam
+    $ wget https://github.com/open2c/distiller-test-data/raw/master/bam/MATalpha_R1.bam
 
 Additionally, we will need a .chromsizes file, a TAB-separated plain text table describing the names, sizes and the order of chromosomes in the genome assembly used during mapping:
 
 .. code-block:: bash
 
-    $ wget https://raw.githubusercontent.com/mirnylab/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
+    $ wget https://raw.githubusercontent.com/open2c/distiller-test-data/master/genome/sacCer3.reduced.chrom.sizes
 
 With `pairtools parse`, we can convert paired-end sequence alignments stored in .sam/.bam format into .pairs, a TAB-separated table of Hi-C ligation junctions:
 

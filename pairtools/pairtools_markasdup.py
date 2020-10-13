@@ -18,7 +18,7 @@ UTIL_NAME = 'pairtools_markasdup'
     type=str, 
     default="", 
     help='output .pairsam file.'
-        ' If the path ends with .gz or .lz4, the output is pbgzip-/lz4c-compressed.'
+        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' By default, the output is printed into stdout.')
 
 @common_io_options
