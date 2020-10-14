@@ -46,6 +46,12 @@ def parse_sams_into_pair(sams1,
         _convert_gaps_into_alignments(algns1, max_inter_align_gap)
         _convert_gaps_into_alignments(algns2, max_inter_align_gap)
 
+    # Enumerating the alignments for 'chimera_index' field
+    for i in range(len(algns1)):
+        algns1[i]['chimera_index'] = f"{algns1[i]['type']}f{i+1}"
+    for i in range(len(algns2)):
+        algns2[i]['chimera_index'] = f"{algns2[i]['type']}r{i+1}"
+
     # Define the type of alignment on each side.
     # The most important split is between chimeric alignments and linear
     # alignments.
@@ -60,11 +66,12 @@ def parse_sams_into_pair(sams1,
     rescued_linear_side = None
     if is_chimeric_1 or is_chimeric_2:
 
+        # Report all the linear alignments in a read pair
         if walks_policy == 'all':
             # Report linear alignments after deduplication of complex walks
             return rescue_complex_walk(algns1, algns2, max_molecule_size)
 
-        # Pick two alignments to report as a Hi-C pair.
+        # Report only two alignments for a read pair
         rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
 
         # if the walk is unrescueable:
@@ -74,6 +81,8 @@ def parse_sams_into_pair(sams1,
                 hic_algn2 = _mask_alignment(dict(hic_algn2))
                 hic_algn1['type'] = 'W'
                 hic_algn2['type'] = 'W'
+                hic_algn1['chimera_index'] = 'W1'
+                hic_algn2['chimera_index'] = 'W1'
 
             elif walks_policy == '5any':
                 hic_algn1 = algns1[0]
@@ -186,7 +195,8 @@ def empty_alignment():
         'clip3_ref': 0,
         'clip5_ref': 0,
         'read_len': 0,
-        'type':'N'
+        'type':'N',
+        'chimera_index': 'N0'
     }
 
 
@@ -246,7 +256,8 @@ def parse_algn(
         'is_linear': is_linear,
         'dist_to_5': dist_to_5,
         'dist_to_3': dist_to_3,
-        'type': ('N' if not is_mapped else ('M' if not is_unique else 'U'))
+        'type': ('N' if not is_mapped else ('M' if not is_unique else 'U')),
+        'chimera_index': '0' # Index cannot be determined prior to full alignment parsing
     }
 
     algn.update(cigar)
@@ -390,55 +401,69 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
      Forward read:                            Reverse read:
     ---------------------->       <-----------------------
              algns1                        algns2
-    5---3_5---3_5---3_5---3        5---3_5---3_5---3_5---3
+    5---3_5---3_5---3_5---3        3---5_3---5_3---5_3---5
         fIII  fII   fI                 rI    rII  rIII
-         (Pairs of linear alignments to be compared.)
+          junctions                       junctions
 
-    n_algns1 >= 2 on forward read and n_algns2 >= 2 on reverse read.
+    Alignment is a bwa mem reported hit. After parsing of bam file, all the alignments are reported in
+    sequential order as algns1 for forward and algns2 for reverse reads.
+    Junction is a sequential pair of linear alignments reported as chimera at forward or reverse read.
 
-    Start looking for overlapping pairs of linear alignments from the read end.
+    Let's consider the case if n_algns1 >= 2 on forward read and n_algns2 >= 2 on reverse read.
+
+    We start looking for overlapping pairs of linear alignments from the ends of reads.
 
     The procedure of iterative search of overlap:
-      1. Take the last 3' pair of linear alignments on the forward read (fI)
-          and the last 3' pair of linear alignments on reverse read (rI).
-      2. Compare them two. If successful, we found the overlap, add it to the output list.
-      3. If not successful, take the next pair of linear alignments of reverse read (rII).
-      4. Check that this pair should be tested against fI: the number of linear pairs of
-         alignments on forward read to the left from fI should not be less than the number
-         of pairs on the reverse read to the left from rII.
-         If not comparable, we cannot possibly have an overlap. Proceed to p.6.
-      5. If comparable and comparison is successful, check that the pairs to the left from
-         rII overlap with the pairs to the left of fI. If not, we do not have an overlap,
-         proceed to p. 6. If yes, then we've found an overlap, add it to the output list.
-      6. If the comparison fails, take the next pair of linear alignments of reverse read (rIII)
-         and repeat step 4.
+      1. Take the last 3' junction on the forward read (fI, or current_forward_junction)
+          and the last 3' junction on reverse read (rI, or current_reverse_junction).
+      2. Compare fI and rI (pairs_do_overlap).
+          If successful, we found the overlap, add it to the output list.
+          If not successful, go to p.3.
+      3. Take the next pair of linear alignments of reverse read (rII), i.e. shift current_reverse_junction by one.
+      4. Check that this pair can form a potential overlap with fI:
+            the number of junctions downstream from fI on forward read should not be less than
+            the number of junctions upstream from rII on reverse read.
+         If the potential overlap can be formed, go to p. 5.
+         If it cannot be formed, no other overlap in this complex walk is possible. Exit.
+      5. Compare the current pair of junctions on forward and reverse reads.
+         If comparison fails, go to p. 3, i.e. take the next pair of linear alignments of reverse read (rIII).
+         If comparison is successful, check that junctions downstream from fI overlap with the junctions upstream from rII.
+             If yes, add them all to the output list.
+             If not, we do not have an overlap, repeat p. 3.
 
+    Note that we do not need to perform the shifts on the forward read, because
+    biologically overlap can only happen involving both ends of forward and reverse read,
+    and shifting one of them is enough.
     """
 
     n_algns1 = len(algns1)
     n_algns2 = len(algns2)
 
     # Iterative search of overlap
-    last_idx_forward = 1
-    valency_forward = n_algns1 - 1
-    last_idx_reverse = 1
-    valency_reverse = n_algns2 - 1
-    checked_reverse = 0
+    current_forward_junction = current_reverse_junction = 1 # p. 1, initialization
+    remaining_forward_junctions = n_algns1 - 1 # Number of possible junctions remaining on forward read
+    remaining_reverse_junctions = n_algns2 - 1 # Number of possible junctions remaining on reverse read
+    checked_reverse_junctions = 0 # Number of checked junctions on reverse read (from the end of read)
     is_overlap = False
 
-    alignments = []
-    # If both sides have one alignment or none, no need to rescue!
-    if (n_algns1 >= 2) and (n_algns2 >= 2):
-        while (valency_forward > checked_reverse) and (valency_reverse > 0):
+    final_contacts = []
 
-            is_overlap = pairs_do_overlap((algns1[-last_idx_forward - 1], algns1[-last_idx_forward]),
-                                          (algns2[-last_idx_reverse - 1], algns2[-last_idx_reverse]),
+    # If both sides have more than 2 alignments, rescue complex walks
+    if (n_algns1 >= 2) and (n_algns2 >= 2):
+
+        # p. 4: if potential overlap can be formed
+        while (remaining_forward_junctions > checked_reverse_junctions) and (remaining_reverse_junctions > 0):
+
+            # p. 5: check the current pairs of junctions
+            is_overlap = pairs_do_overlap((algns1[-current_forward_junction - 1], algns1[-current_forward_junction]),
+                                          (algns2[-current_reverse_junction - 1], algns2[-current_reverse_junction]),
                                           allowed_offset)
 
+            # p. 5: check the remaining pairs of forward downstream / reverse upstream junctions
             if is_overlap:
-                last_idx_forward_temp = last_idx_forward
-                last_idx_reverse_temp = last_idx_reverse
-                checked_reverse_temp = checked_reverse
+                last_idx_forward_temp = current_forward_junction
+                last_idx_reverse_temp = current_reverse_junction
+                checked_reverse_temp = checked_reverse_junctions
                 while is_overlap and (checked_reverse_temp > 0):
                     last_idx_forward_temp += 1
                     last_idx_reverse_temp -= 1
@@ -447,42 +472,99 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
                                                    allowed_offset)
                     checked_reverse_temp -= 1
                 if is_overlap:
-                    last_idx_reverse += 1
+                    current_reverse_junction += 1
                     break
 
-            last_idx_reverse += 1
-            checked_reverse += 1
-            valency_reverse -= 1
+            # p. 3: shift the reverse junction pointer by one
+            current_reverse_junction  += 1
+            checked_reverse_junctions += 1
+            remaining_reverse_junctions -= 1
 
-        if not is_overlap:
-            last_idx_reverse = 1
+        if not is_overlap: # No overlap found, roll the current_idx_reverse back to the initial value
+            current_reverse_junction = 1
 
-    # No overlapping pairs found, then check the last chimeras for overlap
-    if last_idx_reverse == 1:
-        hic_algn1 = dict(algns1[-1])
-        hic_algn2 = dict(algns2[-1])
-        if not ends_do_overlap(hic_algn1, hic_algn2, max_molecule_size, allowed_offset):
-            hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'P'))
-            hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'P'))
-            alignments.append( [hic_algn1, hic_algn2, algns1, algns2] )
+    # current_reverse_junction is 1 if:
+    # no overlapping junctions found, or less than 2 chimeras in either forward or reverse read.
+    # In this case, we check whether the last alignments of forward and reverse reads overlap.
+    if current_reverse_junction == 1:
+        last_reported_alignment_forward = last_reported_alignment_reverse = 1
+        if ends_do_overlap(algns1[-1], algns2[-1], max_molecule_size, allowed_offset):
+            # Report the modified last junctions:
+            if n_algns1 >= 2:
+                # "dict" trick to store the type of contact and not modify original entry:
+                hic_algn1 = dict(algns1[-2])
+                hic_algn2 = dict(algns2[-1])
+                # Modify pos3 of reverse read alignment to correspond to actual observed 5' ends in forward read:
+                hic_algn2['pos3'] = algns1[-1]['pos5']
+                hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
+                hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
+                hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{n_algns1-1}r0"
+                hic_algn2['chimera_index'] = f"{hic_algn2['type']}f{n_algns1}r{n_algns2}"
+                final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+                last_reported_alignment_forward = 2
+            if n_algns2 >= 2:
+                # "dict" trick to store the type of contact and not modify original entry:
+                hic_algn1 = dict(algns1[-1])
+                hic_algn2 = dict(algns2[-2])
+                # Modify pos3 of forward read alignment to correspond to actual observed 5' ends in reverse read:
+                hic_algn1['pos3'] = algns2[-1]['pos5']
+                hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
+                hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
+                hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{n_algns1}r{n_algns2}"
+                hic_algn2['chimera_index'] = f"{hic_algn2['type']}f0r{n_algns2-1}"
+                final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+                last_reported_alignment_reverse = 2
+        # End alignments do not overlap. Terra incognita, no evidence of ligation junction, report regular upper-case pair:
+        else:
+            hic_algn1 = dict(algns1[-1])  # "dict" trick to store the type of contact and not modify original entry
+            hic_algn2 = dict(algns2[-1])
+            hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'U'))
+            hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'U'))
+            hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{n_algns1}r0"
+            hic_algn2['chimera_index'] = f"{hic_algn2['type']}f0r{n_algns2}"
+            final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
 
-    # Report all the sequential chimeric pairs in the forward read
-    for i in range(1, n_algns1):
-        hic_algn1 = dict(algns1[-i - 1])
-        hic_algn2 = dict(algns1[-i])
-        hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'J'))
-        hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'J'))
-        alignments.append( [hic_algn1, hic_algn2, algns1, algns2] )
+    # If we have an overlap of junctions:
+    else:
+        last_reported_alignment_forward = last_reported_alignment_reverse = current_reverse_junction
 
-    # Report all the sequential chimeric pairs in the reverse read, but not the overlap
-    for i in range(last_idx_reverse, n_algns2):
-        hic_algn1 = dict(algns2[-i - 1])
-        hic_algn2 = dict(algns2[-i])
-        hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'J'))
-        hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'J'))
-        alignments.append( [hic_algn1, hic_algn2, algns1, algns2] )
+    # Reporting all the sequential alignments
+    # Report all the sequential chimeric pairs in the forward read up to overlap:
+    for i in range(0, n_algns1-last_reported_alignment_forward):
+        hic_algn1 = algns1[i] # Note the soft copy
+        hic_algn2 = algns1[i+1]
+        hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
+        hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
 
-    return alignments
+        hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{i + 1}r0"
+        hic_algn2['chimera_index'] = f"{hic_algn2['type']}f{i + 2}r0"
+        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+
+    # Report the overlap
+    for i_overlapping in range(current_reverse_junction-1):
+        idx_forward = n_algns1 - current_reverse_junction + i_overlapping
+        idx_reverse = n_algns2 - 1 - i_overlapping
+
+        hic_algn1 = algns1[idx_forward] # Note the soft copy
+        hic_algn2 = algns1[idx_forward+1]
+        hic_algn2['pos3'] = algns2[idx_reverse-1]['pos5']
+        hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
+        hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
+        hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{idx_forward}r{idx_reverse}"
+        hic_algn2['chimera_index'] = f"{hic_algn2['type']}f{idx_forward+1}r{idx_reverse-1}"
+        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+
+    # Report all the sequential chimeric pairs in the reverse read, but not the overlap:
+    for i in range(0, min(current_reverse_junction, n_algns2 - last_reported_alignment_reverse)):
+        hic_algn1 = algns2[i]  # Note the soft copy
+        hic_algn2 = algns2[i + 1]
+        hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
+        hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
+        hic_algn1['chimera_index'] = f"{hic_algn1['type']}f0r{i + 1}"
+        hic_algn2['chimera_index'] = f"{hic_algn2['type']}f0r{i + 2}"
+        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+
+    return final_contacts
 
 ### Additional functions to rescue complex walks ###
 def ends_do_overlap(algn1, algn2, max_molecule_size=500, allowed_offset=5):
@@ -507,8 +589,6 @@ def ends_do_overlap(algn1, algn2, max_molecule_size=500, allowed_offset=5):
             return 1
 
     # We assume that successful alignment cannot be an overlap with unmapped or multi-mapped region
-    # In fact, it might be that an overlap is too small to be uniquely mapped.
-    # We need a nucleotide alignment to infer that, which is too much of a complication.
     if not (algn1['is_mapped'] and algn1['is_unique']):
         return 0
     if not (algn2['is_mapped'] and algn2['is_unique']):
@@ -555,6 +635,7 @@ def pairs_do_overlap(algns1, algns2, allowed_offset=5):
             0 if they are not.
     """
 
+    # Some assignments to simplify the code
     algn1_chim5 = algns1[0]
     algn1_chim3 = algns1[1]
     algn2_chim5 = algns2[0]

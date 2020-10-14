@@ -26,7 +26,8 @@ EXTRA_COLUMNS = [
     'algn_read_span',
     'dist_to_5',
     'dist_to_3',
-    'seq'
+    'seq',
+    'chimera_index'
 ]
 
 @cli.command()
@@ -121,12 +122,12 @@ EXTRA_COLUMNS = [
 @click.option(
     "--walks-policy",
     type=click.Choice(['mask', 'all', '5any', '5unique', '3any', '3unique']),
-    default='mask',
+    default='all',
     help='the policy for reporting unrescuable walks (reads containing more'
     ' than one alignment on one or both sides, that can not be explained by a'
     ' single ligation between two mappable DNA fragments).'
     ' "mask" - mask walks (chrom="!", pos=0, strand="-"); '
-    ' "all" - report all pairs of consecutive alignments [NOT TESTED]; '
+    ' "all" - report all pairs of consecutive alignments; '
     ' "5any" - report the 5\'-most alignment on each side;'
     ' "5unique" - report the 5\'-most unique alignment on each side, if present;'
     ' "3any" - report the 3\'-most alignment on each side;'
