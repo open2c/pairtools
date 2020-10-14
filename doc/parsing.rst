@@ -145,7 +145,7 @@ the same junction as a pair multiple times. Importantly, these duplicated pairs 
 reads read through the same ligation junction. However, these cases are successfully merged by ``pairtools parse``:
 
 .. figure:: _static/rescue_modes_readthrough.svg
-   :scale: 50 %
+   :width: 60 %
    :alt: Reporing complex walks in case of readthrough
    :align: center
 
@@ -168,7 +168,7 @@ Importantly, some of DNA molecules containing only one ligation junction
 may still end up with three alignments:
 
 .. figure:: _static/read_pair_UR.png
-   :scale: 50 %
+   :width: 60 %
    :alt: Not all read pairs with three alignments come from "walks"
    :align: center
 
