@@ -132,7 +132,7 @@ The complex walks are DNA molecules containing more than one ligation junction t
 on forward, reverse, or both reads:
 
 .. figure:: _static/rescue_modes.svg
-   :scale: 50 %
+   :width: 60 %
    :alt: Different modes of reporting complex walks
    :align: center
 
@@ -168,7 +168,7 @@ Importantly, some of DNA molecules containing only one ligation junction
 may still end up with three alignments:
 
 .. figure:: _static/read_pair_UR.png
-   :width: 60 %
+   :scale: 50 %
    :alt: Not all read pairs with three alignments come from "walks"
    :align: center
 
