@@ -288,8 +288,6 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                         not _parse.check_pair_order(algn1, algn2, chrom_enum))
 
                 if flip_pair:
-                    algn1['strand'] = '+' if algn1['strand'] == '-' else '-'
-                    algn2['strand'] = '+' if algn2['strand'] == '-' else '-'
                     algn1, algn2 = algn2, algn1
                     sams1, sams2 = sams2, sams1
 
