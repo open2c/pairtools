@@ -48,9 +48,9 @@ def parse_sams_into_pair(sams1,
 
     # Enumerating the alignments for 'chimera_index' field
     for i in range(len(algns1)):
-        algns1[i]['chimera_index'] = f"{algns1[i]['type']}f{i+1}"
+        algns1[i]['chimera_index'] = algns1[i]['type'] + "f" + str(i+1)
     for i in range(len(algns2)):
-        algns2[i]['chimera_index'] = f"{algns2[i]['type']}r{i+1}"
+        algns2[i]['chimera_index'] = algns2[i]['type'] + "r" + str(i+1)
 
     # Define the type of alignment on each side.
     # The most important split is between chimeric alignments and linear
@@ -498,8 +498,8 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
                 hic_algn2['pos3'] = algns1[-1]['pos5']
                 hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
                 hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-                hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{n_algns1-1}r0"
-                hic_algn2['chimera_index'] = f"{hic_algn2['type']}f{n_algns1}r{n_algns2}"
+                hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(n_algns1-1) + "r0"
+                hic_algn2['chimera_index'] = hic_algn2['type'] + "f" + str(n_algns1) + "r" + str(n_algns2)
                 final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
                 last_reported_alignment_forward = 2
             if n_algns2 >= 2:
@@ -510,8 +510,8 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
                 hic_algn1['pos3'] = algns2[-1]['pos5']
                 hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
                 hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-                hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{n_algns1}r{n_algns2}"
-                hic_algn2['chimera_index'] = f"{hic_algn2['type']}f0r{n_algns2-1}"
+                hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(n_algns1) + "r" + str(n_algns2)
+                hic_algn2['chimera_index'] = hic_algn2['type'] + "f0r" + str(n_algns2-1)
                 final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
                 last_reported_alignment_reverse = 2
         # End alignments do not overlap. Terra incognita, no evidence of ligation junction, report regular upper-case pair:
@@ -520,8 +520,8 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
             hic_algn2 = dict(algns2[-1])
             hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'U'))
             hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'U'))
-            hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{n_algns1}r0"
-            hic_algn2['chimera_index'] = f"{hic_algn2['type']}f0r{n_algns2}"
+            hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(n_algns1) + "r0"
+            hic_algn2['chimera_index'] = hic_algn2['type'] + "f0r" + str(n_algns2)
             final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
 
     # If we have an overlap of junctions:
@@ -531,13 +531,13 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
     # Reporting all the sequential alignments
     # Report all the sequential chimeric pairs in the forward read up to overlap:
     for i in range(0, n_algns1-last_reported_alignment_forward):
-        hic_algn1 = dict(algns1[i]) #algns1[i] # Note the soft copy
-        hic_algn2 = dict(algns1[i+1]) #algns1[i+1]
+        hic_algn1 = dict(algns1[i])
+        hic_algn2 = dict(algns1[i+1])
         hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
         hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
 
-        hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{i + 1}r0"
-        hic_algn2['chimera_index'] = f"{hic_algn2['type']}f{i + 2}r0"
+        hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(i + 1) + "r0"
+        hic_algn2['chimera_index'] = hic_algn2['type'] + "f" + str(i + 2) + "r0"
         final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
 
     # Report the overlap
@@ -545,23 +545,23 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
         idx_forward = n_algns1 - current_reverse_junction + i_overlapping
         idx_reverse = n_algns2 - 1 - i_overlapping
 
-        hic_algn1 = dict(algns1[idx_forward]) #algns1[idx_forward] # Note the soft copy
-        hic_algn2 = dict(algns1[idx_forward+1]) #algns1[idx_forward+1]
+        hic_algn1 = dict(algns1[idx_forward])
+        hic_algn2 = dict(algns1[idx_forward+1])
         hic_algn2['pos3'] = algns2[idx_reverse-1]['pos5']
         hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
         hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-        hic_algn1['chimera_index'] = f"{hic_algn1['type']}f{idx_forward}r{idx_reverse}"
-        hic_algn2['chimera_index'] = f"{hic_algn2['type']}f{idx_forward+1}r{idx_reverse-1}"
+        hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(idx_forward) + "r" + str(idx_reverse)
+        hic_algn2['chimera_index'] = hic_algn2['type'] + "f" + str(idx_forward+1) + "r" + str(idx_reverse-1)
         final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
 
     # Report all the sequential chimeric pairs in the reverse read, but not the overlap:
     for i in range(0, min(current_reverse_junction, n_algns2 - last_reported_alignment_reverse)):
-        hic_algn1 = dict(algns2[i]) #algns2[i]  # Note the soft copy
-        hic_algn2 = dict(algns2[i + 1]) #algns2[i + 1]
+        hic_algn1 = dict(algns2[i])
+        hic_algn2 = dict(algns2[i + 1])
         hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
         hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-        hic_algn1['chimera_index'] = f"{hic_algn1['type']}f0r{i + 1}"
-        hic_algn2['chimera_index'] = f"{hic_algn2['type']}f0r{i + 2}"
+        hic_algn1['chimera_index'] = hic_algn1['type'] + "f0r" + str(i + 1)
+        hic_algn2['chimera_index'] = hic_algn2['type'] + "f0r" + str(i + 2)
         final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
 
     return final_contacts
@@ -825,7 +825,6 @@ def write_pairsam(
                 for sam in sams
                 ])
             )
-
 
     for col in add_columns:
         # use get b/c empty alignments would not have sam tags (NM, AS, etc)
