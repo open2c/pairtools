@@ -256,7 +256,6 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
     sams2 = []
     line = ''
     store_seq = ('seq' in add_columns)
-    i = 0
 
     readID_transform = kwargs.get('readid_transform', None)
     if readID_transform is not None:
@@ -311,7 +310,6 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 
             sams1.clear()
             sams2.clear()
-            i += 1 # TODO: Do we need it?
 
         if line is not None:
             _parse.push_sam(line, drop_seq, sams1, sams2)

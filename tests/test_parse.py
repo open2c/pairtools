@@ -97,8 +97,7 @@ def test_parse_algn():
          'chrom': 'chr12', 
          'pos': 24316205, 
          'pos5': 24316205, 
-         'pos3': 24316294, 
-         'pos': 24316205, 
+         'pos3': 24316294,
          'strand': '+', 
          'dist_to_5': 0, 
          'dist_to_3': 11, 
@@ -113,7 +112,9 @@ def test_parse_algn():
          'clip3_ref': 11, 
          'clip5_ref': 0, 
          'read_len': 101,
-         'type':'U'}
+         'type':'U',
+         'chimera_index': '0'
+    }
 
     sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
           '\tFLAG1\tFLAG2\tSIMULATED:readid01,chr1,chr1,10,200,+,+,UU')
@@ -138,7 +139,8 @@ def test_parse_algn():
          'clip3_ref': 0,
          'clip5_ref': 0, 
          'read_len': 50,
-         'type':'U'}
+         'type':'U',
+         'chimera_index': '0'}
 
 
     sam = ('readid10\t77\t*\t0\t0\t*\t*\t0\t0\tSEQ\tPHRED'
@@ -164,7 +166,8 @@ def test_parse_algn():
          'clip3_ref': 0,
          'clip5_ref': 0, 
          'read_len': 0,
-         'type':'N'}
+         'type':'N',
+         'chimera_index': '0'}
 
 
 def test_mock_sam():
@@ -200,6 +203,51 @@ def test_mock_sam():
 
         assigned_pair = l.split('\t')[1:8]
         simulated_pair = l.split('SIMULATED:',1)[1].split('\031',1)[0].split(',')
+        print(assigned_pair)
+        print(simulated_pair)
+        print()
+
+        assert assigned_pair == simulated_pair
+
+def test_mock_sam_parse_all():
+    mock_sam_path = os.path.join(testdir, 'data', 'mock.parse-all.sam')
+    mock_chroms_path = os.path.join(testdir, 'data', 'mock.chrom.sizes')
+    try:
+        result = subprocess.check_output(
+            ['python',
+             '-m',
+             'pairtools',
+             'parse',
+             '-c',
+             mock_chroms_path,
+             mock_sam_path],
+            ).decode('ascii')
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
+
+    # check if the header got transferred correctly
+    sam_header = [l.strip() for l in open(mock_sam_path, 'r') if l.startswith('@')]
+    pairsam_header = [l.strip() for l in result.split('\n') if l.startswith('#')]
+    for l in sam_header:
+        assert any([l in l2 for l2 in pairsam_header])
+
+    # check that the pairs got assigned properly
+    id_counter = 0
+    prev_id = ''
+    for l in result.split('\n'):
+        if l.startswith('#') or not l:
+            continue
+
+        if prev_id == l.split('\t')[0]:
+            id_counter += 1
+        else:
+            id_counter = 0
+        prev_id = l.split('\t')[0]
+
+        assigned_pair = l.split('\t')[1:8]
+        simulated_pair = l.split('SIMULATED:',1)[1].split('\031',1)[0].split('|')[id_counter].split(',')
         print(assigned_pair)
         print(simulated_pair)
         print()

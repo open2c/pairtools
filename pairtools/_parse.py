@@ -531,8 +531,8 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
     # Reporting all the sequential alignments
     # Report all the sequential chimeric pairs in the forward read up to overlap:
     for i in range(0, n_algns1-last_reported_alignment_forward):
-        hic_algn1 = algns1[i] # Note the soft copy
-        hic_algn2 = algns1[i+1]
+        hic_algn1 = dict(algns1[i]) #algns1[i] # Note the soft copy
+        hic_algn2 = dict(algns1[i+1]) #algns1[i+1]
         hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
         hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
 
@@ -545,8 +545,8 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
         idx_forward = n_algns1 - current_reverse_junction + i_overlapping
         idx_reverse = n_algns2 - 1 - i_overlapping
 
-        hic_algn1 = algns1[idx_forward] # Note the soft copy
-        hic_algn2 = algns1[idx_forward+1]
+        hic_algn1 = dict(algns1[idx_forward]) #algns1[idx_forward] # Note the soft copy
+        hic_algn2 = dict(algns1[idx_forward+1]) #algns1[idx_forward+1]
         hic_algn2['pos3'] = algns2[idx_reverse-1]['pos5']
         hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
         hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
@@ -556,8 +556,8 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
 
     # Report all the sequential chimeric pairs in the reverse read, but not the overlap:
     for i in range(0, min(current_reverse_junction, n_algns2 - last_reported_alignment_reverse)):
-        hic_algn1 = algns2[i]  # Note the soft copy
-        hic_algn2 = algns2[i + 1]
+        hic_algn1 = dict(algns2[i]) #algns2[i]  # Note the soft copy
+        hic_algn2 = dict(algns2[i + 1]) #algns2[i + 1]
         hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
         hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
         hic_algn1['chimera_index'] = f"{hic_algn1['type']}f0r{i + 1}"
