@@ -218,6 +218,8 @@ def test_mock_sam_parse_all():
              '-m',
              'pairtools',
              'parse',
+             '--walks-policy',
+             'all',
              '-c',
              mock_chroms_path,
              mock_sam_path],

@@ -122,7 +122,7 @@ EXTRA_COLUMNS = [
 @click.option(
     "--walks-policy",
     type=click.Choice(['mask', 'all', '5any', '5unique', '3any', '3unique']),
-    default='all',
+    default='mask',
     help='the policy for reporting unrescuable walks (reads containing more'
     ' than one alignment on one or both sides, that can not be explained by a'
     ' single ligation between two mappable DNA fragments).'
