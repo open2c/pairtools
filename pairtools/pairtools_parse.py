@@ -195,6 +195,10 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     out_stat = PairCounter() if output_stats else None
 
     samheader, body_stream = _headerops.get_header(instream, comment_char='@')
+    
+    if not samheader:
+        raise ValueError('The input sam is missing a header! If reading a bam file, please use `samtools view -h` to include the header.')
+
     sam_chromsizes = _headerops.get_chromsizes_from_sam_header(samheader)
     chromosomes = _headerops.get_chrom_order(
         chroms_path, 
