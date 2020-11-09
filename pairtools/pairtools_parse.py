@@ -861,6 +861,7 @@ if __name__ == '__main__':
 
 
 def parse_alternative_algns(samcols):
+    """ The function is broken and not used in the code. TODO: remove or fix parse_alternative_algns """
     alt_algns = []
     for col in samcols[11:]:
         if not col.startswith('XA:Z:'):
