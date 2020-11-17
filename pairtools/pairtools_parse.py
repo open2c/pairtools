@@ -63,10 +63,11 @@ EXTRA_COLUMNS = [
 @click.option(
     "--max-molecule-size",
     type=int,
-    default=2000,
+    default=750,
     show_default=True,
     help='The maximal size of a Hi-C molecule; used to rescue single ligations'
-         'from molecules with three alignments.')
+         '(from molecules with three alignments) and to rescue complex ligations.'
+         'The default is based on oriented P(s) at short ranges of multiple Hi-C.')
 @click.option(
     "--drop-readid",
     is_flag=True,
