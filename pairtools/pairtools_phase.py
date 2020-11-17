@@ -36,7 +36,7 @@ UTIL_NAME = 'pairtools_phase'
 @common_io_options
 
 def phase(
-    pairsam_path,
+    pairs_path,
     output,
     phase_suffixes,
     clean_output,
@@ -59,10 +59,10 @@ def phase_py(
     **kwargs
     ):
 
-    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+    instream = (_fileio.auto_open(pairs_path, mode='r',
                                   nproc=kwargs.get('nproc_in'),
                                   command=kwargs.get('cmd_in', None)) 
-                if pairsam_path else sys.stdin)
+                if pairs_path else sys.stdin)
     outstream = (_fileio.auto_open(output, mode='w', 
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 

@@ -2,6 +2,7 @@ from collections import OrderedDict, defaultdict
 import sys
 import copy
 import itertools
+import warnings
 
 from . import __version__, _pairsam_format
 from ._fileio import ParseError
@@ -59,6 +60,7 @@ def get_header(instream, comment_char='#'):
     # return header and the instream, advanced to the beginning of the data
     return header, instream
 
+
 def extract_fields(header, field_name, save_rest=False):
     '''
     Extract the specified fields from the pairs header and returns
@@ -78,6 +80,7 @@ def extract_fields(header, field_name, save_rest=False):
         return fields, rest
     else:
         return fields
+
 
 def extract_column_names(header):
     '''
@@ -163,6 +166,7 @@ def make_standard_pairsheader(
 
     return header
 
+
 def subset_chroms_in_pairsheader(header, chrom_subset):
     new_header = []
     for line in header:
@@ -177,6 +181,7 @@ def subset_chroms_in_pairsheader(header, chrom_subset):
         else:
             new_header.append(line)
     return new_header
+
 
 def insert_samheader(header, samheader):
     new_header = [l for l in header if not l.startswith('#columns')]
@@ -206,6 +211,7 @@ def append_new_pg(header, ID='', PN='', VN=None, CL=None, force=False):
     new_samheader = _add_pg_to_samheader(samheader, ID, PN, VN, CL, force)
     new_header = insert_samheader(other_header, new_samheader)
     return new_header
+
 
 def _update_header_entry(header, field, new_value):
     header = copy.deepcopy(header)
@@ -294,15 +300,19 @@ def _format_pg(**kwargs):
 
 def _parse_pg_chains(header, force=False):
     pg_chains = []
-    parsed_pgs = [
-        dict(
-            [field.split(':', maxsplit=1)    
-                for field in l.strip().split('\t')[1:]]
-            + [('raw', l.strip())]
-        )
-        for l in header
-        if l.startswith('@PG')
-        ]
+
+    parsed_pgs = []
+    for l in header:
+        if l.startswith('@PG'):
+            tag_value_pairs = l.strip().split('\t')[1:]
+            if not all(':' in tvp for tvp in tag_value_pairs):
+                warnings.warn(f'Skipping the following @PG line, as it does not follow the SAM header standard of TAG:VALUE: {l}')
+                continue
+            parsed_tvp = dict([tvp.split(':', maxsplit=1) for tvp in tag_value_pairs if ':' in tvp])
+            if parsed_tvp:
+                parsed_tvp['raw'] = l.strip()
+                parsed_pgs.append(parsed_tvp)
+            
 
     while True:
         if len(parsed_pgs) == 0:
@@ -540,7 +550,6 @@ def _merge_pairheaders(pairheaders, force=False):
 
                     
 def merge_headers(headers, force=False):
-
     samheaders, pairheaders = zip(*[extract_fields(h, 'samheader', save_rest=True) for h in headers])
     # HD headers contain information that becomes invalid after processing
     # with distiller. Do not print into the output.
