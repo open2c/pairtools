@@ -4,6 +4,8 @@ import copy
 import itertools
 import warnings
 
+import pandas as pd
+
 from . import __version__, _pairsam_format
 from ._fileio import ParseError
 
@@ -99,7 +101,7 @@ def extract_chromsizes(header):
     Extract chromosome sizes from header lines.
     '''
     
-    chromsizes_str = pairtools._headerops.extract_fields(
+    chromsizes_str = extract_fields(
         header,
         'chromsize')
     chromsizes_str = list(zip(*[s.split(' ') for s in chromsizes_str]))
