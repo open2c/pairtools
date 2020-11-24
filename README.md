@@ -5,6 +5,9 @@
 [![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1490831.svg)](https://doi.org/10.5281/zenodo.1490831)
 
+This is a fork of pairtools of mirnylab adapted for 
+One-Read-Based Interactions Annotation (ORBITA).
+
 ## Process Hi-C pairs with pairtools
 
 `pairtools` is a simple and fast command-line framework to process sequencing
@@ -98,6 +101,7 @@ Hi-C data analysis workflow, based on `pairtools` and [nextflow](https://www.nex
     chromosome "!", position 0, strand "-";
     - identify and rescue chrimeric alignments produced by singly-ligated Hi-C 
     molecules with a sequenced ligation junction on one of the sides;
+    - annotate chimeric alignments by restriction fragments and report true junctions and hops (One-Read-Based Interactions Annotation, ORBITA);
     - perform upper-triangular flipping of the sides of Hi-C molecules 
     such that the first side has a lower sorting index than the second side;
     - form hybrid pairsam output, where each line contains all available data 

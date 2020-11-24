@@ -6,9 +6,9 @@ Overview
 
 Hi-C experiments aim to measure the frequencies of contacts between all pairs
 of loci in the genome. In these experiments, the spacial structure of chromosomes 
-if first fixed with formaldehyde crosslinks, after which DNA is partially
+is first fixed with formaldehyde crosslinks, after which DNA is partially
 digested with restriction enzymes and then re-ligated back. Then, DNA is 
-shredded into smaller pieces, released from nucleus, sequenced and aligned to 
+shredded into smaller pieces, released from the nucleus, sequenced and aligned to
 the reference genome. The resulting sequence alignments reveal if DNA molecules 
 were formed through ligations between DNA from different locations in the genome.
 These ligation events imply that ligated loci were close to each other
@@ -42,10 +42,10 @@ DNA strand that sequence of the corresponding side of the read).
 
 Alignment software maps both reads of a pair to the reference genome, producing
 **alignments**, i.e. segments of the reference genome with matching sequences.
-Typically, there will be only two alignments per read pair, one on each side. 
-But, sometimes, the parts of one or both sides may map
-to different locations on the genome, producing more than two alignments per
-DNA molecule (see :ref:`section-walks`).
+Typically, if the read length is not very large (< 150 bp), there will be only
+two alignments per read pair, one on each side. But, sometimes, the parts of one
+or both sides may map to different locations on the genome, producing more than
+two alignments per DNA molecule (see :ref:`section-walks`).
 
 ``pairtools parse`` converts alignments into **ligation events** (aka
 **Hi-C pairs** aka **pairs**). In the simplest case, when each side has only one 
@@ -96,7 +96,7 @@ is equal or greater than the value specied with the ``--min-mapq`` flag (by defa
 Multiple ligations (walks)
 --------------------------
 
-Finally, a read pair may contain more than two alignments:
+If the read is long enough (e.g. larger than 150 bp), it may contain more than two alignments:
 
 .. figure:: _static/read_pair_WW.png
    :scale: 50 %
@@ -106,35 +106,60 @@ Finally, a read pair may contain more than two alignments:
    A sequenced Hi-C molecule that was formed via multiple ligations
 
 Molecules like these typically form via multiple ligation events and we call them
-walks [1]_. Currently, ``pairtools parse`` does not process such molecules and
-tags them as type ``WW``.
+walks [1]_. The mode of walks reporting is controlled by ``--walks-policy`` parameter of ``pairtools parse``.
 
-.. _section-gaps:
+A pair of sequential alignments on a single read is **ligation junction**. Ligation junctions are the Hi-C contacts
+that have been directly observed in the experiment. They are reported in lower-case letters if walks policy
+is set to ``all`` (default). For details, wee :ref:`section-complex-walks-rescue`
 
-Interpreting gaps between alignments
-------------------------------------
+However, traditional Hi-C pairs do not have direct evidence of ligation
+because they arise from read pairs that do not necessarily contain ligation junction.
+To filter out the molecules with complex walks, the walks policy can be set to:
 
-Reads that are only partially aligned to the genome can be interpreted in 
-two different ways. One possibility is to assume that this molecule
-was formed via at least two ligations (i.e. it's a *walk*) but the non-aligned 
-part (a **gap**) was missing from the reference genome for one reason or another.
-Another possibility is to simply ignore this gap (for example, because it could 
-be an insertion or a technical artifact), thus assuming that our 
-molecule was formed via a single ligation and has to be reported:
+- ``mask`` to tag these molecules as type ``WW`` (single ligations are rescued, see :ref:`section-single-ligation-rescue`) ,
+- ``5any`` to report the 5'-most alignment on each side,
+- ``5unique`` to report the 5'-most unique alignment on each side,
+- ``3any`` to report the 3'-most alignment on each side,
+- ``3unique`` to report the 3'-most unique alignment on each side.
 
-.. figure:: _static/read_pair_gaps_vs_null_alignment.png
-   :scale: 50 %
-   :alt: A gap between alignments can be ignored or interpeted as a "null" alignment
+
+.. _section-complex-walks-rescue:
+
+Rescuing complex ligations
+-------------------------
+
+The complex walks are DNA molecules containing more than one ligation junction that may end up in more than one alignment
+on forward, reverse, or both reads:
+
+.. figure:: _static/rescue_modes.svg
+   :width: 60 %
+   :alt: Different modes of reporting complex walks
    :align: center
 
-   A gap between alignments can interpeted as a legitimate segment without 
-   an alignment or simply ignored
+   Different modes of reporting complex walks
 
-Both options have their merits, depending on a dataset, quality of the reference
-genome and sequencing. ``pairtools parse`` ignores shorter *gaps* and keeps 
-longer ones as "null" alignments. The maximal size of ignored *gaps* is set by
-the ``--max-inter-align-gap`` flag (by default, 20bp).
+``pairtools parse`` detects such molecules and **rescues** them with walks policy ``all``.
 
+Briefly, the algorithm of complex ligation walks rescue detects all the unique ligation junctions, and do not report
+the same junction as a pair multiple times. Importantly, these duplicated pairs might arise when both forward and reverse
+reads read through the same ligation junction. However, these cases are successfully merged by ``pairtools parse``:
+
+.. figure:: _static/rescue_modes_readthrough.svg
+   :width: 60 %
+   :alt: Reporing complex walks in case of readthrough
+   :align: center
+
+   Reporing complex walks in case of readthrough
+
+To restore the sequence of ligation events, there is a special field ``chimera_index`` that can be reported as
+a separate column of .pair file by setting ``--add-columns chimera_index``. This field contains information on:
+- alignment type (unique, multimapped, unmapped)
+- the order of alignment in forward read, if present (0, if not),
+- the order of alignment in reverse read, if present (0, if not),
+and has the general form of "Uf1r0". With this information, the whole sequence of ligation events can be restored from the .pair file.
+
+
+.. _section-single-ligation-rescue:
 
 Rescuing single ligations
 -------------------------
@@ -188,6 +213,34 @@ altogether and thus rescues such *walks* as well.
    :align: center
 
    A walk with three alignments get rescued, when the middle alignment is multi- or null.
+
+
+.. _section-gaps:
+
+Interpreting gaps between alignments
+------------------------------------
+
+Reads that are only partially aligned to the genome can be interpreted in
+two different ways. One possibility is to assume that this molecule
+was formed via at least two ligations (i.e. it's a *walk*) but the non-aligned
+part (a **gap**) was missing from the reference genome for one reason or another.
+Another possibility is to simply ignore this gap (for example, because it could
+be an insertion or a technical artifact), thus assuming that our
+molecule was formed via a single ligation and has to be reported:
+
+.. figure:: _static/read_pair_gaps_vs_null_alignment.png
+   :scale: 50 %
+   :alt: A gap between alignments can be ignored or interpeted as a "null" alignment
+   :align: center
+
+   A gap between alignments can interpeted as a legitimate segment without
+   an alignment or simply ignored
+
+Both options have their merits, depending on a dataset, quality of the reference
+genome and sequencing. ``pairtools parse`` ignores shorter *gaps* and keeps
+longer ones as "null" alignments. The maximal size of ignored *gaps* is set by
+the ``--max-inter-align-gap`` flag (by default, 20bp).
+
 
 
 .. [1] Following the lead of `C-walks <https://www.nature.com/articles/nature20158>`_

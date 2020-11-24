@@ -122,7 +122,8 @@ from .pairtools_select import select
 from .pairtools_split import split
 from .pairtools_restrict import restrict
 from .pairtools_phase import phase
-from .pairtools_parse import parse, parse_cigar, parse_algn
+from .pairtools_parse import parse
+from ._parse import parse_cigar, parse_algn # TODO: is this import needed?
 from .pairtools_stats import stats
 from .pairtools_sample import sample
 from .pairtools_filterbycov import filterbycov

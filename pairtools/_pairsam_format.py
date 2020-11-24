@@ -23,3 +23,5 @@ COLUMNS = ['readID', 'chrom1', 'pos1', 'chrom2', 'pos2',
 UNMAPPED_CHROM = '!'
 UNMAPPED_POS = 0
 UNMAPPED_STRAND = '-'
+
+UNANNOTATED_RFRAG = -1
