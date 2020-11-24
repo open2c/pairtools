@@ -4,6 +4,7 @@ import copy
 import itertools
 import warnings
 
+import numpy as np
 import pandas as pd
 
 from . import __version__, _pairsam_format
