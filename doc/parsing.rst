@@ -138,7 +138,7 @@ on forward, reverse, or both reads:
 
    Different modes of reporting complex walks
 
-``pairtools parse`` detects such molecules and **rescues** them with walks policy ``all``.
+``pairtools parse`` detects such molecules and **rescues** them with ``--walks-policy all``.
 
 Briefly, the algorithm of complex ligation walks rescue detects all the unique ligation junctions, and do not report
 the same junction as a pair multiple times. Importantly, these duplicated pairs might arise when both forward and reverse
