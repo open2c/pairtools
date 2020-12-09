@@ -65,6 +65,8 @@ Pairtools' flavor of .pairs
  8        pair_type   the type of a Hi-C pair 
 ======== =========== ===============================================================================
 
+.. _section-pair-types:
+
 Pair types
 ----------
 
