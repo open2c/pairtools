@@ -32,7 +32,7 @@ def parse_sams_into_pair(sams1,
         algns2 = [empty_alignment()]
         algns1[0]['type'] = 'X'
         algns2[0]['type'] = 'X'
-        return [ [algns1[0], algns2[0], algns1, algns2] ]
+        return [ [algns1[0], algns2[0], algns1, algns2, '1u'] ]
 
     # Generate a sorted, gap-filled list of all alignments
     algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
