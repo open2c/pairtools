@@ -153,8 +153,10 @@ reads read through the same ligation junction. However, these cases are successf
 
 To restore the sequence of ligation events, there is a special field ``junction_index`` that can be reported as
 a separate column of .pair file by setting ``--add-junction-index``. This field contains information on:
-- the order of the junction in the recovered walk, starting from 5'-end of first mate. 
+
+- the order of the junction in the recovered walk, starting from 5'-end of forward read
 - type of the junction:
+
   - "u" - unconfirmed junction, right and left alignments in the pair originate from different reads (forward or reverse). This might be indirect ligation (mediated by other DNA fragments).
   - "f" - pair originates from the forward read. This is direct ligation.
   - "r" - pair originated from the reverse read. Direct ligation.
