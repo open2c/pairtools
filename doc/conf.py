@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pairtools'
-copyright = '2017-2020, Open2C'
+copyright = '2017-2021, Open2C'
 author = 'Open2C'
 
 # The version info for the project you're documenting, acts as replacement for

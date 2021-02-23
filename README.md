@@ -5,9 +5,6 @@
 [![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1490831.svg)](https://doi.org/10.5281/zenodo.1490831)
 
-This is a fork of pairtools of mirnylab adapted for 
-One-Read-Based Interactions Annotation (ORBITA).
-
 ## Process Hi-C pairs with pairtools
 
 `pairtools` is a simple and fast command-line framework to process sequencing
