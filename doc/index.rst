@@ -34,6 +34,9 @@ can perform following operations:
 `pairtools` produce .pairs files compliant with the 
 `4DN standard <https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md>`_.
 
+`pairtools` uses a two-character notation to define pair types (see table :ref:`_section-pair-types`)
+
+
 The full list of available pairtools:
 
 ============ ==============================================

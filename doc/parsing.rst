@@ -114,7 +114,7 @@ is set to ``all`` (default). For details, wee :ref:`section-complex-walks-rescue
 
 However, traditional Hi-C pairs do not have direct evidence of ligation
 because they arise from read pairs that do not necessarily contain ligation junction.
-To filter out the molecules with complex walks, the walks policy can be set to:
+To filter out the molecules with complex walks, ``--walks-policy`` can be set to:
 
 - ``mask`` to tag these molecules as type ``WW`` (single ligations are rescued, see :ref:`section-single-ligation-rescue`) ,
 - ``5any`` to report the 5'-most alignment on each side,
@@ -138,7 +138,7 @@ on forward, reverse, or both reads:
 
    Different modes of reporting complex walks
 
-``pairtools parse`` detects such molecules and **rescues** them with walks policy ``all``.
+``pairtools parse`` detects such molecules and **rescues** them with ``--walks-policy all``.
 
 Briefly, the algorithm of complex ligation walks rescue detects all the unique ligation junctions, and do not report
 the same junction as a pair multiple times. Importantly, these duplicated pairs might arise when both forward and reverse
