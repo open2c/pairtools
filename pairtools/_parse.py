@@ -22,6 +22,8 @@ def parse_sams_into_pair(sams1,
         Two alignments selected for reporting as a Hi-C pair.
     algns1, algns2
         All alignments, sorted according to their order in on a read.
+    junction_index
+        Junction index of a pair in the molecule.
     """
 
     # Check if there is at least one SAM entry per side:
@@ -30,7 +32,7 @@ def parse_sams_into_pair(sams1,
         algns2 = [empty_alignment()]
         algns1[0]['type'] = 'X'
         algns2[0]['type'] = 'X'
-        return [ [algns1[0], algns2[0], algns1, algns2] ]
+        return [ [algns1[0], algns2[0], algns1, algns2, '1u'] ]
 
     # Generate a sorted, gap-filled list of all alignments
     algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
@@ -46,12 +48,6 @@ def parse_sams_into_pair(sams1,
         _convert_gaps_into_alignments(algns1, max_inter_align_gap)
         _convert_gaps_into_alignments(algns2, max_inter_align_gap)
 
-    # Enumerating the alignments for 'chimera_index' field
-    for i in range(len(algns1)):
-        algns1[i]['chimera_index'] = algns1[i]['type'] + "f" + str(i+1)
-    for i in range(len(algns2)):
-        algns2[i]['chimera_index'] = algns2[i]['type'] + "r" + str(i+1)
-
     # Define the type of alignment on each side.
     # The most important split is between chimeric alignments and linear
     # alignments.
@@ -61,6 +57,8 @@ def parse_sams_into_pair(sams1,
 
     hic_algn1 = algns1[0]
     hic_algn2 = algns2[0]
+    # By default, assume each molecule is a single ligation with single unconfirmed junction:
+    junction_index = '1u'
 
     # Parse chimeras
     rescued_linear_side = None
@@ -74,15 +72,16 @@ def parse_sams_into_pair(sams1,
         # Report only two alignments for a read pair
         rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
 
-        # if the walk is unrescueable:
-        if rescued_linear_side is None:
+        # Walk was rescued as a simple walk:
+        if rescued_linear_side is not None:
+            junction_index = f'{1}{"f" if rescued_linear_side==1 else "r"}'
+        # Walk is unrescuable:
+        else:
             if walks_policy == 'mask':
                 hic_algn1 = _mask_alignment(dict(hic_algn1))
                 hic_algn2 = _mask_alignment(dict(hic_algn2))
                 hic_algn1['type'] = 'W'
                 hic_algn2['type'] = 'W'
-                hic_algn1['chimera_index'] = 'W1'
-                hic_algn2['chimera_index'] = 'W1'
 
             elif walks_policy == '5any':
                 hic_algn1 = algns1[0]
@@ -127,7 +126,7 @@ def parse_sams_into_pair(sams1,
                     hic_algn2 = dict(hic_algn2)
                     hic_algn2['type'] = hic_algn2['type'].lower()
 
-    return [ [hic_algn1, hic_algn2, algns1, algns2] ]
+    return [ [hic_algn1, hic_algn2, algns1, algns2, junction_index] ]
 
 
 def parse_cigar(cigar):
@@ -196,7 +195,6 @@ def empty_alignment():
         'clip5_ref': 0,
         'read_len': 0,
         'type':'N',
-        'chimera_index': 'N0'
     }
 
 
@@ -257,7 +255,6 @@ def parse_algn(
         'dist_to_5': dist_to_5,
         'dist_to_3': dist_to_3,
         'type': ('N' if not is_mapped else ('M' if not is_unique else 'U')),
-        'chimera_index': '0' # Index cannot be determined prior to full alignment parsing
     }
 
     algn.update(cigar)
@@ -371,13 +368,13 @@ def rescue_walk(algns1, algns2, max_molecule_size):
             # in the output
             algns1[1]['type'] = 'X'
             algns2[0]['type'] = 'R'
-            return 2
+            return 1
         else:
             algns1[0]['type'] = 'R'
             # changing the type of the 3' alignment on side 2, does not show up
             # in the output
             algns2[1]['type'] = 'X'
-            return 1
+            return 2
     else:
         return None
 
@@ -391,12 +388,9 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
     If one of the reads contains ligation junction, this might lead to reporting fake contact.
     Thus, the pairs of contacts that overlap are paired-end duplicates and should be reported uniquely.
 
-    Return: list of all the rescued pairs after deduplication.
+    Return: list of all the rescued pairs after deduplication with junction index for each pair.
 
-    PP are pairs that appear at the end of reads and do not seem to be the same molecule (see ends_do_overlap).
-    JJ are pairs that have an observed ligation junction.
-
-    Example of iterative search:
+    Example of iterative search (note that it's for the illustration of the algorithm only):
 
      Forward read:                            Reverse read:
     ---------------------->       <-----------------------
@@ -483,62 +477,57 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
         if not is_overlap: # No overlap found, roll the current_idx_reverse back to the initial value
             current_reverse_junction = 1
 
-    # current_reverse_junction is 1 if:
-    # no overlapping junctions found, or less than 2 chimeras in either forward or reverse read.
-    # In this case, we check whether the last alignments of forward and reverse reads overlap.
+    # If no overlapping junctions found, or there are less than 2 chimeras in either forward or reverse read,
+    # then current_reverse_junction is 1,
+    # check whether the last alignments of forward and reverse reads overlap.
     if current_reverse_junction == 1:
         last_reported_alignment_forward = last_reported_alignment_reverse = 1
         if ends_do_overlap(algns1[-1], algns2[-1], max_molecule_size, allowed_offset):
             # Report the modified last junctions:
             if n_algns1 >= 2:
-                # "dict" trick to store the type of contact and not modify original entry:
+                # store the type of contact and do not modify original entry:
                 hic_algn1 = dict(algns1[-2])
                 hic_algn2 = dict(algns2[-1])
                 # Modify pos3 of reverse read alignment to correspond to actual observed 5' ends in forward read:
                 hic_algn2['pos3'] = algns1[-1]['pos5']
-                hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
-                hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-                hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(n_algns1-1) + "r0"
-                hic_algn2['chimera_index'] = hic_algn2['type'] + "f" + str(n_algns1) + "r" + str(n_algns2)
-                final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+                hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'U'))
+                hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'U'))
+                junction_index = f'{len(algns1)-1}f'
+                final_contacts.append([hic_algn1, hic_algn2, algns1, algns2, junction_index])
                 last_reported_alignment_forward = 2
             if n_algns2 >= 2:
-                # "dict" trick to store the type of contact and not modify original entry:
+                # store the type of contact and do not modify original entry:
                 hic_algn1 = dict(algns1[-1])
                 hic_algn2 = dict(algns2[-2])
                 # Modify pos3 of forward read alignment to correspond to actual observed 5' ends in reverse read:
                 hic_algn1['pos3'] = algns2[-1]['pos5']
-                hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
-                hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-                hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(n_algns1) + "r" + str(n_algns2)
-                hic_algn2['chimera_index'] = hic_algn2['type'] + "f0r" + str(n_algns2-1)
-                final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+                hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'U'))
+                hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'U'))
+                junction_index = f'{len(algns1)}r'
+                final_contacts.append([hic_algn1, hic_algn2, algns1, algns2, junction_index])
                 last_reported_alignment_reverse = 2
-        # End alignments do not overlap. Terra incognita, no evidence of ligation junction, report regular upper-case pair:
+        # End alignments do not overlap. No evidence of ligation junction for the pair, report regular pair:
         else:
             hic_algn1 = dict(algns1[-1])  # "dict" trick to store the type of contact and not modify original entry
             hic_algn2 = dict(algns2[-1])
             hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'U'))
             hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'U'))
-            hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(n_algns1) + "r0"
-            hic_algn2['chimera_index'] = hic_algn2['type'] + "f0r" + str(n_algns2)
-            final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+            junction_index = f'{len(algns1)}u'
+            final_contacts.append([hic_algn1, hic_algn2, algns1, algns2, junction_index])
 
     # If we have an overlap of junctions:
     else:
         last_reported_alignment_forward = last_reported_alignment_reverse = current_reverse_junction
 
-    # Reporting all the sequential alignments
+    # Report all the sequential alignments
     # Report all the sequential chimeric pairs in the forward read up to overlap:
     for i in range(0, n_algns1-last_reported_alignment_forward):
         hic_algn1 = dict(algns1[i])
         hic_algn2 = dict(algns1[i+1])
-        hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
-        hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-
-        hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(i + 1) + "r0"
-        hic_algn2['chimera_index'] = hic_algn2['type'] + "f" + str(i + 2) + "r0"
-        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+        hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'U'))
+        hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'U'))
+        junction_index = f'{i + 1}f'
+        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2, junction_index])
 
     # Report the overlap
     for i_overlapping in range(current_reverse_junction-1):
@@ -548,25 +537,24 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
         hic_algn1 = dict(algns1[idx_forward])
         hic_algn2 = dict(algns1[idx_forward+1])
         hic_algn2['pos3'] = algns2[idx_reverse-1]['pos5']
-        hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
-        hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-        hic_algn1['chimera_index'] = hic_algn1['type'] + "f" + str(idx_forward) + "r" + str(idx_reverse)
-        hic_algn2['chimera_index'] = hic_algn2['type'] + "f" + str(idx_forward+1) + "r" + str(idx_reverse-1)
-        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+        hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'U'))
+        hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'U'))
+        junction_index = f'{idx_forward + 1}b'
+        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2, junction_index])
 
     # Report all the sequential chimeric pairs in the reverse read, but not the overlap:
     for i in range(0, min(current_reverse_junction, n_algns2 - last_reported_alignment_reverse)):
         hic_algn1 = dict(algns2[i])
         hic_algn2 = dict(algns2[i + 1])
-        hic_algn1['type'] = ('n' if not hic_algn1['is_mapped'] else ('m' if not hic_algn1['is_unique'] else 'u'))
-        hic_algn2['type'] = ('n' if not hic_algn2['is_mapped'] else ('m' if not hic_algn2['is_unique'] else 'u'))
-        hic_algn1['chimera_index'] = hic_algn1['type'] + "f0r" + str(i + 1)
-        hic_algn2['chimera_index'] = hic_algn2['type'] + "f0r" + str(i + 2)
-        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2])
+        hic_algn1['type'] = ('N' if not hic_algn1['is_mapped'] else ('M' if not hic_algn1['is_unique'] else 'U'))
+        hic_algn2['type'] = ('N' if not hic_algn2['is_mapped'] else ('M' if not hic_algn2['is_unique'] else 'U'))
+        junction_index = f'{n_algns1 +  min(current_reverse_junction, n_algns2 - last_reported_alignment_reverse) - i - (1 if  current_reverse_junction>1 else 0)}r'
+        final_contacts.append([hic_algn1, hic_algn2, algns1, algns2, junction_index])
 
+    final_contacts.sort(key = lambda x: int(x[-1][:-1]) )
     return final_contacts
 
-### Additional functions to rescue complex walks ###
+### Additional functions for complex walks rescue ###
 def ends_do_overlap(algn1, algn2, max_molecule_size=500, allowed_offset=5):
     """
     Two ends of alignments overlap if:
@@ -796,8 +784,8 @@ def write_all_algnments(readID, all_algns1, all_algns2, out_file):
 
 
 def write_pairsam(
-        algn1, algn2, readID, sams1, sams2, out_file,
-        drop_readid, drop_sam, add_columns):
+        algn1, algn2, readID, junction_index, sams1, sams2, out_file,
+        drop_readid, drop_sam, add_junction_index, add_columns):
     """
     SAM is already tab-separated and
     any printable character between ! and ~ may appear in the PHRED field!
@@ -825,6 +813,9 @@ def write_pairsam(
                 for sam in sams
                 ])
             )
+
+    if add_junction_index:
+        cols.append(junction_index)
 
     for col in add_columns:
         # use get b/c empty alignments would not have sam tags (NM, AS, etc)

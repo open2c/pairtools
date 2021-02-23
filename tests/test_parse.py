@@ -113,7 +113,6 @@ def test_parse_algn():
          'clip5_ref': 0, 
          'read_len': 101,
          'type':'U',
-         'chimera_index': '0'
     }
 
     sam = ('readid01\t65\tchr1\t10\t60\t50M\tchr1\t200\t0\tSEQ\tPHRED'
@@ -139,9 +138,7 @@ def test_parse_algn():
          'clip3_ref': 0,
          'clip5_ref': 0, 
          'read_len': 50,
-         'type':'U',
-         'chimera_index': '0'}
-
+         'type':'U'}
 
     sam = ('readid10\t77\t*\t0\t0\t*\t*\t0\t0\tSEQ\tPHRED'
            '\tFLAG1\tFLAG2\tSIMULATED:readid10,!,!,0,0,-,-,NN')
@@ -166,8 +163,7 @@ def test_parse_algn():
          'clip3_ref': 0,
          'clip5_ref': 0, 
          'read_len': 0,
-         'type':'N',
-         'chimera_index': '0'}
+         'type':'N'}
 
 
 def test_mock_sam():
@@ -222,6 +218,7 @@ def test_mock_sam_parse_all():
              'all',
              '-c',
              mock_chroms_path,
+             '--add-junction-index',
              mock_sam_path],
             ).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -248,10 +245,10 @@ def test_mock_sam_parse_all():
             id_counter = 0
         prev_id = l.split('\t')[0]
 
-        assigned_pair = l.split('\t')[1:8]
+        assigned_pair = l.split('\t')[1:8]+[l.split('\t')[-1]]
         simulated_pair = l.split('SIMULATED:',1)[1].split('\031',1)[0].split('|')[id_counter].split(',')
         print(assigned_pair)
-        print(simulated_pair)
+        print(simulated_pair, prev_id)
         print()
 
         assert assigned_pair == simulated_pair

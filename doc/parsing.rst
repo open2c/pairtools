@@ -151,12 +151,17 @@ reads read through the same ligation junction. However, these cases are successf
 
    Reporing complex walks in case of readthrough
 
-To restore the sequence of ligation events, there is a special field ``chimera_index`` that can be reported as
-a separate column of .pair file by setting ``--add-columns chimera_index``. This field contains information on:
-- alignment type (unique, multimapped, unmapped)
-- the order of alignment in forward read, if present (0, if not),
-- the order of alignment in reverse read, if present (0, if not),
-and has the general form of "Uf1r0". With this information, the whole sequence of ligation events can be restored from the .pair file.
+To restore the sequence of ligation events, there is a special field ``junction_index`` that can be reported as
+a separate column of .pair file by setting ``--add-junction-index``. This field contains information on:
+
+- the order of the junction in the recovered walk, starting from 5'-end of forward read
+- type of the junction:
+
+  - "u" - unconfirmed junction, right and left alignments in the pair originate from different reads (forward or reverse). This might be indirect ligation (mediated by other DNA fragments).
+  - "f" - pair originates from the forward read. This is direct ligation.
+  - "r" - pair originated from the reverse read. Direct ligation.
+  - "b" - pair was sequenced at both forward and reverse read. Direct ligation.
+With this information, the whole sequence of ligation events can be restored from the .pair file.
 
 
 .. _section-single-ligation-rescue:

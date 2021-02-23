@@ -26,8 +26,7 @@ EXTRA_COLUMNS = [
     'algn_read_span',
     'dist_to_5',
     'dist_to_3',
-    'seq',
-    'chimera_index'
+    'seq'
 ]
 
 @cli.command()
@@ -80,6 +79,10 @@ EXTRA_COLUMNS = [
     "--drop-sam",
     is_flag=True,
     help='If specified, do not add sams to the output')
+@click.option(
+    "--add-junction-index",
+    is_flag=True,
+    help='If specified, each pair will have junction index in the molecule')
 @click.option(
     "--add-columns",
     type=click.STRING,
@@ -156,7 +159,7 @@ EXTRA_COLUMNS = [
 @common_io_options
 
 def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
-          drop_readid, drop_seq, drop_sam, add_columns,
+          drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
           output_parsed_alignments, output_stats, **kwargs):
     '''Find ligation junctions in .sam, make .pairs.
     SAM_PATH : an input .sam/.bam file with paired-end sequence alignments of
@@ -164,12 +167,12 @@ def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
     bam with samtools. By default, the input is read from stdin.
     '''
     parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
-             drop_readid, drop_seq, drop_sam, add_columns,
+             drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
              output_parsed_alignments, output_stats, **kwargs)
 
 
 def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
-             drop_readid, drop_seq, drop_sam, add_columns,
+             drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
              output_parsed_alignments, output_stats, **kwargs):
     instream = (_fileio.auto_open(sam_path, mode='r',
                                   nproc=kwargs.get('nproc_in'),
@@ -217,6 +220,9 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
         columns.pop(columns.index('sam1'))
         columns.pop(columns.index('sam2'))
 
+    if not add_junction_index:
+        columns.pop(columns.index('junction_index'))
+
     header = _headerops.make_standard_pairsheader(
         assembly = assembly,
         chromsizes = [(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
@@ -230,7 +236,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     outstream.writelines((l+'\n' for l in header))
 
     streaming_classify(body_stream, outstream, chromosomes, min_mapq,
-                       max_molecule_size, drop_readid, drop_seq, drop_sam,
+                       max_molecule_size, drop_readid, drop_seq, drop_sam, add_junction_index,
                        add_columns, out_alignments_stream, out_stat, **kwargs)
 
     # save statistics to a file if it was requested:
@@ -249,7 +255,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
 
 
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size,
-                       drop_readid, drop_seq, drop_sam, add_columns,
+                       drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
                        out_alignments_stream, out_stat, **kwargs):
     """
     """
@@ -276,7 +282,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 
         if not(line) or ((readID != prev_readID) and prev_readID):
 
-            for algn1, algn2, all_algns1, all_algns2 in _parse.parse_sams_into_pair(
+            for algn1, algn2, all_algns1, all_algns2, junction_index in _parse.parse_sams_into_pair(
                 sams1,
                 sams2,
                 min_mapq,
@@ -298,10 +304,12 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 _parse.write_pairsam(
                     algn1, algn2,
                     prev_readID,
+                    junction_index,
                     sams1, sams2,
                     outstream,
                     drop_readid,
                     drop_sam,
+                    add_junction_index,
                     add_columns)
 
                 # add a pair to PairCounter if stats output is requested:

@@ -18,7 +18,8 @@ COL_SAM1 = 8
 COL_SAM2 = 9
 
 COLUMNS = ['readID', 'chrom1', 'pos1', 'chrom2', 'pos2', 
-           'strand1', 'strand2', 'pair_type', 'sam1', 'sam2']
+           'strand1', 'strand2', 'pair_type', 'sam1', 'sam2',
+           'junction_index']
 
 UNMAPPED_CHROM = '!'
 UNMAPPED_POS = 0
