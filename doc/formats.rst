@@ -65,6 +65,8 @@ Pairtools' flavor of .pairs
  8        pair_type   the type of a Hi-C pair 
 ======== =========== ===============================================================================
 
+.. _section-pair-types:
+
 Pair types
 ----------
 
@@ -75,24 +77,24 @@ identify which side has an alignment of a "poorer" quality
 (unmapped < multimapped < unique alignment)
 and which side has a "better" alignment and find the corresponding row in the table.
 
-=============== ========= ================== ========= ================== ======================== ====== ===========
-  .              Less informative alignment   More informative alignment   .                        .      .        
---------------- ---------------------------- ---------------------------- ------------------------ ------ -----------
- >2 alignments   Mapped    Unique             Mapped    Unique             Pair type                Code   Sidedness                           
- |check|         |cross|   |cross|            |cross|   |cross|            walk-walk                WW     0 [1]_
- |cross|         |cross|                      |cross|                      null                     NN     0     
- |cross|         |cross|                      |cross|                      corrupt                  XX     0 [2]_    
- |cross|         |cross|                      |check|   |cross|            null-multi               NM     0     
- |check|         |cross|                      |check|   |check|            null-rescued             NR     1 [3]_
- |cross|         |cross|                      |check|   |check|            null-unique              NU     1     
- |cross|         |check|   |cross|            |check|   |cross|            multi-multi              MM     0     
- |check|         |check|   |cross|            |check|   |check|            multi-rescued            MR     1 [3]_
- |cross|         |check|   |cross|            |check|   |check|            multi-unique             MU     1     
- |check|         |check|   |check|            |check|   |check|            rescued-unique           RU     2 [3]_
- |check|         |check|   |check|            |check|   |check|            unique-rescued           UR     2 [3]_
- |cross|         |check|   |check|            |check|   |check|            unique-unique            UU     2     
- |cross|         |check|   |check|            |check|   |check|            duplicate                DD     2 [4]_
-=============== ========= ================== ========= ================== ======================== ====== ===========
+======================== ====== =============== ========= ================== ========= ================== ===========
+ .                        .      .              Less informative alignment   More informative alignment    .        
+------------------------ ------ --------------- ---------------------------- ---------------------------- -----------
+Pair type                Code    >2 alignments   Mapped     Unique             Mapped    Unique              Sidedness                           
+walk-walk                 WW      |check|         |cross|   |cross|            |cross|   |cross|             0 [1]_
+null                      NN      |cross|         |cross|                      |cross|                       0     
+corrupt                   XX      |cross|         |cross|                      |cross|                       0 [2]_    
+null-multi                NM      |cross|         |cross|                      |check|   |cross|             0     
+null-rescued              NR      |check|         |cross|                      |check|   |check|             1 [3]_
+null-unique               NU      |cross|         |cross|                      |check|   |check|             1     
+multi-multi               MM      |cross|         |check|   |cross|            |check|   |cross|             0     
+multi-rescued             MR      |check|         |check|   |cross|            |check|   |check|             1 [3]_
+multi-unique              MU      |cross|         |check|   |cross|            |check|   |check|             1     
+rescued-unique            RU      |check|         |check|   |check|            |check|   |check|             2 [3]_
+unique-rescued            UR      |check|         |check|   |check|            |check|   |check|             2 [3]_
+unique-unique             UU      |cross|         |check|   |check|            |check|   |check|             2     
+duplicate                 DD      |cross|         |check|   |check|            |check|   |check|             2 [4]_
+======================== ====== =============== ========= ================== ========= ================== ===========
 
 .. [1] "walks", or, `C-walks <https://www.nature.com/articles/nature20158>`_ are
    Hi-C molecules formed via multiple ligation events which cannot be reported 

@@ -1,6 +1,16 @@
-### 0.3.0 agalitsyna fork (2020-02-04) ###
+### 0.3.1 (2021-02-XX) ###
 
-* One-Read-Based Interactions Annotation (ORBITA) option added
+* sample: a new tool to select a random subset of pairs
+* parse: add --readid-transform to edit readID
+* parse: add experimental --walk-policy all (note: it will be moved 
+  to a separate tool in future!) 
+* all tools: use bgzip if pbgzip not available
+
+Internal changes:
+* parse: move most code to a separate _parse module
+* _headerops: add extract_chromosomes(header)  
+* all tools: drop py3.5 support
+* switch from travis CI to github actions
 
 ### 0.3.0 (2019-04-23) ###
 

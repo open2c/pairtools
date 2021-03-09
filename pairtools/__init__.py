@@ -5,7 +5,7 @@ pairtools
 
 CLI tools to process mapped Hi-C data
 
-:copyright: (c) 2017-2020 Open2C
+:copyright: (c) 2017-2021 Open2C
 :author: Open2C
 :license: MIT
 

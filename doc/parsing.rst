@@ -112,7 +112,7 @@ You can report all the alignments in the reads by using ``pairtools parse2`` (se
 A pair of sequential alignments on a single read is **ligation junction**. Ligation junctions are the Hi-C contacts
 that have been directly observed in the experiment. However, traditional Hi-C pairs do not have direct evidence of ligation
 because they arise from read pairs that do not necessarily contain ligation junction.
-To filter out the molecules with complex walks, the walks policy can be set to:
+To filter out the molecules with complex walks, ``--walks-policy`` can be set to:
 
 - ``mask`` to tag these molecules as type ``WW`` (single ligations are rescued, see :ref:`section-single-ligation-rescue`) ,
 - ``5any`` to report the 5'-most alignment on each side,
