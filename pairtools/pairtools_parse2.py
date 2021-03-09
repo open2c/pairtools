@@ -10,10 +10,10 @@ import sys
 import os
 import io
 
-from . import _fileio, _pairsam_format, _parse, _headerops, cli, common_io_options
+from . import _fileio, _pairsam_format, _parse2, _headerops, cli, common_io_options
 from .pairtools_stats import PairCounter
 
-UTIL_NAME = 'pairtools_parse'
+UTIL_NAME = 'pairtools_parse2'
 
 EXTRA_COLUMNS = [
     'mapq',
@@ -60,14 +60,6 @@ EXTRA_COLUMNS = [
     show_default=True,
     help='The minimal MAPQ score to consider a read as uniquely mapped')
 @click.option(
-    "--max-molecule-size",
-    type=int,
-    default=750,
-    show_default=True,
-    help='The maximal size of a Hi-C molecule; used to rescue single ligations'
-         '(from molecules with three alignments) and to rescue complex ligations.'
-         'The default is based on oriented P(s) at short ranges of multiple Hi-C.')
-@click.option(
     "--drop-readid",
     is_flag=True,
     help='If specified, do not add read ids to the output')
@@ -92,29 +84,11 @@ EXTRA_COLUMNS = [
          'list): a SAM tag (any pair of uppercase letters) or {}.'.format(
              ', '.join(EXTRA_COLUMNS)))
 @click.option(
-    "--output-parsed-alignments",
-    type=str,
-    default="",
-    help='output file for all parsed alignments, including walks.'
-        ' Useful for debugging and rnalysis of walks.'
-        ' If file exists, it will be open in the append mode.'
-        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed.'
-        ' By default, not used.'
-        )
-@click.option(
     "--output-stats",
     type=str,
     default="",
     help='output file for various statistics of pairs file. '
-        ' By default, statistics is not generated.'
-    )
-@click.option(
-    '--report-alignment-end',
-    type=click.Choice(['5', '3']),
-    default='5',
-    help='specifies whether the 5\' or 3\' end of the alignment is reported as'
-    ' the position of the Hi-C read.'
-    )
+        ' By default, statistics is not generated.')
 @click.option(
     '--max-inter-align-gap',
     type=int,
@@ -126,17 +100,10 @@ EXTRA_COLUMNS = [
          ' and affect how they get reported as a Hi-C pair (see --walks-policy).'
     )
 @click.option(
-    "--walks-policy",
-    type=click.Choice(['mask', '5any', '5unique', '3any', '3unique']),
-    default='mask',
-    help='the policy for reporting unrescuable walks (reads containing more'
-    ' than one alignment on one or both sides, that can not be explained by a'
-    ' single ligation between two mappable DNA fragments).'
-    ' "mask" - mask walks (chrom="!", pos=0, strand="-"); '
-    ' "5any" - report the 5\'-most alignment on each side;'
-    ' "5unique" - report the 5\'-most unique alignment on each side, if present;'
-    ' "3any" - report the 3\'-most alignment on each side;'
-    ' "3unique" - report the 3\'-most unique alignment on each side, if present.',
+    "--coordinate-system",
+    type=click.Choice(['read', 'walk']),
+    default='read',
+    help='the coordinate system for reporting the walk [NOT implemented]',
     show_default=True
     )
 @click.option(
@@ -159,22 +126,22 @@ EXTRA_COLUMNS = [
 
 @common_io_options
 
-def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
+def parse2(sam_path, chroms_path, output, assembly, min_mapq,
           drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
-          output_parsed_alignments, output_stats, **kwargs):
+          output_stats, coordinate_system, **kwargs):
     '''Find ligation junctions in .sam, make .pairs.
     SAM_PATH : an input .sam/.bam file with paired-end sequence alignments of
     Hi-C molecules. If the path ends with .bam, the input is decompressed from
     bam with samtools. By default, the input is read from stdin.
     '''
-    parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
+    parse2_py(sam_path, chroms_path, output, assembly, min_mapq,
              drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
-             output_parsed_alignments, output_stats, **kwargs)
+             output_stats, coordinate_system, **kwargs)
 
 
-def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
+def parse2_py(sam_path, chroms_path, output, assembly, min_mapq,
              drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
-             output_parsed_alignments, output_stats, **kwargs):
+             output_stats, coordinate_system, **kwargs):
     instream = (_fileio.auto_open(sam_path, mode='r',
                                   nproc=kwargs.get('nproc_in'),
                                   command=kwargs.get('cmd_in', None))
@@ -183,17 +150,10 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None))
                  if output else sys.stdout)
-    out_alignments_stream = (_fileio.auto_open(output_parsed_alignments, mode='w',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
-                 if output_parsed_alignments else None)
     out_stats_stream = (_fileio.auto_open(output_stats, mode='w',
                                nproc=kwargs.get('nproc_out'),
                                command=kwargs.get('cmd_out', None))
                  if output_stats else None)
-
-    if out_alignments_stream:
-        out_alignments_stream.write('readID\tside\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n')
 
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
@@ -236,9 +196,9 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l+'\n' for l in header))
 
-    streaming_classify(body_stream, outstream, chromosomes, min_mapq,
-                       max_molecule_size, drop_readid, drop_seq, drop_sam,
-                       add_columns, out_alignments_stream, out_stat, **kwargs)
+    _parse2.streaming_classify(body_stream, outstream, chromosomes, min_mapq,
+                       drop_readid, drop_seq, drop_sam, add_junction_index,
+                       add_columns, out_stat, coordinate_system, **kwargs)
 
     # save statistics to a file if it was requested:
     if out_stat:
@@ -248,84 +208,8 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
         instream.close()
     if outstream != sys.stdout:
         outstream.close()
-    # close optional output streams if needed:
-    if out_alignments_stream:
-        out_alignments_stream.close()
     if out_stats_stream:
         out_stats_stream.close()
 
-def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size,
-                       drop_readid, drop_seq, drop_sam, add_columns,
-                       out_alignments_stream, out_stat, **kwargs):
-    """
-    """
-    chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes),
-                          range(len(chromosomes)+1)))
-    sam_tags = [col for col in add_columns if len(col)==2 and col.isupper()]
-    prev_readID = ''
-    sams1 = []
-    sams2 = []
-    line = ''
-    store_seq = ('seq' in add_columns)
-
-    readID_transform = kwargs.get('readid_transform', None)
-    if readID_transform is not None:
-        readID_transform = compile(readID_transform, '<string>', 'eval')
-
-    instream = iter(instream)
-    while line is not None:
-        line = next(instream, None)
-
-        readID = line.split('\t', 1)[0] if line else None
-        if readID_transform is not None and readID is not None:
-            readID = eval(readID_transform)
-
-        if not(line) or ((readID != prev_readID) and prev_readID):
-
-            for algn1, algn2, all_algns1, all_algns2 in _parse.parse_sams_into_pair(
-                sams1,
-                sams2,
-                min_mapq,
-                max_molecule_size,
-                kwargs['max_inter_align_gap'],
-                kwargs['walks_policy'],
-                kwargs['report_alignment_end']=='3',
-                sam_tags,
-                store_seq
-                ):
-
-                flip_pair = (not kwargs['no_flip']) and (
-                        not _parse.check_pair_order(algn1, algn2, chrom_enum))
-
-                if flip_pair:
-                    algn1, algn2 = algn2, algn1
-                    sams1, sams2 = sams2, sams1
-
-                _parse.write_pairsam(
-                    algn1, algn2,
-                    prev_readID,
-                    sams1, sams2,
-                    outstream,
-                    drop_readid,
-                    drop_sam,
-                    add_columns)
-
-                # add a pair to PairCounter if stats output is requested:
-                if out_stat:
-                    out_stat.add_pair(algn1['chrom'],  int(algn1['pos']),  algn1['strand'],
-                                      algn2['chrom'],  int(algn2['pos']),  algn2['strand'],
-                                      algn1['type'] + algn2['type'])
-
-                if out_alignments_stream:
-                    _parse.write_all_algnments(prev_readID, all_algns1, all_algns2, out_alignments_stream)
-
-            sams1.clear()
-            sams2.clear()
-
-        if line is not None:
-            _parse.push_sam(line, drop_seq, sams1, sams2)
-            prev_readID = readID
-
-
 if __name__ == '__main__':
-    parse()
+    parse2()
