@@ -39,8 +39,10 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq,
                 sams2,
                 min_mapq,
                 kwargs['max_inter_align_gap'],
+                kwargs['max_fragment_size'],
                 sam_tags,
-                store_seq
+                store_seq,
+                kwargs['single_end']
                 ):
 
                 flip_pair = (not kwargs['no_flip']) and (
@@ -78,8 +80,10 @@ def parse_sams_into_pair(sams1,
                          sams2,
                          min_mapq,
                          max_inter_align_gap,
+                         max_fragment_size,
                          sam_tags,
-                         store_seq):
+                         store_seq,
+                         single_end):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments
     for a Hi-C pair.
@@ -92,110 +96,63 @@ def parse_sams_into_pair(sams1,
     junction_index
         Junction index of a pair in the molecule.
     """
-    max_molecule_size = 500 # TODO: remove in the future
     report_3_alignment_end = False # TODO: remove in the future
-    walks_policy = 'all' # TODO: remove in the future
-    # Check if there is at least one SAM entry per side:
-    if (len(sams1) == 0) or (len(sams2) == 0):
-        algns1 = [empty_alignment()]
-        algns2 = [empty_alignment()]
-        algns1[0]['type'] = 'X'
-        algns2[0]['type'] = 'X'
-        return [ [algns1[0], algns2[0], algns1, algns2, '1u'] ]
 
-    # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
-                         report_3_alignment_end, sam_tags, store_seq)
-              for sam in sams1]
-    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
-                         report_3_alignment_end, sam_tags, store_seq)
-              for sam in sams2]
-    algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
-    algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
+    # Single-end mode:
+    if single_end:
+        sams = sams2 # TODO: Check why it is always the second alignment, and not the first one
+        # Generate a sorted, gap-filled list of all alignments
+        algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
+                             report_3_alignment_end, sam_tags, store_seq)
+                  for sam in sams]
+        algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
+        if max_inter_align_gap is not None:
+            _convert_gaps_into_alignments(algns1, max_inter_align_gap)
 
-    if max_inter_align_gap is not None:
-        _convert_gaps_into_alignments(algns1, max_inter_align_gap)
-        _convert_gaps_into_alignments(algns2, max_inter_align_gap)
+        algns2 = [empty_alignment()]  # Empty alignment dummy
 
-    # Define the type of alignment on each side.
-    # The most important split is between chimeric alignments and linear
-    # alignments.
-
-    is_chimeric_1 = len(algns1) > 1
-    is_chimeric_2 = len(algns2) > 1
-
-    hic_algn1 = algns1[0]
-    hic_algn2 = algns2[0]
-    # By default, assume each molecule is a single ligation with single unconfirmed junction:
-    junction_index = '1u'
-
-    # Parse chimeras
-    rescued_linear_side = None
-    if is_chimeric_1 or is_chimeric_2:
-
-        # Report all the linear alignments in a read pair
-        if walks_policy == 'all':
-            # Report linear alignments after deduplication of complex walks
-            return rescue_complex_walk(algns1, algns2, max_molecule_size)
-
-        # Report only two alignments for a read pair
-        rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
-
-        # Walk was rescued as a simple walk:
-        if rescued_linear_side is not None:
-            junction_index = f'{1}{"f" if rescued_linear_side==1 else "r"}'
-        # Walk is unrescuable:
+        if len(algns1) > 1:
+            # Look for ligation junction, and report linear alignments after deduplication of complex walks:
+            return parse_complex_walk(algns1, algns2, max_fragment_size)
         else:
-            if walks_policy == 'mask':
-                hic_algn1 = _mask_alignment(dict(hic_algn1))
-                hic_algn2 = _mask_alignment(dict(hic_algn2))
-                hic_algn1['type'] = 'W'
-                hic_algn2['type'] = 'W'
+            # If no additional information, we assume each molecule is a single ligation with single unconfirmed junction:
+            return [[algns1[0], algns2[0], algns1, algns2, '1u']]
 
-            elif walks_policy == '5any':
-                hic_algn1 = algns1[0]
-                hic_algn2 = algns2[0]
 
-            elif walks_policy == '5unique':
-                hic_algn1 = algns1[0]
-                for algn in algns1:
-                    if algn['is_mapped'] and algn['is_unique']:
-                        hic_algn1 = algn
-                        break
+    # Paired-end mode:
+    else:
+        # Check if there is at least one SAM entry per side:
+        if (len(sams1) == 0) or (len(sams2) == 0):
+            algns1 = [empty_alignment()]
+            algns2 = [empty_alignment()]
+            algns1[0]['type'] = 'X'
+            algns2[0]['type'] = 'X'
+            return [ [algns1[0], algns2[0], algns1, algns2, '1u'] ]
 
-                hic_algn2 = algns2[0]
-                for algn in algns2:
-                    if algn['is_mapped'] and algn['is_unique']:
-                        hic_algn2 = algn
-                        break
+        # Generate a sorted, gap-filled list of all alignments
+        algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
+                             report_3_alignment_end, sam_tags, store_seq)
+                  for sam in sams1]
+        algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
+                             report_3_alignment_end, sam_tags, store_seq)
+                  for sam in sams2]
+        algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
+        algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
 
-            elif walks_policy == '3any':
-                hic_algn1 = algns1[-1]
-                hic_algn2 = algns2[-1]
+        if max_inter_align_gap is not None:
+            _convert_gaps_into_alignments(algns1, max_inter_align_gap)
+            _convert_gaps_into_alignments(algns2, max_inter_align_gap)
 
-            elif walks_policy == '3unique':
-                hic_algn1 = algns1[-1]
-                for algn in algns1[::-1]:
-                    if algn['is_mapped'] and algn['is_unique']:
-                        hic_algn1 = algn
-                        break
+        is_chimeric_1 = len(algns1) > 1
+        is_chimeric_2 = len(algns2) > 1
 
-                hic_algn2 = algns2[-1]
-                for algn in algns2[::-1]:
-                    if algn['is_mapped'] and algn['is_unique']:
-                        hic_algn2 = algn
-                        break
-
-            # lower-case reported walks on the chimeric side
-            if walks_policy != 'mask':
-                if is_chimeric_1:
-                    hic_algn1 = dict(hic_algn1)
-                    hic_algn1['type'] = hic_algn1['type'].lower()
-                if is_chimeric_2:
-                    hic_algn2 = dict(hic_algn2)
-                    hic_algn2['type'] = hic_algn2['type'].lower()
-
-    return [ [hic_algn1, hic_algn2, algns1, algns2, junction_index] ]
+        if is_chimeric_1 or is_chimeric_2:
+            # If at least one side is chimera, we must look for ligation junction, and
+            # report linear alignments after deduplication of complex walks:
+            return parse_complex_walk(algns1, algns2, max_fragment_size)
+        else:
+            # If no additional information, we assume each molecule is a single ligation with single unconfirmed junction:
+            return [ [algns1[0], algns2[0], algns1, algns2, '1u'] ]
 
 
 def parse_cigar(cigar):
@@ -345,114 +302,10 @@ def parse_algn(
 
     return algn
 
-
-def rescue_walk(algns1, algns2, max_molecule_size):
+def parse_complex_walk(algns1, algns2, max_fragment_size, allowed_offset=3):
     """
-    Rescue a single ligation that appears as a walk.
-    Checks if a molecule with three alignments could be formed via a single
-    ligation between two fragments, where one fragment was so long that it
-    got sequenced on both sides.
-    Uses three criteria:
-    a) the 3'-end alignment on one side maps to the same chromosome as the
-    alignment fully covering the other side (i.e. the linear alignment)
-    b) the two alignments point towards each other on the chromosome
-    c) the distance between the outer ends of the two alignments is below
-    the specified threshold.
-    Alternatively, a single ligation get rescued when the 3' sub-alignment
-    maps to multiple locations or no locations at all.
+    Prase a set of ligations that appear as a complex walk.
 
-    In the case of a successful rescue, tags the 3' sub-alignment with
-    type='X' and the linear alignment on the other side with type='R'.
-    Returns
-    -------
-    linear_side : int
-        If the case of a successful rescue, returns the index of the side
-        with a linear alignment.
-    """
-
-    # If both sides have one alignment or none, no need to rescue!
-    n_algns1 = len(algns1)
-    n_algns2 = len(algns2)
-
-    if (n_algns1 <= 1) and (n_algns2 <= 1):
-        return None
-
-    # Can rescue only pairs with one chimeric alignment with two parts.
-    if not (
-        ((n_algns1 == 1) and (n_algns2 == 2))
-        or ((n_algns1 == 2) and (n_algns2 == 1))
-    ):
-        return None
-
-    first_read_is_chimeric = n_algns1 > 1
-    chim5_algn  = algns1[0] if first_read_is_chimeric else algns2[0]
-    chim3_algn  = algns1[1] if first_read_is_chimeric else algns2[1]
-    linear_algn = algns2[0] if first_read_is_chimeric else algns1[0]
-
-    # the linear alignment must be uniquely mapped
-    if not(linear_algn['is_mapped'] and linear_algn['is_unique']):
-        return None
-
-    can_rescue = True
-    # we automatically rescue chimeric alignments with null and non-unique
-    # alignments at the 3' side
-    if (chim3_algn['is_mapped'] and chim5_algn['is_unique']):
-        # 1) in rescued walks, the 3' alignment of the chimeric alignment must be on
-        # the same chromosome as the linear alignment on the opposite side of the
-        # molecule
-        can_rescue &= (chim3_algn['chrom'] == linear_algn['chrom'])
-
-        # 2) in rescued walks, the 3' supplemental alignment of the chimeric
-        # alignment and the linear alignment on the opposite side must point
-        # towards each other
-        can_rescue &= (chim3_algn['strand'] != linear_algn['strand'])
-        if linear_algn['strand'] == '+':
-            can_rescue &= (linear_algn['pos5'] < chim3_algn['pos5'])
-        else:
-            can_rescue &= (linear_algn['pos5'] > chim3_algn['pos5'])
-
-        # 3) in single ligations appearing as walks, we can infer the size of
-        # the molecule and this size must be smaller than the maximal size of
-        # Hi-C molecules after the size selection step of the Hi-C protocol
-        if linear_algn['strand'] == '+':
-            molecule_size = (
-                chim3_algn['pos5']
-                - linear_algn['pos5']
-                + chim3_algn['dist_to_5']
-                + linear_algn['dist_to_5']
-            )
-        else:
-            molecule_size = (
-                linear_algn['pos5']
-                - chim3_algn['pos5']
-                + chim3_algn['dist_to_5']
-                + linear_algn['dist_to_5']
-            )
-
-        can_rescue &= (molecule_size <= max_molecule_size)
-
-    if can_rescue:
-        if first_read_is_chimeric:
-            # changing the type of the 3' alignment on side 1, does not show up
-            # in the output
-            algns1[1]['type'] = 'X'
-            algns2[0]['type'] = 'R'
-            return 1
-        else:
-            algns1[0]['type'] = 'R'
-            # changing the type of the 3' alignment on side 2, does not show up
-            # in the output
-            algns2[1]['type'] = 'X'
-            return 2
-    else:
-        return None
-
-
-def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
-    """
-    Rescue a set of ligations that appear as a complex walk.
-
-    This rescue differs from simple rescue_walk by the step of deduplication.
     If the reads are long enough, the reverse read might read through the forward read's meaningful part.
     If one of the reads contains ligation junction, this might lead to reporting fake contact.
     Thus, the pairs of contacts that overlap are paired-end duplicates and should be reported uniquely.
@@ -551,7 +404,7 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
     # check whether the last alignments of forward and reverse reads overlap.
     if current_reverse_junction == 1:
         last_reported_alignment_forward = last_reported_alignment_reverse = 1
-        if ends_do_overlap(algns1[-1], algns2[-1], max_molecule_size, allowed_offset):
+        if ends_do_overlap(algns1[-1], algns2[-1], max_fragment_size, allowed_offset):
             # Report the modified last junctions:
             if n_algns1 >= 2:
                 # store the type of contact and do not modify original entry:
@@ -624,12 +477,12 @@ def rescue_complex_walk(algns1, algns2, max_molecule_size, allowed_offset=3):
     return final_contacts
 
 ### Additional functions for complex walks rescue ###
-def ends_do_overlap(algn1, algn2, max_molecule_size=500, allowed_offset=5):
+def ends_do_overlap(algn1, algn2, max_fragment_size=500, allowed_offset=5):
     """
     Two ends of alignments overlap if:
      1) they are from the same chromosome,
      2) map in the opposite directions,
-     3) the distance between the outer ends of the two alignments is below the specified max_molecule_size,
+     3) the distance between the outer ends of the two alignments is below the specified max_fragment_size,
      4) the distance between the outer ends of the two alignments is above the maximum alignment size.
     (4) guarantees that the alignments point towards each other on the chromosomes.
 
@@ -664,7 +517,7 @@ def ends_do_overlap(algn1, algn2, max_molecule_size=500, allowed_offset=5):
         min_algn_size = max(algn1['pos5'] - algn1['pos3'], algn2['pos3'] - algn2['pos5'])
         distance_outer_ends = algn1['pos5'] - algn2['pos5']
 
-    do_overlap &= (distance_outer_ends <= max_molecule_size + allowed_offset)
+    do_overlap &= (distance_outer_ends <= max_fragment_size + allowed_offset)
     do_overlap &= (distance_outer_ends >= min_algn_size - allowed_offset)
 
     if do_overlap:
@@ -892,82 +745,3 @@ def write_pairsam(
         cols.append(str(algn2.get(col, '')))
 
     out_file.write(_pairsam_format.PAIRSAM_SEP.join(cols) + '\n')
-
-
-# # TODO: check whether we need this broken function
-# def parse_alternative_algns(samcols):
-#     alt_algns = []
-#     for col in samcols[11:]:
-#         if not col.startswith('XA:Z:'):
-#             continue
-#
-#         for SA in col[5:].split(';'):
-#             if not SA:
-#                 continue
-#             SAcols = SA.split(',')
-#
-#             chrom = SAcols[0]
-#             strand = '-' if SAcols[1]<0 else '+'
-#
-#             cigar = parse_cigar(SAcols[2])
-#             NM = SAcols[3]
-#
-#             pos = _pairsam_format.UNMAPPED_POS
-#             if strand == '+':
-#                 pos = int(SAcols[1])
-#             else:
-#                 pos = int(SAcols[1]) + cigar['algn_ref_span']
-#
-#             alt_algns.append({
-#                 'chrom': chrom,
-#                 'pos': pos,
-#                 'strand': strand,
-#                 'mapq': mapq, # TODO: Is not defined in this piece of code
-#                 'is_mapped': True,
-#                 'is_unique': False,
-#                 'is_linear': None,
-#                 'cigar': cigar,
-#                 'NM': NM,
-#                 'dist_to_5': cigar['clip5_ref'] if strand == '+' else cigar['clip3_ref'],
-#             })
-#
-#     return supp_algns # TODO: This one seems not to be used in the code...
-
-# def parse_supp(samcols, min_mapq):
-#    supp_algns = []
-#    for col in samcols[11:]:
-#        if not col.startswith('SA:Z:'):
-#            continue
-#
-#        for SA in col[5:].split(';'):
-#            if not SA:
-#                continue
-#            SAcols = SA.split(',')
-#            mapq = int(SAcols[4])
-#            is_unique = (mapq >= min_mapq)
-#
-#            chrom = SAcols[0] if is_unique else _pairsam_format.UNMAPPED_CHROM
-#            strand = SAcols[2] if is_unique else _pairsam_format.UNMAPPED_STRAND
-#
-#            cigar = parse_cigar(SAcols[3])
-#
-#            pos = _pairsam_format.UNMAPPED_POS
-#            if is_unique:
-#                if strand == '+':
-#                    pos = int(SAcols[1])
-#                else:
-#                    pos = int(SAcols[1]) + cigar['algn_ref_span']
-#
-#            supp_algns.append({
-#                'chrom': chrom,
-#                'pos': pos,
-#                'strand': strand,
-#                'mapq': mapq,
-#                'is_mapped': True,
-#                'is_unique': is_unique,
-#                'is_linear': None,
-#                'cigar': cigar,
-#                'dist_to_5': cigar['clip5_ref'] if strand == '+' else cigar['clip3_ref'],
-#            })
-#
-#    return supp_algns
