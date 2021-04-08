@@ -11,7 +11,7 @@ testdir = os.path.dirname(os.path.realpath(__file__))
 from pairtools import parse, parse_algn, parse_cigar
 
 def test_mock_sam_parse_all():
-    mock_sam_path = os.path.join(testdir, 'data', 'mock.parse-all.sam')
+    mock_sam_path = os.path.join(testdir, 'data', 'mock.parse2.sam')
     mock_chroms_path = os.path.join(testdir, 'data', 'mock.chrom.sizes')
     try:
         result = subprocess.check_output(
