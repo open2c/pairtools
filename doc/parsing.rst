@@ -206,10 +206,24 @@ the ``--max-inter-align-gap`` flag (by default, 20bp).
 Parse2
 -------------------------
 
-If your Hi-C has long reads, you may want to report all the alignments in the reads with ``pairtools parse2``.
+We call the multi-fragment DNA molecule that is formed during Hi-C (or any other chromosome capture with sequencing) a walk.
+When the walk is sequenced, the read might span multiple ligation junctions of the fragments.
+If the sequenced walk has no more than two different fragments at one side of the read, this can be rescued with simple 
+``pairtools parse``. However, in complex walks (two fragments on both reads or more than two fragments on any side) 
+you need specialized ``pairtools parse2`` functionality. This parse will report all the deduplicated pairs in the complex walk. 
 
-The complex walks are DNA molecules containing more than one ligation junction that may end up in more than one alignment
-on forward, reverse, or both reads:
+This is especially relevant if you have the reads length > 100 bp, since more than 20% or all restriction fragments in the genome are then shorter than the read length.
+Some numbers: 
+
+======== ================= ================== ================== ================== ==================
+ Genome   rfrags <50 bp          <100 bp            <150 bp             <175 bp           <200 bp
+-------- ----------------- ------------------ ------------------ ------------------ ------------------
+  hg38     828538 (11.5%)    1452918 (20.2%)    2121479 (29.5%)    2587250 (35.9%)    2992757 (41.6%)
+  mm10     863614 (12.9%)    1554461 (23.3%)    2236609 (33.5%)    2526150 (37.9%)    2780769 (41.7%)
+  dm3      65327 (19.6%)     108370 (32.5%)     142662 (42.8%)     156886 (47.1%)     169339 (50.9%)
+======== ================= ================== ================== ================== ==================
+
+Here is an example of complex walk:
 
 .. figure:: _static/rescue_modes.svg
    :width: 60 %
@@ -220,9 +234,9 @@ on forward, reverse, or both reads:
 
 ``pairtools parse2`` detects such molecules and **rescues** them.
 
-Briefly, the algorithm of complex ligation walks rescue detects all the unique ligation junctions, and do not report
+Briefly, ``pairtools parse2`` detects all the unique ligation junctions, and does not report
 the same junction as a pair multiple times. Importantly, these duplicated pairs might arise when both forward and reverse
-reads read through the same ligation junction. However, these cases are successfully merged by ``pairtools parse2``:
+reads read through the same ligation junction. However, these overlaps are successfully merged by ``pairtools parse2``:
 
 .. figure:: _static/rescue_modes_readthrough.svg
    :width: 60 %
@@ -231,8 +245,8 @@ reads read through the same ligation junction. However, these cases are successf
 
    Reporing complex walks in case of readthrough
 
-To restore the sequence of ligation events, there is a special field ``junction_index`` that can be reported as
-a separate column of .pair file by setting ``--add-junction-index``. This field contains information on:
+To restore the sequence of ligation events, there is a special field ``junction_index`` that you have as
+a separate column of .pair file when setting ``--add-junction-index`` option. This field contains information on:
 
 - the order of the junction in the recovered walk, starting from 5'-end of forward read
 - type of the junction:
