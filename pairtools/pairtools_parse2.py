@@ -64,14 +64,16 @@ EXTRA_COLUMNS = [
     help="read segments that are not covered by any alignment and"
     ' longer than the specified value are treated as "null" alignments.'
     " These null alignments convert otherwise linear alignments into walks,"
-    " and affect how they get reported as a Hi-C pair (see --walks-policy).",
+    " and affect how they get reported as a Hi-C pair.",
 )
 @click.option(
     "--max-fragment-size",
     type=int,
     default=500,
     show_default=True,
-    help="Largest fragment size.",
+    help="Largest fragment size for the detection of overlapping "
+         "alignments at the ends of forward and reverse reads. "
+         "Not used in --single-end mode. ",
 )
 @click.option(
     "--single-end", is_flag=True, help="If specified, the input is single-end."
@@ -91,7 +93,10 @@ EXTRA_COLUMNS = [
     "--coordinate-system",
     type=click.Choice(["read", "walk", "pair"]),
     default="read",
-    help="the coordinate system for reporting the walk [NOT implemented]",
+    help='coordinate system for reporting the walk. '
+         ' "read" - orient each pair as it appeared on a read, starting from 5\'-end of forward then reverse read. '
+         ' "walk" - orient each pair as it appeared sequentially in the reconstructed walk. '
+         ' "pair" - re-orient each pair as if it was sequenced independently by Hi-C. ',
     show_default=True,
 )
 @click.option(
@@ -127,7 +132,7 @@ EXTRA_COLUMNS = [
 @click.option(
     "--add-junction-index",
     is_flag=True,
-    help="If specified, each pair will have junction index in the molecule",
+    help="If specified, parse2 will report junction index for each pair in the walk",
 )
 @click.option(
     "--add-columns",
@@ -290,12 +295,4 @@ def parse2_py(
         out_stat.save(out_stats_stream)
 
     if instream != sys.stdin:
-        instream.close()
-    if outstream != sys.stdout:
-        outstream.close()
-    if out_stats_stream:
-        out_stats_stream.close()
-
-
-if __name__ == "__main__":
-    parse2()
+        instrea
