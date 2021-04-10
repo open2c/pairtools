@@ -68,8 +68,9 @@ def streaming_classify(
                 coordinate_system,
             ):
 
-                flip_pair = (not kwargs['no_flip']) and (
-                        not check_pair_order(algn1, algn2, chrom_enum))
+                flip_pair = (not kwargs["no_flip"]) and (
+                    not check_pair_order(algn1, algn2, chrom_enum)
+                )
 
                 if flip_pair:
                     algn1, algn2 = algn2, algn1

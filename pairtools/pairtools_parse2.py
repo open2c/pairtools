@@ -72,8 +72,8 @@ EXTRA_COLUMNS = [
     default=500,
     show_default=True,
     help="Largest fragment size for the detection of overlapping "
-         "alignments at the ends of forward and reverse reads. "
-         "Not used in --single-end mode. ",
+    "alignments at the ends of forward and reverse reads. "
+    "Not used in --single-end mode. ",
 )
 @click.option(
     "--single-end", is_flag=True, help="If specified, the input is single-end."
@@ -93,17 +93,17 @@ EXTRA_COLUMNS = [
     "--coordinate-system",
     type=click.Choice(["read", "walk", "pair"]),
     default="read",
-    help='coordinate system for reporting the walk. '
-         ' "read" - orient each pair as it appeared on a read, starting from 5\'-end of forward then reverse read. '
-         ' "walk" - orient each pair as it appeared sequentially in the reconstructed walk. '
-         ' "pair" - re-orient each pair as if it was sequenced independently by Hi-C. ',
+    help="coordinate system for reporting the walk. "
+    ' "read" - orient each pair as it appeared on a read, starting from 5\'-end of forward then reverse read. '
+    ' "walk" - orient each pair as it appeared sequentially in the reconstructed walk. '
+    ' "pair" - re-orient each pair as if it was sequenced independently by Hi-C. ',
     show_default=True,
 )
 @click.option(
     "--no-flip",
     is_flag=True,
-    help='If specified, do not flip pairs in genomic order and instead preserve ' 
-         'the order in which they were sequenced.'
+    help="If specified, do not flip pairs in genomic order and instead preserve "
+    "the order in which they were sequenced.",
 )
 @click.option(
     "--drop-readid",
@@ -295,4 +295,11 @@ def parse2_py(
         out_stat.save(out_stats_stream)
 
     if instream != sys.stdin:
-        instrea
+        instream.close()
+    if outstream != sys.stdout:
+        outstream.close()
+    # close optional output streams if needed:
+    if out_alignments_stream:
+        out_alignments_stream.close()
+    if out_stats_stream:
+        out_stats_stream.close()
