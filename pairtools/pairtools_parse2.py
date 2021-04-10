@@ -298,8 +298,5 @@ def parse2_py(
         instream.close()
     if outstream != sys.stdout:
         outstream.close()
-    # close optional output streams if needed:
-    if out_alignments_stream:
-        out_alignments_stream.close()
     if out_stats_stream:
         out_stats_stream.close()
