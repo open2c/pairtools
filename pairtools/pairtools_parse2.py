@@ -151,6 +151,13 @@ EXTRA_COLUMNS = [
     help="output file for various statistics of pairs file. "
     " By default, statistics is not generated.",
 )
+@click.option(
+    "--report-alignment-end",
+    type=click.Choice(["5", "3"]),
+    default="5",
+    help="specifies whether the 5' or 3' end of the alignment is reported as"
+    " the position of the Hi-C read.",
+)
 @common_io_options
 def parse2(
     sam_path,

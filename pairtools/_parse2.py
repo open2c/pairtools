@@ -72,6 +72,13 @@ def streaming_classify(
                     not check_pair_order(algn1, algn2, chrom_enum)
                 )
 
+                if kwargs["report_alignment_end"] == "5":
+                    algn1["pos"] = algn1["pos5"]
+                    algn2["pos"] = algn2["pos5"]
+                else:
+                    algn1["pos"] = algn1["pos3"]
+                    algn2["pos"] = algn2["pos3"]
+
                 if flip_pair:
                     algn1, algn2 = algn2, algn1
                     sams1, sams2 = sams2, sams1
