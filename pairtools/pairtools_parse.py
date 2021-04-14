@@ -106,13 +106,15 @@ EXTRA_COLUMNS = [
     type=str,
     default="",
     help='output file for various statistics of pairs file. '
-        ' By default, statistics is not generated.')
+        ' By default, statistics is not generated.'
+    )
 @click.option(
     '--report-alignment-end',
     type=click.Choice(['5', '3']),
     default='5',
     help='specifies whether the 5\' or 3\' end of the alignment is reported as'
-    ' the position of the Hi-C read.')
+    ' the position of the Hi-C read.'
+    )
 @click.option(
     '--max-inter-align-gap',
     type=int,
@@ -125,13 +127,12 @@ EXTRA_COLUMNS = [
     )
 @click.option(
     "--walks-policy",
-    type=click.Choice(['mask', 'all', '5any', '5unique', '3any', '3unique']),
+    type=click.Choice(['mask', '5any', '5unique', '3any', '3unique']),
     default='mask',
     help='the policy for reporting unrescuable walks (reads containing more'
     ' than one alignment on one or both sides, that can not be explained by a'
     ' single ligation between two mappable DNA fragments).'
     ' "mask" - mask walks (chrom="!", pos=0, strand="-"); '
-    ' "all" - report all pairs of consecutive alignments; '
     ' "5any" - report the 5\'-most alignment on each side;'
     ' "5unique" - report the 5\'-most unique alignment on each side, if present;'
     ' "3any" - report the 3\'-most alignment on each side;'
@@ -236,7 +237,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     outstream.writelines((l+'\n' for l in header))
 
     streaming_classify(body_stream, outstream, chromosomes, min_mapq,
-                       max_molecule_size, drop_readid, drop_seq, drop_sam, add_junction_index,
+                       max_molecule_size, drop_readid, drop_seq, drop_sam,
                        add_columns, out_alignments_stream, out_stat, **kwargs)
 
     # save statistics to a file if it was requested:
@@ -253,9 +254,8 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     if out_stats_stream:
         out_stats_stream.close()
 
-
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size,
-                       drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
+                       drop_readid, drop_seq, drop_sam, add_columns,
                        out_alignments_stream, out_stat, **kwargs):
     """
     """
@@ -282,7 +282,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
 
         if not(line) or ((readID != prev_readID) and prev_readID):
 
-            for algn1, algn2, all_algns1, all_algns2, junction_index in _parse.parse_sams_into_pair(
+            for algn1, algn2, all_algns1, all_algns2 in _parse.parse_sams_into_pair(
                 sams1,
                 sams2,
                 min_mapq,
@@ -304,12 +304,10 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                 _parse.write_pairsam(
                     algn1, algn2,
                     prev_readID,
-                    junction_index,
                     sams1, sams2,
                     outstream,
                     drop_readid,
                     drop_sam,
-                    add_junction_index,
                     add_columns)
 
                 # add a pair to PairCounter if stats output is requested:
