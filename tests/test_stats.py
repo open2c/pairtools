@@ -27,7 +27,10 @@ def test_mock_pairsam():
                 if not l.startswith('#') and l.strip())
 
     for k in stats:
-        stats[k] = int(stats[k])
+        try:
+            stats[k] = int(stats[k])
+        except ValueError:
+            stats[k] = float(stats[k])
     print(stats)
 
     assert stats['total'] == 8
@@ -53,4 +56,11 @@ def test_mock_pairsam():
     assert stats['dist_freq/1-2/++'] == 1
     assert stats['dist_freq/2-3/++'] == 1
     assert stats['dist_freq/32-56/++'] == 1
+    assert stats['summary/frac_cis'] == 0.6
+    assert stats['summary/frac_cis_1kb+'] == 0
+    assert stats['summary/frac_cis_2kb+'] == 0
+    assert stats['summary/frac_cis_4kb+'] == 0
+    assert stats['summary/frac_cis_10kb+'] == 0
+    assert stats['summary/frac_cis_20kb+'] == 0
+    assert stats['summary/frac_cis_40kb+'] == 0    
 
