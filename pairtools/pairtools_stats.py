@@ -350,14 +350,17 @@ class PairCounter(Mapping):
                         )
                     )
             else:
-                # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup']
+                # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup', 'summary']
                 # get the first 'key' and keep the remainders in 'key_fields'
                 key = key_fields.pop(0)
-                if key in ["pair_types", "dedup"]:
+                if key in ["pair_types", "dedup", 'summary']:
                     # assert there is only one element in key_fields left:
                     # 'pair_types' and 'dedup' treated the same
                     if len(key_fields) == 1:
-                        stat_from_file._stat[key][key_fields[0]] = int(fields[1])
+                        try:
+                            stat_from_file._stat[key][key_fields[0]] = int(fields[1])
+                        except ValueError:
+                            stat_from_file._stat[key][key_fields[0]] = float(fields[1])
                     else:
                         raise _fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 1 identifier".format(
@@ -517,7 +520,7 @@ class PairCounter(Mapping):
                 if k == "dist_freq":
                     for dirs in sum_stat[k]:
                         sum_stat[k][dirs] = self._stat[k][dirs] + other._stat[k][dirs]
-        self.calculate_summaries()
+        sum_stat.calculate_summaries()
         return sum_stat
 
     # we need this to be able to sum(list_of_PairCounters)
