@@ -35,10 +35,10 @@ def parse_sams_into_pair(sams1,
         return [ [algns1[0], algns2[0], algns1, algns2, '1u'] ]
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
+    algns1 = [parse_algn_pysam(sam, min_mapq,
                          report_3_alignment_end, sam_tags, store_seq)
               for sam in sams1]
-    algns2 = [parse_algn(sam.rstrip().split('\t'), min_mapq,
+    algns2 = [parse_algn_pysam(sam, min_mapq,
                          report_3_alignment_end, sam_tags, store_seq)
               for sam in sams2]
     algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
@@ -74,7 +74,7 @@ def parse_sams_into_pair(sams1,
 
         # Walk was rescued as a simple walk:
         if rescued_linear_side is not None:
-            junction_index = f'{1}{"f" if rescued_linear_side==1 else "r"}'
+            junction_index = f'{1}{"f" if rescued_linear_side==1 else "r"}' # TODO: replace
         # Walk is unrescuable:
         else:
             if walks_policy == 'mask':
@@ -130,6 +130,7 @@ def parse_sams_into_pair(sams1,
 
 
 def parse_cigar(cigar):
+    """ Deprecated function. TODO: remove? """
     matched_bp = 0
     algn_ref_span = 0
     algn_read_span = 0
@@ -173,6 +174,52 @@ def parse_cigar(cigar):
         'matched_bp': matched_bp,
     }
 
+def parse_cigar_pysam(read):
+    """ Parse cigar tuples reported as cigartuples of pysam read entry.
+    Reports alignment span, clipped nucleotides and more.
+    See https://pysam.readthedocs.io/en/latest/api.html#pysam.AlignedSegment.cigartuples
+
+    :param read: input pysam read entry
+    :return: parsed aligned entry (dictionary)
+
+    """
+    matched_bp = 0
+    algn_ref_span = 0
+    algn_read_span = 0
+    read_len = 0
+    clip5_ref = 0
+    clip3_ref = 0
+
+    cigarstring = read.cigarstring
+    cigartuples = read.cigartuples
+    if cigartuples is not None:
+        for operation, length in cigartuples:
+            if operation == 0: # M, match
+                matched_bp += length
+                algn_ref_span += length
+                algn_read_span += length
+                read_len += length
+            elif operation == 1: # I, insertion
+                algn_read_span += length
+                read_len += length
+            elif operation == 2: # D, deletion
+                algn_ref_span += length
+            elif operation == 4 or operation == 5: # S and H, soft clip and hard clip, respectively
+                read_len += length
+                if matched_bp == 0:
+                    clip5_ref = length
+                else:
+                    clip3_ref = length
+
+    return {
+        'clip5_ref': clip5_ref,
+        'clip3_ref': clip3_ref,
+        'cigar': cigarstring,
+        'algn_ref_span': algn_ref_span,
+        'algn_read_span': algn_read_span,
+        'read_len': read_len,
+        'matched_bp': matched_bp,
+    }
 
 def empty_alignment():
     return {
@@ -204,6 +251,7 @@ def parse_algn(
         report_3_alignment_end=False,
         sam_tags=None,
         store_seq=False):
+    """ Deprecated function. TODO: remove?"""
     is_mapped = (int(samcols[1]) & 0x04) == 0
     mapq = int(samcols[4])
     is_unique = (mapq >= min_mapq)
@@ -276,6 +324,95 @@ def parse_algn(
 
     return algn
 
+def parse_algn_pysam(
+        sam,
+        min_mapq,
+        report_3_alignment_end=False,
+        sam_tags=None,
+        store_seq=False):
+    """ Parse alignments from pysam AlignedSegment entry
+    :param sam: input pysam AlignedSegment entry
+    :param min_mapq: minimal MAPQ to consider as a proper alignment
+    :param report_3_alignment_end: if True, 3'-end of alignment will be reported as position
+    :param sam_tags: list of sam tags to store
+    :param store_seq: if True, the sequence will be parsed and stored in the output
+    :return: parsed aligned entry (dictionary)
+    """
+
+    flag = sam.flag
+    is_mapped = (flag & 0x04) == 0
+    mapq = sam.mapq
+    is_unique = (mapq >= min_mapq)
+    tags = sam.tags
+    is_linear = not 'SA' in [tag[0] for tag in tags]
+
+    cigar = parse_cigar_pysam(sam)
+
+    if is_mapped:
+        if ((flag & 0x10) == 0):
+            strand = '+'
+            dist_to_5 = cigar['clip5_ref']
+            dist_to_3 = cigar['clip3_ref']
+        else:
+            strand = '-'
+            dist_to_5 = cigar['clip3_ref']
+            dist_to_3 = cigar['clip5_ref']
+
+        if is_unique:
+            chrom = sam.reference_name
+            if strand == '+':
+                pos5 = sam.reference_start
+                pos3 = sam.reference_end + cigar['algn_ref_span'] - 1
+            else:
+                pos5 = sam.reference_start + cigar['algn_ref_span'] - 1
+                pos3 = sam.reference_end
+        else:
+            chrom = _pairsam_format.UNMAPPED_CHROM
+            strand = _pairsam_format.UNMAPPED_STRAND
+            pos5 = _pairsam_format.UNMAPPED_POS
+            pos3 = _pairsam_format.UNMAPPED_POS
+    else:
+        chrom = _pairsam_format.UNMAPPED_CHROM
+        strand = _pairsam_format.UNMAPPED_STRAND
+        pos5 = _pairsam_format.UNMAPPED_POS
+        pos3 = _pairsam_format.UNMAPPED_POS
+
+        dist_to_5 = 0
+        dist_to_3 = 0
+
+    algn = {
+        'chrom': chrom,
+        'pos5': pos5,
+        'pos3': pos3,
+        'strand': strand,
+        'mapq': mapq,
+        'is_mapped': is_mapped,
+        'is_unique': is_unique,
+        'is_linear': is_linear,
+        'dist_to_5': dist_to_5,
+        'dist_to_3': dist_to_3,
+        'type': ('N' if not is_mapped else ('M' if not is_unique else 'U')),
+    }
+
+    algn.update(cigar)
+
+    algn['pos'] = algn['pos3'] if report_3_alignment_end else algn['pos5']
+
+    ### Add tags:
+    if sam_tags:
+        for tag in sam_tags:
+            algn[tag] = ''
+
+        for col, value in tags:
+            for tag in sam_tags:
+                if col == tag:
+                    algn[tag] = value
+                    continue
+
+    if store_seq:
+        algn['seq'] = sam.seq
+
+    return algn
 
 def rescue_walk(algns1, algns2, max_molecule_size):
     """
@@ -732,8 +869,7 @@ def check_pair_order(algn1, algn2, chrom_enum):
 
 
 def push_sam(line, drop_seq, sams1, sams2):
-    """
-    """
+    """ Deprecated function TODO: remove? """
 
     sam = line.rstrip()
     if drop_seq:
@@ -755,6 +891,16 @@ def push_sam(line, drop_seq, sams1, sams2):
         sams2.append(sam)
     return
 
+def push_pysam(sam, drop_seq, sams1, sams2):
+    """ Parse pysam AlignedSegment (sam) into pairtools sams entry """
+
+    flag = sam.flag
+
+    if ((flag & 0x40) != 0):
+        sams1.append(sam) # Forward read, or first read in a pair
+    else:
+        sams2.append(sam) # Reverse read, or mate pair
+    return
 
 def write_all_algnments(readID, all_algns1, all_algns2, out_file):
     for side_idx, all_algns in enumerate((all_algns1, all_algns2)):
@@ -807,9 +953,7 @@ def write_pairsam(
         for sams in [sams1, sams2]:
             cols.append(
                 _pairsam_format.INTER_SAM_SEP.join([
-                    (sam.replace('\t', _pairsam_format.SAM_SEP)
-                    + _pairsam_format.SAM_SEP
-                    + 'Yt:Z:' + algn1['type'] + algn2['type'])
+                    str(sam) + algn1['type'] + algn2['type'] # String representation of pysam alignment
                 for sam in sams
                 ])
             )

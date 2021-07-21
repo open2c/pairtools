@@ -114,10 +114,26 @@ def extract_chromsizes(header):
 
 
 def get_chromsizes_from_sam_header(samheader):
+    """  Deprecated sam header parser from text """
     SQs = [l.split('\t') for l in samheader if l.startswith('@SQ')]
     chromsizes = [(sq[1][3:], int(sq[2][3:])) for sq in SQs]
     return OrderedDict(chromsizes)
 
+def get_chromsizes_from_pysam_header(samheader):
+    """ Convert pysam header (Ordered dict) to pairtools chromosomes.
+
+    Example of pysam header converted to dict:
+    OrderedDict([
+        ('SQ', [{'SN': 'chr1', 'LN': 248956422},
+         {'SN': 'chr10', 'LN': 133797422},
+         {'SN': 'chr11', 'LN': 135086622},
+         {'SN': 'chr12', 'LN': 133275309}]),
+        ('PG', [{'ID': 'bwa', 'PN': 'bwa', 'VN': '0.7.17-r1188', 'CL': 'bwa mem -t 8 -SP -v1 hg38.fa test_1.1.fastq.gz test_2.1.fastq.gz'}])
+    ])
+    """
+    SQs = samheader.to_dict()['SQ']
+    chromsizes = [(sq['SN'], int(sq['LN'])) for sq in SQs]
+    return OrderedDict(chromsizes)
 
 def get_chrom_order(chroms_file, sam_chroms=None):
     """
@@ -187,9 +203,17 @@ def subset_chroms_in_pairsheader(header, chrom_subset):
 
 
 def insert_samheader(header, samheader):
+    """ Deprecated TODO: remove?"""
     new_header = [l for l in header if not l.startswith('#columns')]
     if samheader:
         new_header += ['#samheader: '+l for l in samheader]
+    new_header += [l for l in header if l.startswith('#columns')]
+    return new_header
+
+def insert_samheader_pysam(header, samheader):
+    new_header = [l for l in header if not l.startswith('#columns')]
+    if samheader:
+        new_header += ['#samheader: ' + str(samheader)]
     new_header += [l for l in header if l.startswith('#columns')]
     return new_header
 

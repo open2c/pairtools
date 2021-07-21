@@ -9,6 +9,7 @@ import pipes
 import sys
 import os
 import io
+import pysam
 
 from . import _fileio, _pairsam_format, _parse, _headerops, cli, common_io_options
 from .pairtools_stats import PairCounter
@@ -106,13 +107,15 @@ EXTRA_COLUMNS = [
     type=str,
     default="",
     help='output file for various statistics of pairs file. '
-        ' By default, statistics is not generated.')
+        ' By default, statistics is not generated.'
+    )
 @click.option(
     '--report-alignment-end',
     type=click.Choice(['5', '3']),
     default='5',
     help='specifies whether the 5\' or 3\' end of the alignment is reported as'
-    ' the position of the Hi-C read.')
+    ' the position of the Hi-C read.'
+    )
 @click.option(
     '--max-inter-align-gap',
     type=int,
@@ -125,13 +128,12 @@ EXTRA_COLUMNS = [
     )
 @click.option(
     "--walks-policy",
-    type=click.Choice(['mask', 'all', '5any', '5unique', '3any', '3unique']),
+    type=click.Choice(['mask', '5any', '5unique', '3any', '3unique']),
     default='mask',
     help='the policy for reporting unrescuable walks (reads containing more'
     ' than one alignment on one or both sides, that can not be explained by a'
     ' single ligation between two mappable DNA fragments).'
     ' "mask" - mask walks (chrom="!", pos=0, strand="-"); '
-    ' "all" - report all pairs of consecutive alignments; '
     ' "5any" - report the 5\'-most alignment on each side;'
     ' "5unique" - report the 5\'-most unique alignment on each side, if present;'
     ' "3any" - report the 3\'-most alignment on each side;'
@@ -174,10 +176,14 @@ def parse(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
 def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_size,
              drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
              output_parsed_alignments, output_stats, **kwargs):
-    instream = (_fileio.auto_open(sam_path, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
-                if sam_path else sys.stdin)
+
+    ### Set up input stream
+    if sam_path: # open input sam file with pysam
+        input_pysam = pysam.AlignmentFile(sam_path, "r")
+    else: # read from stdin
+        input_pysam = pysam.AlignmentFile("_", "r")
+
+    ### Set up output streams
     outstream = (_fileio.auto_open(output, mode='w',
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None))
@@ -197,16 +203,7 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
 
-    samheader, body_stream = _headerops.get_header(instream, comment_char='@')
-    
-    if not samheader:
-        raise ValueError('The input sam is missing a header! If reading a bam file, please use `samtools view -h` to include the header.')
-
-    sam_chromsizes = _headerops.get_chromsizes_from_sam_header(samheader)
-    chromosomes = _headerops.get_chrom_order(
-        chroms_path,
-        list(sam_chromsizes.keys()))
-
+    ### Set up output parameters
     add_columns = [col for col in add_columns.split(',') if col]
     for col in add_columns:
         if not( (col in EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())):
@@ -223,19 +220,33 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     if not add_junction_index:
         columns.pop(columns.index('junction_index'))
 
+    ### Parse header
+    samheader = input_pysam.header
+
+    if not samheader:
+        raise ValueError(
+            'The input sam is missing a header! If reading a bam file, please use `samtools view -h` to include the header.')
+
+    ### Parse chromosome files present in the input
+    sam_chromsizes = _headerops.get_chromsizes_from_pysam_header(samheader)
+    chromosomes = _headerops.get_chrom_order(
+        chroms_path,
+        list(sam_chromsizes.keys()))
+
+    ### Write new header to the pairsam file
     header = _headerops.make_standard_pairsheader(
         assembly = assembly,
         chromsizes = [(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
         columns = columns,
         shape = 'whole matrix' if kwargs['no_flip'] else 'upper triangle'
-
     )
 
-    header = _headerops.insert_samheader(header, samheader)
+    header = _headerops.insert_samheader_pysam(header, samheader)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l+'\n' for l in header))
 
-    streaming_classify(body_stream, outstream, chromosomes, min_mapq,
+    ### Parse input and write to the outputs
+    streaming_classify(input_pysam, outstream, chromosomes, min_mapq,
                        max_molecule_size, drop_readid, drop_seq, drop_sam, add_junction_index,
                        add_columns, out_alignments_stream, out_stat, **kwargs)
 
@@ -243,8 +254,6 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     if out_stat:
         out_stat.save(out_stats_stream)
 
-    if instream != sys.stdin:
-        instream.close()
     if outstream != sys.stdout:
         outstream.close()
     # close optional output streams if needed:
@@ -253,34 +262,40 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
     if out_stats_stream:
         out_stats_stream.close()
 
-
 def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_size,
                        drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
                        out_alignments_stream, out_stat, **kwargs):
     """
+    Parse input sam file and write to the outstreams
     """
+
+    ### Store output parameters in a usable form:
     chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes),
                           range(len(chromosomes)+1)))
     sam_tags = [col for col in add_columns if len(col)==2 and col.isupper()]
+    store_seq = ('seq' in add_columns)
+
+    ### Create temporary variables that will be populated after iterative parsing each read:
     prev_readID = ''
     sams1 = []
     sams2 = []
-    line = ''
-    store_seq = ('seq' in add_columns)
+    aligned_segment = ""
 
+    ### Compile readID transformation if requested:
     readID_transform = kwargs.get('readid_transform', None)
     if readID_transform is not None:
         readID_transform = compile(readID_transform, '<string>', 'eval')
 
+    ### Iterate over the input pysam:
     instream = iter(instream)
-    while line is not None:
-        line = next(instream, None)
+    while aligned_segment is not None:
+        aligned_segment = next(instream, None) # required for proper parsing of the last read
 
-        readID = line.split('\t', 1)[0] if line else None
+        readID = aligned_segment.query_name if aligned_segment else None
         if readID_transform is not None and readID is not None:
             readID = eval(readID_transform)
 
-        if not(line) or ((readID != prev_readID) and prev_readID):
+        if not(aligned_segment) or ((readID != prev_readID) and prev_readID):
 
             for algn1, algn2, all_algns1, all_algns2, junction_index in _parse.parse_sams_into_pair(
                 sams1,
@@ -324,8 +339,8 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
             sams1.clear()
             sams2.clear()
 
-        if line is not None:
-            _parse.push_sam(line, drop_seq, sams1, sams2)
+        if aligned_segment is not None:
+            _parse.push_pysam(aligned_segment, drop_seq, sams1, sams2)
             prev_readID = readID
 
 
