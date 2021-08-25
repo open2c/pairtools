@@ -250,7 +250,7 @@ def dedup_py(
     #     outstream_unmapped, out_stat, mark_dups)
     streaming_dedup_by_chunk(in_stream=instream, colnames=column_names, chunksize=1e6,
                              mark_dups=mark_dups, max_mismatch=max_mismatch,
-                             extra_col_pairs=extra_col_pair,
+                             extra_col_pairs=list(extra_col_pair),
                              unmapped_chrom=unmapped_chrom, comment_char=comment_char,
                              outstream=outstream, outstream_dups=outstream_dups,
                              outstream_unmapped=outstream_unmapped, out_stat=out_stat)
@@ -288,31 +288,32 @@ def ar(mylist, val):
     
 
 def dedup_chunk(df, r=0, keep_parent_read_id=True, extra_col_pairs=[]):
-   N = df.shape[0]
-   z=scipy.spatial.cKDTree(df[['pos1', 'pos2']])
-   a = z.query_pairs(r=r, output_type='ndarray')
-   a0 = a[:, 0]
-   a1 = a[:, 1]
-   need_to_match = np.array([('chrom1', 'chrom1'),
-                             ('chrom2', 'chrom2'),
-                             ('strand1', 'strand1'),
-                             ('strand2', 'strand2')]+extra_col_pairs)
-   left_cols = need_to_match[:, 0]
-   right_cols = need_to_match[:, 1]
-   nonpos_matches = np.all(df[left_cols].values[a0]==df[right_cols].values[a1], axis=1)
-   a = a[nonpos_matches]
-   a_mat = coo_matrix(
-   (np.ones_like(a0), (a0, a1)),
-   shape=(N,N)
-   )
-
-   df['clusterid'] = connected_components(a_mat, directed=False)[1]
-   dups = df['clusterid'].duplicated()
-   if keep_parent_read_id:
-       df['parentreadid'] = df['clusterid'].map(df[~dups].set_index('clusterid')['readid'])
-   df['duplicate'] = False
-   df.iloc[dups, df.columns.get_loc('duplicate')] = True
-   return df.drop(['clusterid'], axis=1)
+    N = df.shape[0]
+    z=scipy.spatial.cKDTree(df[['pos1', 'pos2']])
+    a = z.query_pairs(r=r, output_type='ndarray')
+    a0 = a[:, 0]
+    a1 = a[:, 1]
+    need_to_match = np.array([('chrom1', 'chrom1'),
+                              ('chrom2', 'chrom2'),
+                              ('strand1', 'strand1'),
+                              ('strand2', 'strand2')]+extra_col_pairs)
+    left_cols = need_to_match[:, 0]
+    right_cols = need_to_match[:, 1]
+    nonpos_matches = np.all(df[left_cols].values[a0]==df[right_cols].values[a1], axis=1)
+    a0 = a0[nonpos_matches]
+    a1 = a1[nonpos_matches]
+    a_mat = coo_matrix(
+    (np.ones_like(a0), (a0, a1)),
+    shape=(N,N)
+    )
+    
+    df['clusterid'] = connected_components(a_mat, directed=False)[1]
+    dups = df['clusterid'].duplicated()
+    if keep_parent_read_id:
+        df['parentreadid'] = df['clusterid'].map(df[~dups].set_index('clusterid')['readID'])
+    df['duplicate'] = False
+    df.iloc[dups, df.columns.get_loc('duplicate')] = True
+    return df.drop(['clusterid'], axis=1)
 
 
 def _dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mismatch,
@@ -326,7 +327,7 @@ def _dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mismatch,
         marked = dedup_chunk(pd.concat([df, old_nodups], axis=0).reset_index(drop=True),
                              r=max_mismatch, extra_col_pairs=extra_col_pairs)
         if mark_dups:
-            marked.iloc[marked['duplicate'], marked.columns.get_loc('pairtype')] = 'DD'
+            marked.iloc[marked['duplicate'], marked.columns.get_loc('pair_type')] = 'DD'
         nodups = marked[~marked['duplicate']][colnames]
         i = nodups.shape[0]-nodups.shape[0]//100
         old_nodups = nodups.iloc[i:]
@@ -345,7 +346,7 @@ def streaming_dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mism
     for chunk in deduped_chunks:
         if out_stat is not None:
             out_stat.add_pairs_from_dataframe(chunk, unmapped_chrom=unmapped_chrom)
-        mapped = np.logical_and((chunk['chrom1']!=unmapped_chrom) &
+        mapped = np.logical_and((chunk['chrom1']!=unmapped_chrom),
                                 (chunk['chrom2']!=unmapped_chrom))
         duplicates = chunk['duplicate']
         chunk = chunk.drop(columns=['duplicate'])
@@ -353,7 +354,7 @@ def streaming_dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mism
         if outstream_dups:
             chunk[mapped & duplicates].to_csv(outstream_dups, index=False, header=False, sep='\t')
         if outstream_unmapped:
-            chunk[~mapped].to_csv(outstream_dups, index=False, header=False, sep='\t')
+            chunk[~mapped].to_csv(outstream_unmapped, index=False, header=False, sep='\t')
             
     
 def streaming_dedup(
