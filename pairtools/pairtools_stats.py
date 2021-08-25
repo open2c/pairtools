@@ -402,6 +402,48 @@ class PairCounter(Mapping):
             self._stat['total_single_sided_mapped'] += 1
 
 
+    def add_pairs_from_dataframe(self, df, unmapped_chrom='!'):
+        """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
+    
+        Parameters
+        ----------
+        df: pd.DataFrame
+            DataFrame with pairs. Needs to have columns:
+                'chrom1', 'pos1', 'chrom2', 'pos2', 'strand1', 'strand2', 'pairtype'
+        """
+    
+        self._stat['total'] += df.shape[0]
+        # collect pair type stats including DD:
+        for pair_type, type_count in df['pairtype'].value_counts().items():
+            self._stat['pair_types'][pair_type] = self._stat['pair_types'].get(pair_type, 0) + type_count
+        unmapped_count = np.logical_and(df['chrom1'] == unmapped_chrom,
+                                        df['chrom2'] == unmapped_chrom).sum()
+        self._stat['total_unmapped'] += unmapped_count
+        mapped = df[(df['chrom1'] != unmapped_chrom) & (df['chrom2'] != unmapped_chrom)]
+        self._stat['total_mapped'] += mapped.shape[0]
+        self._stat['total_single_sided_mapped'] += df.shape[0]-(mapped.shape[0]+unmapped_count)
+        dups_count = (mapped['pair_type']=='DD').sum()
+        self._stat['total_dups'] += dups_count
+        self._stat['total_nodups'] += df.shape[0]-dups_count
+        for (chrom1, chrom2), chrom_count in mapped[['chrom1', 'chrom2']].value_counts().items():
+            self._stat['chrom_freq'][(chrom1, chrom2)] = (
+                self._stat['chrom_freq'].get((chrom1, chrom2), 0) + chrom_count)
+        cis = mapped[mapped['chrom1']==mapped['chrom2']]
+        self._stat['cis'] += cis.shape[0]
+        self._stat['trans'] += mapped.shape[0]-cis.shape[0]
+        dist = (cis['pos2']-cis['pos1']).abs()
+        
+        cis['bin_idx'] = np.searchsorted(self._dist_bins, dist, 'right') - 1
+        for (strand1, strand2, bin_id), strand_bin_count in cis[['strand1', 'strand2', 'bin_idx']].value_counts().items():
+            self._stat['dist_freq'][strand1+strand2][bin_id] += strand_bin_count
+        
+        self._stat['cis_1kb+'] += np.sum(dist>=1000)
+        self._stat['cis_2kb+'] += np.sum(dist>=2000)
+        self._stat['cis_4kb+'] += np.sum(dist>=4000)
+        self._stat['cis_10kb+'] += np.sum(dist>=10000)
+        self._stat['cis_20kb+'] += np.sum(dist>=20000)
+        self._stat['cis_40kb+'] += np.sum(dist>=40000)
+
     def __add__(self, other):
         # both PairCounter are implied to have a list of common fields:
         #

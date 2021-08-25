@@ -8,6 +8,11 @@ import pathlib
 import click
 
 import numpy as np
+import pandas as pd
+
+import scipy.spatial
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
 
 from . import _dedup, _fileio, _pairsam_format, _headerops, cli, common_io_options
 from .pairtools_markasdup import mark_split_pair_as_dup
@@ -276,6 +281,75 @@ def ar(mylist, val):
     return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
     
 
+def dedup_chunk(df, r=0, keep_parent_read_id=True, extra_col_pairs=[]):
+   N = df.shape[0]
+   z=scipy.spatial.cKDTree(df[['pos1', 'pos2']])
+   a = z.query_pairs(r=r, output_type='ndarray')
+   a0 = a[:, 0]
+   a1 = a[:, 1]
+   need_to_match = np.array([('chrom1', 'chrom1'),
+                             ('chrom2', 'chrom2'),
+                             ('strand1', 'strand1'),
+                             ('strand2', 'strand2')]+extra_col_pairs)
+   left_cols = need_to_match[:, 0]
+   right_cols = need_to_match[:, 1]
+   nonpos_matches = np.all(df[left_cols].values[a0]==df[right_cols].values[a1], axis=1)
+   a = a[nonpos_matches]
+   a_mat = coo_matrix(
+   (np.ones_like(a0), (a0, a1)),
+   shape=(N,N)
+   )
+
+   df['clusterid'] = connected_components(a_mat, directed=False)[1]
+   dups = df['clusterid'].duplicated()
+   if keep_parent_read_id:
+       df['parentreadid'] = df['clusterid'].map(df[~dups].set_index('clusterid')['readid'])
+   df['duplicate'] = False
+   df.iloc[dups, df.columns.get_loc('duplicate')] = True
+   return df.drop(['clusterid'], axis=1)
+
+
+def _dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mismatch,
+                   extra_col_pairs, comment_char='#'):
+    dfs = pd.read_table(in_stream, comment=comment_char, names=colnames,
+                        chunksize=chunksize)
+
+    old_nodups = pd.DataFrame([])
+    total_pairs_deduped = 0
+    for df in dfs:
+        marked = dedup_chunk(pd.concat([df, old_nodups], axis=0).reset_index(drop=True),
+                             r=max_mismatch, extra_col_pairs=extra_col_pairs)
+        if mark_dups:
+            marked.iloc[marked['duplicate'], marked.columns.get_loc('pairtype')] = 'DD'
+        nodups = marked[~marked['duplicate']][colnames]
+        i = nodups.shape[0]-nodups.shape[0]//100
+        old_nodups = nodups.iloc[i:]
+        total_pairs_deduped += df.shape[0]
+        yield marked
+
+
+def streaming_dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mismatch,
+                   extra_col_pairs, unmapped_chrom, comment_char, outstream, outstream_dups,
+                   outstream_unmapped, out_stat):
+    deduped_chunks = _dedup_by_chunk(in_stream=in_stream, colnames=colnames,
+                                     chunksize=chunksize, mark_dups=mark_dups,
+                                     max_mismatch=max_mismatch,
+                                     extra_col_pairs=extra_col_pairs,
+                                     comment_char=comment_char)
+    for chunk in deduped_chunks:
+        if out_stat is not None:
+            out_stat.add_pairs_from_dataframe(chunk, unmapped_chrom=unmapped_chrom)
+        mapped = np.logical_and((chunk['chrom1']!=unmapped_chrom) &
+                                (chunk['chrom2']!=unmapped_chrom))
+        duplicates = chunk['duplicate']
+        chunk = chunk.drop(columns=['duplicate'])
+        chunk[mapped & (~duplicates)].to_csv(outstream, index=False, header=False, sep='\t')
+        if outstream_dups:
+            chunk[mapped & duplicates].to_csv(outstream_dups, index=False, header=False, sep='\t')
+        if outstream_unmapped:
+            chunk[~mapped].to_csv(outstream_dups, index=False, header=False, sep='\t')
+            
+    
 def streaming_dedup(
         method, max_mismatch, sep,
         c1ind, c2ind, p1ind, p2ind, s1ind, s2ind, extra_cols1, extra_cols2,
