@@ -244,10 +244,16 @@ def dedup_py(
                 int(col2) if col2.isdigit() else column_names.index(col2))
                             
 
-    streaming_dedup( method, max_mismatch, sep,
-        c1, c2, p1, p2, s1, s2, extra_cols1, extra_cols2, unmapped_chrom,
-        body_stream, outstream, outstream_dups,
-        outstream_unmapped, out_stat, mark_dups)
+    # streaming_dedup( method, max_mismatch, sep,
+    #     c1, c2, p1, p2, s1, s2, extra_cols1, extra_cols2, unmapped_chrom,
+    #     body_stream, outstream, outstream_dups,
+    #     outstream_unmapped, out_stat, mark_dups)
+    streaming_dedup_by_chunk(in_stream=instream, colnames=column_names, chunksize=1e6,
+                             mark_dups=mark_dups, max_mismatch=max_mismatch,
+                             extra_col_pairs=extra_col_pair,
+                             unmapped_chrom=unmapped_chrom, comment_char=comment_char,
+                             outstream=outstream, outstream_dups=outstream_dups,
+                             outstream_unmapped=outstream_unmapped, out_stat=out_stat)
 
     # save statistics to a file if it was requested:
     if out_stat:
