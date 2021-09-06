@@ -14,11 +14,15 @@ dedup_path = os.path.join(tmpdir_name, 'dedup.pairsam')
 unmapped_path = os.path.join(tmpdir_name, 'unmapped.pairsam')
 dups_path = os.path.join(tmpdir_name, 'dups.pairsam')
 
+dedup_max_path = os.path.join(tmpdir_name, 'dedup_max.pairsam')
+unmapped_max_path = os.path.join(tmpdir_name, 'unmapped_max.pairsam')
+dups_max_path = os.path.join(tmpdir_name, 'dups_max.pairsam')
+
 dedup_markdups_path = os.path.join(tmpdir_name, 'dedup.markdups.pairsam')
 unmapped_markdups_path = os.path.join(tmpdir_name, 'unmapped.markdups.pairsam')
 dups_markdups_path = os.path.join(tmpdir_name, 'dups.markdups.pairsam')
 
-max_mismatch = 3
+max_mismatch = 1
 def setup_func():
     try:
         subprocess.check_output(
@@ -35,6 +39,23 @@ def setup_func():
              unmapped_path,
              '--max-mismatch',
              str(max_mismatch)
+             ],
+            )
+        subprocess.check_output(
+            ['python',
+             '-m',
+             'pairtools',
+             'dedup',
+             mock_pairsam_path,
+             '--output',
+             dedup_max_path,
+             '--output-dups',
+             dups_max_path,
+             '--output-unmapped',
+             unmapped_max_path,
+             '--max-mismatch',
+             str(max_mismatch),
+             '--method', 'max'
              ],
             )
         subprocess.check_output(
@@ -68,6 +89,7 @@ def test_mock_pairsam():
     pairsam_pairs = [l.strip().split('\t') for l in open(mock_pairsam_path, 'r') 
                      if not l.startswith('#') and l.strip()]
     for (ddp, up, dp) in [(dedup_path, unmapped_path, dups_path),
+                          (dedup_max_path, unmapped_max_path, dups_max_path),
                           (dedup_markdups_path, 
                            unmapped_markdups_path,
                            dups_markdups_path)]:
@@ -105,7 +127,7 @@ def test_mock_pairsam():
             return overlap
 
         # check that deduped pairs do not overlap
-        assert all([not pairs_overlap(pair1, pair2, 3)
+        assert all([not pairs_overlap(pair1, pair2, max_mismatch)
                     for i, pair1 in enumerate(dedup_pairs)
                     for j, pair2 in enumerate(dedup_pairs)
                     if i != j])

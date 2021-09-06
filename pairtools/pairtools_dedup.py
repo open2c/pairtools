@@ -143,6 +143,11 @@ MAX_LEN = 10000
     'multiple times if multiple column pairs must match. '
     'Example: --extra-col-pair "phase1" "phase2"'
     )
+@click.option(
+    "--save-parent-id", 
+    is_flag=True,
+    help='If specified, duplicate pairs are marked with the readID of the retained'
+    'deduped read')
 
 @common_io_options
 
@@ -150,7 +155,8 @@ def dedup(pairs_path, output, output_dups, output_unmapped,
     output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair, **kwargs
+    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair, save_parent_id,
+    **kwargs
     ):
     '''Find and remove PCR/optical duplicates.
 
@@ -166,6 +172,7 @@ def dedup(pairs_path, output, output_dups, output_unmapped,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
         c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair,
+        save_parent_id,
         **kwargs
         )
 
@@ -175,7 +182,7 @@ def dedup_py(
     output_stats,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
-    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair,
+    c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair, save_parent_id,
     **kwargs
     ):
     sep = ast.literal_eval('"""' + sep + '"""')
@@ -228,7 +235,9 @@ def dedup_py(
     if send_header_to_dedup:
         outstream.writelines((l+'\n' for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
-        outstream_dups.writelines((l+'\n' for l in header))
+        dups_header = header
+        dups_header[-1] += ' parent_readID'
+        outstream_dups.writelines((l+'\n' for l in dups_header))
     if (outstream_unmapped and (outstream_unmapped != outstream) 
             and (outstream_unmapped != outstream_dups)):
         outstream_unmapped.writelines((l+'\n' for l in header))
@@ -249,11 +258,13 @@ def dedup_py(
     #     body_stream, outstream, outstream_dups,
     #     outstream_unmapped, out_stat, mark_dups)
     streaming_dedup_by_chunk(in_stream=instream, colnames=column_names, chunksize=1e6,
+                             method=method,
                              mark_dups=mark_dups, max_mismatch=max_mismatch,
                              extra_col_pairs=list(extra_col_pair),
                              unmapped_chrom=unmapped_chrom, comment_char=comment_char,
                              outstream=outstream, outstream_dups=outstream_dups,
-                             outstream_unmapped=outstream_unmapped, out_stat=out_stat)
+                             outstream_unmapped=outstream_unmapped,
+                             save_parent_id=save_parent_id, out_stat=out_stat)
 
     # save statistics to a file if it was requested:
     if out_stat:
@@ -287,12 +298,24 @@ def ar(mylist, val):
     return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
     
 
-def dedup_chunk(df, r=0, keep_parent_read_id=True, extra_col_pairs=[]):
+def dedup_chunk(df, r, method, keep_parent_read_id, extra_col_pairs):
+    if method=='max':
+        r_ = r
+        r = r * 2
+    elif method=='sum':
+        pass
+    else:
+        raise ValueError('Unknown method, only "sum" or "max" allowed')
     N = df.shape[0]
     z=scipy.spatial.cKDTree(df[['pos1', 'pos2']])
     a = z.query_pairs(r=r, output_type='ndarray')
     a0 = a[:, 0]
     a1 = a[:, 1]
+    if method=='max':
+        sel = np.logical_and(np.abs(df['pos1'].values[a0]-df['pos1'].values[a1])<=r_,
+                             np.abs(df['pos2'].values[a0]-df['pos2'].values[a1])<=r_)
+        a0 = a0[sel]
+        a1 = a1[sel]
     need_to_match = np.array([('chrom1', 'chrom1'),
                               ('chrom2', 'chrom2'),
                               ('strand1', 'strand1'),
@@ -310,14 +333,14 @@ def dedup_chunk(df, r=0, keep_parent_read_id=True, extra_col_pairs=[]):
     df['clusterid'] = connected_components(a_mat, directed=False)[1]
     dups = df['clusterid'].duplicated()
     if keep_parent_read_id:
-        df['parentreadid'] = df['clusterid'].map(df[~dups].set_index('clusterid')['readID'])
+        df['parent_readID'] = df['clusterid'].map(df[~dups].set_index('clusterid')['readID'])
     df['duplicate'] = False
     df.iloc[dups, df.columns.get_loc('duplicate')] = True
     return df.drop(['clusterid'], axis=1)
 
 
-def _dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mismatch,
-                   extra_col_pairs, comment_char='#'):
+def _dedup_by_chunk(in_stream, colnames, method, chunksize, mark_dups, max_mismatch,
+                   extra_col_pairs, save_parent_id, comment_char='#'):
     dfs = pd.read_table(in_stream, comment=comment_char, names=colnames,
                         chunksize=chunksize)
 
@@ -325,7 +348,9 @@ def _dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mismatch,
     total_pairs_deduped = 0
     for df in dfs:
         marked = dedup_chunk(pd.concat([df, old_nodups], axis=0).reset_index(drop=True),
-                             r=max_mismatch, extra_col_pairs=extra_col_pairs)
+                             r=max_mismatch, method=method,
+                             keep_parent_read_id=save_parent_id,
+                             extra_col_pairs=extra_col_pairs)
         if mark_dups:
             marked.iloc[marked['duplicate'], marked.columns.get_loc('pair_type')] = 'DD'
         nodups = marked[~marked['duplicate']][colnames]
@@ -335,13 +360,15 @@ def _dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mismatch,
         yield marked
 
 
-def streaming_dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mismatch,
+def streaming_dedup_by_chunk(in_stream, colnames, chunksize, method, mark_dups, max_mismatch,
                    extra_col_pairs, unmapped_chrom, comment_char, outstream, outstream_dups,
-                   outstream_unmapped, out_stat):
+                   outstream_unmapped, save_parent_id, out_stat):
     deduped_chunks = _dedup_by_chunk(in_stream=in_stream, colnames=colnames,
+                                     method=method,
                                      chunksize=chunksize, mark_dups=mark_dups,
                                      max_mismatch=max_mismatch,
                                      extra_col_pairs=extra_col_pairs,
+                                     save_parent_id=save_parent_id,
                                      comment_char=comment_char)
     for chunk in deduped_chunks:
         if out_stat is not None:
@@ -350,9 +377,11 @@ def streaming_dedup_by_chunk(in_stream, colnames, chunksize, mark_dups, max_mism
                                 (chunk['chrom2']!=unmapped_chrom))
         duplicates = chunk['duplicate']
         chunk = chunk.drop(columns=['duplicate'])
-        chunk[mapped & (~duplicates)].to_csv(outstream, index=False, header=False, sep='\t')
         if outstream_dups:
             chunk[mapped & duplicates].to_csv(outstream_dups, index=False, header=False, sep='\t')
+            if save_parent_id:
+                chunk = chunk.drop(columns=['parent_readID'])
+        chunk[mapped & (~duplicates)].to_csv(outstream, index=False, header=False, sep='\t')
         if outstream_unmapped:
             chunk[~mapped].to_csv(outstream_unmapped, index=False, header=False, sep='\t')
             
