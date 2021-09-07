@@ -170,13 +170,21 @@ MAX_LEN = 10000
     "--save-parent-id",
     is_flag=True,
     help="If specified, duplicate pairs are marked with the readID of the retained"
-    "deduped read",
+    "deduped read. Only has effect with scipy or sklearn backend",
 )
 @click.option(
     "--backend",
     type=click.Choice(["cython", "scipy", "sklearn"]),
     default="scipy",
     help="What backend to use",
+)
+@click.option(
+    "-p",
+    "--n-proc",
+    type=int,
+    default=1,
+    help="Number of cores to use. Only applies with sklearn backend."
+    "Still needs testing whether it is ever useful.",
 )
 @common_io_options
 def dedup(
@@ -202,6 +210,7 @@ def dedup(
     extra_col_pair,
     save_parent_id,
     backend,
+    n_proc,
     **kwargs,
 ):
     """Find and remove PCR/optical duplicates.
@@ -237,6 +246,7 @@ def dedup(
         extra_col_pair,
         save_parent_id,
         backend,
+        n_proc,
         **kwargs,
     )
 
@@ -264,6 +274,7 @@ def dedup_py(
     extra_col_pair,
     save_parent_id,
     backend,
+    n_proc,
     **kwargs,
 ):
     sep = ast.literal_eval('"""' + sep + '"""')
@@ -402,6 +413,7 @@ def dedup_py(
             save_parent_id=save_parent_id,
             out_stat=out_stat,
             backend=backend,
+            n_proc=n_proc,
         )
     else:
         raise ValueError("Unknown backend")
@@ -442,22 +454,24 @@ def ar(mylist, val):
 
 
 def dedup_chunk(
-    df, r, method, keep_parent_read_id, extra_col_pairs, backend, unmapped_chrom="!"
+    df,
+    r,
+    method,
+    keep_parent_read_id,
+    extra_col_pairs,
+    backend,
+    unmapped_chrom="!",
+    n_proc=1,
 ):
     if method not in ("max", "sum"):
         raise ValueError('Unknown method, only "sum" or "max" allowed')
     if backend == "sklearn":
         from sklearn import neighbors
 
-        if method == "max":
-            metric = "chebyshev"
-        else:
-            metric = "euclidean"
-    elif backend == "scipy":
-        if method == "sum":
-            p = 2
-        else:
-            p = np.inf
+    if method == "sum":
+        p = 2
+    else:
+        p = np.inf
 
     unmapped_id = (df["chrom1"] == unmapped_chrom) | (df["chrom2"] == unmapped_chrom)
     unmapped = df[unmapped_id]
@@ -467,7 +481,10 @@ def dedup_chunk(
     if N > 0:
         if backend == "sklearn":
             a = neighbors.radius_neighbors_graph(
-                df[["pos1", "pos2"]], radius=r, metric=metric
+                df[["pos1", "pos2"]],
+                radius=r,
+                p=p,
+                n_jobs=n_proc,
             )
             a0, a1 = a.nonzero()
         elif backend == "scipy":
@@ -524,6 +541,7 @@ def _dedup_by_chunk(
     save_parent_id,
     comment_char,
     backend,
+    n_proc,
 ):
     dfs = pd.read_table(
         in_stream, comment=comment_char, names=colnames, chunksize=chunksize
@@ -538,6 +556,7 @@ def _dedup_by_chunk(
             keep_parent_read_id=save_parent_id,
             extra_col_pairs=extra_col_pairs,
             backend=backend,
+            n_proc=n_proc,
         )
         if mark_dups:
             marked.iloc[marked["duplicate"], marked.columns.get_loc("pair_type")] = "DD"
@@ -564,6 +583,7 @@ def streaming_dedup_by_chunk(
     save_parent_id,
     out_stat,
     backend,
+    n_proc,
 ):
     deduped_chunks = _dedup_by_chunk(
         in_stream=in_stream,
@@ -576,6 +596,7 @@ def streaming_dedup_by_chunk(
         save_parent_id=save_parent_id,
         comment_char=comment_char,
         backend=backend,
+        n_proc=n_proc,
     )
     t0 = time.time()
     N = 0
