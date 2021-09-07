@@ -175,7 +175,7 @@ MAX_LEN = 10000
 @click.option(
     "--backend",
     type=click.Choice(["cython", "scipy", "sklearn"]),
-    default="sklearn",
+    default="scipy",
     help="What backend to use",
 )
 @common_io_options
