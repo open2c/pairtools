@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 import scipy.spatial
+from sklearn import neighbors
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 
@@ -76,6 +77,12 @@ MAX_LEN = 10000
     help='define the mismatch as either the max or the sum of the mismatches of'
         'the genomic locations of the both sides of the two compared molecules',
     show_default=True,)
+@click.option(
+    "--chunksize",
+    type=int, 
+    default=3100000,
+    show_default=True,
+    help='Number of pairs in each chunk. Reduce for lower memory footprint')
 @click.option(
     "--sep",
     type=str, 
@@ -152,7 +159,7 @@ MAX_LEN = 10000
 @common_io_options
 
 def dedup(pairs_path, output, output_dups, output_unmapped,
-    output_stats,
+    output_stats, chunksize,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair, save_parent_id,
@@ -168,7 +175,7 @@ def dedup(pairs_path, output, output_dups, output_unmapped,
     By default, the input is read from stdin.
     '''
     dedup_py(pairs_path, output, output_dups, output_unmapped,
-        output_stats,
+        output_stats, chunksize,
         max_mismatch, method, 
         sep, comment_char, send_header_to,
         c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair,
@@ -179,7 +186,7 @@ def dedup(pairs_path, output, output_dups, output_unmapped,
 
 def dedup_py(
     pairs_path, output, output_dups, output_unmapped,
-    output_stats,
+    output_stats, chunksize,
     max_mismatch, method, 
     sep, comment_char, send_header_to,
     c1, c2, p1, p2, s1, s2, unmapped_chrom, mark_dups, extra_col_pair, save_parent_id,
@@ -257,7 +264,8 @@ def dedup_py(
     #     c1, c2, p1, p2, s1, s2, extra_cols1, extra_cols2, unmapped_chrom,
     #     body_stream, outstream, outstream_dups,
     #     outstream_unmapped, out_stat, mark_dups)
-    streaming_dedup_by_chunk(in_stream=instream, colnames=column_names, chunksize=1e6,
+    streaming_dedup_by_chunk(in_stream=instream, colnames=column_names,
+                             chunksize=chunksize,
                              method=method,
                              mark_dups=mark_dups, max_mismatch=max_mismatch,
                              extra_col_pairs=list(extra_col_pair),
@@ -296,26 +304,55 @@ def fetchadd(key, mydict):
 
 def ar(mylist, val):
     return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
-    
-
-def dedup_chunk(df, r, method, keep_parent_read_id, extra_col_pairs):
-    if method=='max':
-        r_ = r
-        r = r * 2
-    elif method=='sum':
-        pass
-    else:
-        raise ValueError('Unknown method, only "sum" or "max" allowed')
+ 
+def dedup_chunk_scipy(df, r, method, keep_parent_read_id, extra_col_pairs):
     N = df.shape[0]
     z=scipy.spatial.cKDTree(df[['pos1', 'pos2']])
     a = z.query_pairs(r=r, output_type='ndarray')
     a0 = a[:, 0]
     a1 = a[:, 1]
     if method=='max':
-        sel = np.logical_and(np.abs(df['pos1'].values[a0]-df['pos1'].values[a1])<=r_,
-                             np.abs(df['pos2'].values[a0]-df['pos2'].values[a1])<=r_)
+        sel = np.logical_and(np.abs(df['pos1'].values[a0]-df['pos1'].values[a1])<=r,
+                             np.abs(df['pos2'].values[a0]-df['pos2'].values[a1])<=r)
         a0 = a0[sel]
         a1 = a1[sel]
+    elif method=='sum':
+        pass
+    else:
+        raise ValueError('Unknown method, only "sum" or "max" allowed')
+    need_to_match = np.array([('chrom1', 'chrom1'),
+                              ('chrom2', 'chrom2'),
+                              ('strand1', 'strand1'),
+                              ('strand2', 'strand2')]+extra_col_pairs)
+    left_cols = need_to_match[:, 0]
+    right_cols = need_to_match[:, 1]
+    nonpos_matches = np.all(df[left_cols].values[a0]==df[right_cols].values[a1], axis=1)
+    a0 = a0[nonpos_matches]
+    a1 = a1[nonpos_matches]
+    a_mat = coo_matrix(
+    (np.ones_like(a0), (a0, a1)),
+    shape=(N,N)
+    )
+    
+    df['clusterid'] = connected_components(a_mat, directed=False)[1]
+    dups = df['clusterid'].duplicated()
+    if keep_parent_read_id:
+        df['parentreadid'] = df['clusterid'].map(df[~dups].set_index('clusterid')['readID'])
+    df['duplicate'] = False
+    df.iloc[dups, df.columns.get_loc('duplicate')] = True
+    return df.drop(['clusterid'], axis=1)
+   
+
+def dedup_chunk_sklearn(df, r, method, keep_parent_read_id, extra_col_pairs):
+    if method=='max':
+        metric='chebyshev'
+    elif method=='sum':
+        metric='euclidean'
+    else:
+        raise ValueError('Unknown method, only "sum" or "max" allowed')
+    N = df.shape[0]
+    a = neighbors.radius_neighbors_graph(df[['pos1', 'pos2']], radius=r, metric=metric)
+    a0, a1 = a.nonzero()
     need_to_match = np.array([('chrom1', 'chrom1'),
                               ('chrom2', 'chrom2'),
                               ('strand1', 'strand1'),
@@ -345,9 +382,8 @@ def _dedup_by_chunk(in_stream, colnames, method, chunksize, mark_dups, max_misma
                         chunksize=chunksize)
 
     old_nodups = pd.DataFrame([])
-    total_pairs_deduped = 0
     for df in dfs:
-        marked = dedup_chunk(pd.concat([df, old_nodups], axis=0).reset_index(drop=True),
+        marked = dedup_chunk_scipy(pd.concat([df, old_nodups], axis=0).reset_index(drop=True),
                              r=max_mismatch, method=method,
                              keep_parent_read_id=save_parent_id,
                              extra_col_pairs=extra_col_pairs)
@@ -356,7 +392,6 @@ def _dedup_by_chunk(in_stream, colnames, method, chunksize, mark_dups, max_misma
         nodups = marked[~marked['duplicate']][colnames]
         i = nodups.shape[0]-nodups.shape[0]//100
         old_nodups = nodups.iloc[i:]
-        total_pairs_deduped += df.shape[0]
         yield marked
 
 
