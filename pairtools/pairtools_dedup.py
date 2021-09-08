@@ -548,9 +548,12 @@ def _dedup_by_chunk(
     )
 
     old_nodups = pd.DataFrame([])
+    old_i = 0
     for df in dfs:
         marked = dedup_chunk(
-            pd.concat([df, old_nodups], axis=0).reset_index(drop=True),
+            pd.concat([old_nodups, df], axis=0, ignore_index=True).reset_index(
+                drop=True
+            ),
             r=max_mismatch,
             method=method,
             keep_parent_read_id=save_parent_id,
@@ -558,12 +561,15 @@ def _dedup_by_chunk(
             backend=backend,
             n_proc=n_proc,
         )
+        marked = marked.iloc[old_i:, :].reset_index(drop=True)
         if mark_dups:
             marked.iloc[marked["duplicate"], marked.columns.get_loc("pair_type")] = "DD"
         nodups = marked[~marked["duplicate"]]
+
         nodups = nodups[colnames]
-        i = max(nodups.shape[0] - nodups.shape[0] // 100, 100)
-        old_nodups = nodups.iloc[i:]
+        i = max(nodups.shape[0] // 100, 100)
+        old_nodups = nodups.iloc[-i:].reset_index(drop=True)
+        old_i = i
         yield marked
 
 
