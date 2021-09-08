@@ -469,7 +469,7 @@ def dedup_chunk(
         from sklearn import neighbors
 
     if method == "sum":
-        p = 2
+        p = 1
     else:
         p = np.inf
 
