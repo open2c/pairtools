@@ -349,7 +349,6 @@ def dedup_py(
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-
     if send_header_to_dedup:
         outstream.writelines((l + "\n" for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):

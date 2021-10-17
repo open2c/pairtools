@@ -409,29 +409,29 @@ class PairCounter(Mapping):
         ----------
         df: pd.DataFrame
             DataFrame with pairs. Needs to have columns:
-                'chrom1', 'pos1', 'chrom2', 'pos2', 'strand1', 'strand2', 'pairtype'
+                'chrom1', 'pos1', 'chrom2', 'pos2', 'strand1', 'strand2', 'pair_type'
         """
     
         self._stat['total'] += df.shape[0]
         # collect pair type stats including DD:
-        for pair_type, type_count in df['pairtype'].value_counts().items():
+        for pair_type, type_count in df['pair_type'].value_counts().items():
             self._stat['pair_types'][pair_type] = self._stat['pair_types'].get(pair_type, 0) + type_count
         unmapped_count = np.logical_and(df['chrom1'] == unmapped_chrom,
                                         df['chrom2'] == unmapped_chrom).sum()
-        self._stat['total_unmapped'] += unmapped_count
+        self._stat['total_unmapped'] += int(unmapped_count)
         mapped = df[(df['chrom1'] != unmapped_chrom) & (df['chrom2'] != unmapped_chrom)]
         self._stat['total_mapped'] += mapped.shape[0]
-        self._stat['total_single_sided_mapped'] += df.shape[0]-(mapped.shape[0]+unmapped_count)
+        self._stat['total_single_sided_mapped'] += int(df.shape[0]-(mapped.shape[0]+unmapped_count))
         dups_count = (mapped['pair_type']=='DD').sum()
-        self._stat['total_dups'] += dups_count
-        self._stat['total_nodups'] += df.shape[0]-dups_count
+        self._stat['total_dups'] += int(dups_count)
+        self._stat['total_nodups'] += int(df.shape[0]-dups_count)
         for (chrom1, chrom2), chrom_count in mapped[['chrom1', 'chrom2']].value_counts().items():
             self._stat['chrom_freq'][(chrom1, chrom2)] = (
                 self._stat['chrom_freq'].get((chrom1, chrom2), 0) + chrom_count)
         cis = mapped[mapped['chrom1']==mapped['chrom2']]
         self._stat['cis'] += cis.shape[0]
         self._stat['trans'] += mapped.shape[0]-cis.shape[0]
-        dist = (cis['pos2']-cis['pos1']).abs()
+        dist = np.abs(cis['pos2']-cis['pos1'])
         
         cis['bin_idx'] = np.searchsorted(self._dist_bins, dist, 'right') - 1
         for (strand1, strand2, bin_id), strand_bin_count in cis[['strand1', 'strand2', 'bin_idx']].value_counts().items():
