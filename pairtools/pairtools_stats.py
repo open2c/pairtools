@@ -7,7 +7,8 @@ import click
 
 import numpy as np
 
-from collections import OrderedDict, Mapping
+from collections import OrderedDict
+from collections.abc import Mapping
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
