@@ -198,7 +198,7 @@ def test_mock_sam():
             continue
 
         assigned_pair = l.split('\t')[1:8]
-        simulated_pair = l.split('SIMULATED:',1)[1].split('\031',1)[0].split(',')
+        simulated_pair = l.split('CT:Z:SIMULATED:',1)[1].split('\031',1)[0].split(',')
         print(assigned_pair)
         print(simulated_pair)
         print()
@@ -246,7 +246,7 @@ def test_mock_sam_parse_all():
         prev_id = l.split('\t')[0]
 
         assigned_pair = l.split('\t')[1:8]+[l.split('\t')[-1]]
-        simulated_pair = l.split('SIMULATED:',1)[1].split('\031',1)[0].split('|')[id_counter].split(',')
+        simulated_pair = l.split('CT:Z:SIMULATED:',1)[1].split('\031',1)[0].split('|')[id_counter].split(',')
         print(assigned_pair)
         print(simulated_pair, prev_id)
         print()

@@ -13,6 +13,7 @@ import pysam
 
 from . import _fileio, _pairsam_format, _parse, _headerops, cli, common_io_options
 from .pairtools_stats import PairCounter
+from ._parse_pysam import AlignmentFilePairtoolized
 
 UTIL_NAME = 'pairtools_parse'
 
@@ -128,7 +129,7 @@ EXTRA_COLUMNS = [
     )
 @click.option(
     "--walks-policy",
-    type=click.Choice(['mask', '5any', '5unique', '3any', '3unique']),
+    type=click.Choice(['mask', '5any', '5unique', '3any', '3unique', 'all']),
     default='mask',
     help='the policy for reporting unrescuable walks (reads containing more'
     ' than one alignment on one or both sides, that can not be explained by a'
@@ -137,7 +138,8 @@ EXTRA_COLUMNS = [
     ' "5any" - report the 5\'-most alignment on each side;'
     ' "5unique" - report the 5\'-most unique alignment on each side, if present;'
     ' "3any" - report the 3\'-most alignment on each side;'
-    ' "3unique" - report the 3\'-most unique alignment on each side, if present.',
+    ' "3unique" - report the 3\'-most unique alignment on each side, if present;'
+    ' "all" - report all available unique alignments on each side.',
     show_default=True
     )
 @click.option(
@@ -179,9 +181,9 @@ def parse_py(sam_path, chroms_path, output, assembly, min_mapq, max_molecule_siz
 
     ### Set up input stream
     if sam_path: # open input sam file with pysam
-        input_pysam = pysam.AlignmentFile(sam_path, "r")
+        input_pysam = AlignmentFilePairtoolized(sam_path, "r")
     else: # read from stdin
-        input_pysam = pysam.AlignmentFile("_", "r")
+        input_pysam = AlignmentFilePairtoolized("_", "r")
 
     ### Set up output streams
     outstream = (_fileio.auto_open(output, mode='w',
@@ -266,20 +268,20 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
                        drop_readid, drop_seq, drop_sam, add_junction_index, add_columns,
                        out_alignments_stream, out_stat, **kwargs):
     """
-    Parse input sam file and write to the outstreams
+    Parse input sam file and write to the outstream(s)
     """
 
-    ### Store output parameters in a usable form:
+    ### Store output parameters in usable form:
     chrom_enum = dict(zip([_pairsam_format.UNMAPPED_CHROM] + list(chromosomes),
                           range(len(chromosomes)+1)))
     sam_tags = [col for col in add_columns if len(col)==2 and col.isupper()]
     store_seq = ('seq' in add_columns)
 
-    ### Create temporary variables that will be populated after iterative parsing each read:
-    prev_readID = ''
-    sams1 = []
-    sams2 = []
-    aligned_segment = ""
+    ### Create temporary variables that will be populated by parsing reads at each iteration over input:
+    prev_readID = '' # Placeholder for the read id
+    sams1 = [] # Placeholder for the left alignments
+    sams2 = [] # Placeholder for the right alignments
+    aligned_segment = "" # Placeholder for each aligned segment
 
     ### Compile readID transformation if requested:
     readID_transform = kwargs.get('readid_transform', None)
@@ -295,6 +297,7 @@ def streaming_classify(instream, outstream, chromosomes, min_mapq, max_molecule_
         if readID_transform is not None and readID is not None:
             readID = eval(readID_transform)
 
+        # Perform parsing and writing when all the segments are parsed from the read:
         if not(aligned_segment) or ((readID != prev_readID) and prev_readID):
 
             for algn1, algn2, all_algns1, all_algns2, junction_index in _parse.parse_sams_into_pair(

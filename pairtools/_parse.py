@@ -32,14 +32,13 @@ def parse_sams_into_pair(sams1,
         algns2 = [empty_alignment()]
         algns1[0]['type'] = 'X'
         algns2[0]['type'] = 'X'
-        return [ [algns1[0], algns2[0], algns1, algns2, '1u'] ]
+        junction_index = '1u' # By default, assume each molecule is a single ligation with single unconfirmed junction
+        return [ [algns1[0], algns2[0], algns1, algns2, junction_index] ]
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_algn_pysam(sam, min_mapq,
-                         report_3_alignment_end, sam_tags, store_seq)
+    algns1 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
               for sam in sams1]
-    algns2 = [parse_algn_pysam(sam, min_mapq,
-                         report_3_alignment_end, sam_tags, store_seq)
+    algns2 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
               for sam in sams2]
     algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
     algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
@@ -57,8 +56,7 @@ def parse_sams_into_pair(sams1,
 
     hic_algn1 = algns1[0]
     hic_algn2 = algns2[0]
-    # By default, assume each molecule is a single ligation with single unconfirmed junction:
-    junction_index = '1u'
+    junction_index = '1u' # By default, assume each molecule is a single ligation with single unconfirmed junction
 
     # Parse chimeras
     rescued_linear_side = None
@@ -342,9 +340,8 @@ def parse_algn_pysam(
     flag = sam.flag
     is_mapped = (flag & 0x04) == 0
     mapq = sam.mapq
-    is_unique = (mapq >= min_mapq)
-    tags = sam.tags
-    is_linear = not 'SA' in [tag[0] for tag in tags]
+    is_unique = sam.is_unique(min_mapq)
+    is_linear = sam.is_linear
 
     cigar = parse_cigar_pysam(sam)
 
@@ -361,11 +358,11 @@ def parse_algn_pysam(
         if is_unique:
             chrom = sam.reference_name
             if strand == '+':
-                pos5 = sam.reference_start
-                pos3 = sam.reference_end + cigar['algn_ref_span'] - 1
+                pos5 = sam.reference_start + 1 # Note that pysam output is zero-based, thus add +1
+                pos3 = sam.reference_end + cigar['algn_ref_span']# - 1
             else:
-                pos5 = sam.reference_start + cigar['algn_ref_span'] - 1
-                pos3 = sam.reference_end
+                pos5 = sam.reference_start + cigar['algn_ref_span']# - 1
+                pos3 = sam.reference_end + 1 # Note that pysam output is zero-based, thus add +1
         else:
             chrom = _pairsam_format.UNMAPPED_CHROM
             strand = _pairsam_format.UNMAPPED_STRAND
@@ -398,8 +395,9 @@ def parse_algn_pysam(
 
     algn['pos'] = algn['pos3'] if report_3_alignment_end else algn['pos5']
 
-    ### Add tags:
+    ### Add tags to the alignment:
     if sam_tags:
+        tags = sam.tags
         for tag in sam_tags:
             algn[tag] = ''
 
@@ -869,7 +867,7 @@ def check_pair_order(algn1, algn2, chrom_enum):
 
 
 def push_sam(line, drop_seq, sams1, sams2):
-    """ Deprecated function TODO: remove? """
+    """ Deprecated function """
 
     sam = line.rstrip()
     if drop_seq:
@@ -953,7 +951,9 @@ def write_pairsam(
         for sams in [sams1, sams2]:
             cols.append(
                 _pairsam_format.INTER_SAM_SEP.join([
-                    str(sam) + algn1['type'] + algn2['type'] # String representation of pysam alignment
+                    sam.to_string().replace('\t', _pairsam_format.SAM_SEP) # String representation of pysam alignment
+                    + _pairsam_format.SAM_SEP
+                    + 'Yt:Z:' + algn1['type'] + algn2['type']
                 for sam in sams
                 ])
             )

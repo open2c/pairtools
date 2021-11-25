@@ -166,8 +166,7 @@ def make_standard_pairsheader(
         columns=_pairsam_format.COLUMNS,
         shape = 'upper triangle'):
     header = []
-    header.append(
-        '## pairs format v{}'.format(PAIRS_FORMAT_VERSION))
+    header.append('## pairs format v{}'.format(PAIRS_FORMAT_VERSION))
     header.append('#shape: {}'.format(shape))
 
     header.append('#genome_assembly: {}'.format(
@@ -203,17 +202,18 @@ def subset_chroms_in_pairsheader(header, chrom_subset):
 
 
 def insert_samheader(header, samheader):
-    """ Deprecated TODO: remove?"""
+    """ Deprecated """
     new_header = [l for l in header if not l.startswith('#columns')]
     if samheader:
         new_header += ['#samheader: '+l for l in samheader]
     new_header += [l for l in header if l.startswith('#columns')]
     return new_header
 
+
 def insert_samheader_pysam(header, samheader):
     new_header = [l for l in header if not l.startswith('#columns')]
     if samheader:
-        new_header += ['#samheader: ' + str(samheader)]
+        new_header += ['#samheader: '+l for l in str(samheader).strip().split("\n")]
     new_header += [l for l in header if l.startswith('#columns')]
     return new_header
 
