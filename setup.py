@@ -55,13 +55,18 @@ def get_ext_modules():
     ext_modules = []
     for src_file in src_files:
         name = "pairtools." + os.path.splitext(os.path.basename(src_file))[0]
-        ext_modules.append(Extension(name, [src_file]))
+        if not 'pysam' in name:
+          ext_modules.append(Extension(name, [src_file]))
+        else:
+          import pysam
+          ext_modules.append(Extension(name, [src_file], extra_link_args=pysam.get_libraries(), include_dirs=pysam.get_include(), define_macros=pysam.get_defines()))
 
     if HAVE_CYTHON:
         # .pyx to .c
         ext_modules = cythonize(ext_modules)  #, annotate=True
 
     return ext_modules
+
 
 
 class build_ext(_build_ext):

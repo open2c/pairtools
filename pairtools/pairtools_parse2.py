@@ -9,9 +9,12 @@ import pipes
 import sys
 import os
 import io
+import pysam
 
-from . import _fileio, _pairsam_format, _parse2, _headerops, cli, common_io_options
+from . import _fileio, _pairsam_format, _parse, _headerops, cli, common_io_options
 from .pairtools_stats import PairCounter
+from ._parse_pysam import AlignmentFilePairtoolized
+from ._parse import streaming_classify
 
 UTIL_NAME = "pairtools_parse2"
 
@@ -78,11 +81,10 @@ EXTRA_COLUMNS = [
 @click.option(
     "--single-end", is_flag=True, help="If specified, the input is single-end."
 )
-
 # Reporting options:
 @click.option(
     "-o",
-    "--output-file",
+    "--output",
     type=str,
     default="",
     help="output file. "
@@ -158,11 +160,16 @@ EXTRA_COLUMNS = [
     help="specifies whether the 5' or 3' end of the alignment is reported as"
     " the position of the Hi-C read.",
 )
+@click.option(
+    "--pysam-backend",
+    is_flag=True,
+    help="If specified, parse files with pysam for speedup.",
+)
 @common_io_options
 def parse2(
     sam_path,
     chroms_path,
-    output_file,
+    output,
     assembly,
     min_mapq,
     drop_readid,
@@ -182,7 +189,7 @@ def parse2(
     parse2_py(
         sam_path,
         chroms_path,
-        output_file,
+        output,
         assembly,
         min_mapq,
         drop_readid,
@@ -199,7 +206,7 @@ def parse2(
 def parse2_py(
     sam_path,
     chroms_path,
-    output_file,
+    output,
     assembly,
     min_mapq,
     drop_readid,
@@ -211,26 +218,47 @@ def parse2_py(
     coordinate_system,
     **kwargs
 ):
-    instream = (
-        _fileio.auto_open(
-            sam_path,
-            mode="r",
-            nproc=kwargs.get("nproc_in"),
-            command=kwargs.get("cmd_in", None),
+    pysam_backend = kwargs.get("pysam_backend", False)
+
+    ### Set up input stream
+    if pysam_backend:
+        if sam_path:  # open input sam file with pysam
+            input_sam = AlignmentFilePairtoolized(sam_path, "r")
+        else:  # read from stdin
+            input_sam = AlignmentFilePairtoolized("_", "r")
+    else:
+        instream = (
+            _fileio.auto_open(
+                sam_path,
+                mode="r",
+                nproc=kwargs.get("nproc_in"),
+                command=kwargs.get("cmd_in", None),
+            )
+            if sam_path
+            else sys.stdin
         )
-        if sam_path
-        else sys.stdin
-    )
+
+    ### Set up output streams
     outstream = (
         _fileio.auto_open(
-            output_file,
+            output,
             mode="w",
             nproc=kwargs.get("nproc_out"),
             command=kwargs.get("cmd_out", None),
         )
-        if output_file
+        if output
         else sys.stdout
     )
+    # out_alignments_stream = (
+    #     _fileio.auto_open(
+    #         output_parsed_alignments,
+    #         mode="w",
+    #         nproc=kwargs.get("nproc_out"),
+    #         command=kwargs.get("cmd_out", None),
+    #     )
+    #     if output_parsed_alignments
+    #     else None
+    # )
     out_stats_stream = (
         _fileio.auto_open(
             output_stats,
@@ -242,19 +270,15 @@ def parse2_py(
         else None
     )
 
+    # if out_alignments_stream:
+    #     out_alignments_stream.write(
+    #         "readID\tside\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n"
+    #     )
+
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
 
-    samheader, body_stream = _headerops.get_header(instream, comment_char="@")
-
-    if not samheader:
-        raise ValueError(
-            "The input sam is missing a header! If reading a bam file, please use `samtools view -h` to include the header."
-        )
-
-    sam_chromsizes = _headerops.get_chromsizes_from_sam_header(samheader)
-    chromosomes = _headerops.get_chrom_order(chroms_path, list(sam_chromsizes.keys()))
-
+    ### Set up output parameters
     add_columns = [col for col in add_columns.split(",") if col]
     for col in add_columns:
         if not ((col in EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())):
@@ -271,29 +295,55 @@ def parse2_py(
     if not add_junction_index:
         columns.pop(columns.index("junction_index"))
 
+    ### Parse header
+    if pysam_backend:
+        samheader = input_sam.header
+    else:
+        samheader, input_sam = _headerops.get_header(instream, comment_char="@")
+
+    if not samheader:
+        raise ValueError(
+            "The input sam is missing a header! If reading a bam file, please use `samtools view -h` to include the header."
+        )
+
+    ### Parse chromosome files present in the input
+    if pysam_backend:
+        sam_chromsizes = _headerops.get_chromsizes_from_pysam_header(samheader)
+    else:
+        sam_chromsizes = _headerops.get_chromsizes_from_sam_header(samheader)
+    chromosomes = _headerops.get_chrom_order(chroms_path, list(sam_chromsizes.keys()))
+
+    ### Write new header to the pairsam file
     header = _headerops.make_standard_pairsheader(
         assembly=assembly,
         chromsizes=[(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
         columns=columns,
-        shape="whole matrix" if coordinate_system != "pair" else "upper triangle",
+        shape="whole matrix" if kwargs["no_flip"] else "upper triangle",
     )
 
-    header = _headerops.insert_samheader(header, samheader)
+    if pysam_backend:
+        header = _headerops.insert_samheader_pysam(header, samheader)
+    else:
+        header = _headerops.insert_samheader(header, samheader)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l + "\n" for l in header))
 
-    _parse2.streaming_classify(
-        body_stream,
+    ### Parse input and write to the outputs
+    streaming_classify(
+        input_sam,
         outstream,
         chromosomes,
         min_mapq,
+        None, # max_molecule_size
         drop_readid,
         drop_seq,
         drop_sam,
         add_junction_index,
         add_columns,
+        None, # out_alignments_stream
         out_stat,
-        coordinate_system,
+        coordinate_system=coordinate_system,
+        parse2=True,
         **kwargs
     )
 
@@ -301,9 +351,14 @@ def parse2_py(
     if out_stat:
         out_stat.save(out_stats_stream)
 
-    if instream != sys.stdin:
-        instream.close()
     if outstream != sys.stdout:
         outstream.close()
+    # # close optional output streams if needed:
+    # if out_alignments_stream:
+    #     out_alignments_stream.close()
     if out_stats_stream:
         out_stats_stream.close()
+
+
+if __name__ == "__main__":
+    parse2()
