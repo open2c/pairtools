@@ -107,12 +107,10 @@ If the read is long enough (e.g. larger than 150 bp), it may contain more than t
 
 Molecules like these typically form via multiple ligation events and we call them
 walks [1]_. The mode of walks reporting is controlled by ``--walks-policy`` parameter of ``pairtools parse``.
+You can report all the alignments in the reads by using ``pairtools parse2`` (see :ref:`parse2`).
 
 A pair of sequential alignments on a single read is **ligation junction**. Ligation junctions are the Hi-C contacts
-that have been directly observed in the experiment. They are reported in lower-case letters if walks policy
-is set to ``all`` (default). For details, wee :ref:`section-complex-walks-rescue`
-
-However, traditional Hi-C pairs do not have direct evidence of ligation
+that have been directly observed in the experiment. However, traditional Hi-C pairs do not have direct evidence of ligation
 because they arise from read pairs that do not necessarily contain ligation junction.
 To filter out the molecules with complex walks, ``--walks-policy`` can be set to:
 
@@ -122,49 +120,7 @@ To filter out the molecules with complex walks, ``--walks-policy`` can be set to
 - ``3any`` to report the 3'-most alignment on each side,
 - ``3unique`` to report the 3'-most unique alignment on each side.
 
-
 .. _section-complex-walks-rescue:
-
-Rescuing complex ligations
--------------------------
-
-The complex walks are DNA molecules containing more than one ligation junction that may end up in more than one alignment
-on forward, reverse, or both reads:
-
-.. figure:: _static/rescue_modes.svg
-   :width: 60 %
-   :alt: Different modes of reporting complex walks
-   :align: center
-
-   Different modes of reporting complex walks
-
-``pairtools parse`` detects such molecules and **rescues** them with ``--walks-policy all``.
-
-Briefly, the algorithm of complex ligation walks rescue detects all the unique ligation junctions, and do not report
-the same junction as a pair multiple times. Importantly, these duplicated pairs might arise when both forward and reverse
-reads read through the same ligation junction. However, these cases are successfully merged by ``pairtools parse``:
-
-.. figure:: _static/rescue_modes_readthrough.svg
-   :width: 60 %
-   :alt: Reporing complex walks in case of readthrough
-   :align: center
-
-   Reporing complex walks in case of readthrough
-
-To restore the sequence of ligation events, there is a special field ``junction_index`` that can be reported as
-a separate column of .pair file by setting ``--add-junction-index``. This field contains information on:
-
-- the order of the junction in the recovered walk, starting from 5'-end of forward read
-- type of the junction:
-
-  - "u" - unconfirmed junction, right and left alignments in the pair originate from different reads (forward or reverse). This might be indirect ligation (mediated by other DNA fragments).
-  - "f" - pair originates from the forward read. This is direct ligation.
-  - "r" - pair originated from the reverse read. Direct ligation.
-  - "b" - pair was sequenced at both forward and reverse read. Direct ligation.
-With this information, the whole sequence of ligation events can be restored from the .pair file.
-
-
-.. _section-single-ligation-rescue:
 
 Rescuing single ligations
 -------------------------
@@ -247,6 +203,62 @@ longer ones as "null" alignments. The maximal size of ignored *gaps* is set by
 the ``--max-inter-align-gap`` flag (by default, 20bp).
 
 
+Parse2
+-------------------------
+
+We call the multi-fragment DNA molecule that is formed during Hi-C (or any other chromosome capture with sequencing) a walk.
+When the walk is sequenced, the read might span multiple ligation junctions of the fragments.
+If the sequenced walk has no more than two different fragments at one side of the read, this can be rescued with simple 
+``pairtools parse``. However, in complex walks (two fragments on both reads or more than two fragments on any side) 
+you need specialized ``pairtools parse2`` functionality. This parse will report all the deduplicated pairs in the complex walk. 
+
+This is especially relevant if you have the reads length > 100 bp, since more than 20% or all restriction fragments in the genome are then shorter than the read length.
+Some numbers: 
+
+======== ================= ================== ================== ================== ==================
+ Genome   rfrags <50 bp          <100 bp            <150 bp             <175 bp           <200 bp
+-------- ----------------- ------------------ ------------------ ------------------ ------------------
+  hg38     828538 (11.5%)    1452918 (20.2%)    2121479 (29.5%)    2587250 (35.9%)    2992757 (41.6%)
+  mm10     863614 (12.9%)    1554461 (23.3%)    2236609 (33.5%)    2526150 (37.9%)    2780769 (41.7%)
+  dm3      65327 (19.6%)     108370 (32.5%)     142662 (42.8%)     156886 (47.1%)     169339 (50.9%)
+======== ================= ================== ================== ================== ==================
+
+Here is an example of complex walk:
+
+.. figure:: _static/rescue_modes.svg
+   :width: 60 %
+   :alt: Different modes of reporting complex walks
+   :align: center
+
+   Different modes of reporting complex walks
+
+``pairtools parse2`` detects such molecules and **rescues** them.
+
+Briefly, ``pairtools parse2`` detects all the unique ligation junctions, and does not report
+the same junction as a pair multiple times. Importantly, these duplicated pairs might arise when both forward and reverse
+reads read through the same ligation junction. However, these overlaps are successfully merged by ``pairtools parse2``:
+
+.. figure:: _static/rescue_modes_readthrough.svg
+   :width: 60 %
+   :alt: Reporting complex walks in case of readthrough
+   :align: center
+
+   Reporing complex walks in case of readthrough
+
+To restore the sequence of ligation events, there is a special field ``junction_index`` that you have as
+a separate column of .pair file when setting ``--add-junction-index`` option. This field contains information on:
+
+- the order of the junction in the recovered walk, starting from 5'-end of forward read
+- type of the junction:
+
+  - "u" - unconfirmed junction, right and left alignments in the pair originate from different reads (forward or reverse). This might be indirect ligation (mediated by other DNA fragments).
+  - "f" - pair originates from the forward read. This is direct ligation.
+  - "r" - pair originated from the reverse read. Direct ligation.
+  - "b" - pair was sequenced at both forward and reverse read. Direct ligation.
+With this information, the whole sequence of ligation events can be restored from the .pair file.
+
+
+.. _section-single-ligation-rescue:
 
 .. [1] Following the lead of `C-walks <https://www.nature.com/articles/nature20158>`_
 
