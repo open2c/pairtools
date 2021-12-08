@@ -12,7 +12,8 @@ def parse_sams_into_pair(sams1,
                          walks_policy,
                          report_3_alignment_end,
                          sam_tags,
-                         store_seq):
+                         store_seq,
+                         pysam_backend):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments
     for a Hi-C pair.
@@ -36,9 +37,11 @@ def parse_sams_into_pair(sams1,
         return [ [algns1[0], algns2[0], algns1, algns2, junction_index] ]
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
+    algns1 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq) if pysam_backend else
+              parse_algn(sam.rstrip().split('\t'), min_mapq, report_3_alignment_end, sam_tags, store_seq)
               for sam in sams1]
-    algns2 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
+    algns2 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq) if pysam_backend else
+              parse_algn(sam.rstrip().split('\t'), min_mapq, report_3_alignment_end, sam_tags, store_seq)
               for sam in sams2]
     algns1 = sorted(algns1, key=lambda algn: algn['dist_to_5'])
     algns2 = sorted(algns2, key=lambda algn: algn['dist_to_5'])
@@ -128,7 +131,7 @@ def parse_sams_into_pair(sams1,
 
 
 def parse_cigar(cigar):
-    """ Deprecated function. TODO: remove? """
+    """ Parse cigar string. """
     matched_bp = 0
     algn_ref_span = 0
     algn_read_span = 0
@@ -249,7 +252,7 @@ def parse_algn(
         report_3_alignment_end=False,
         sam_tags=None,
         store_seq=False):
-    """ Deprecated function. TODO: remove?"""
+    """ Parse sam alignments. """
     is_mapped = (int(samcols[1]) & 0x04) == 0
     mapq = int(samcols[4])
     is_unique = (mapq >= min_mapq)
@@ -867,7 +870,7 @@ def check_pair_order(algn1, algn2, chrom_enum):
 
 
 def push_sam(line, drop_seq, sams1, sams2):
-    """ Deprecated function """
+    """ Push line into list of sam entries """
 
     sam = line.rstrip()
     if drop_seq:
@@ -929,7 +932,7 @@ def write_all_algnments(readID, all_algns1, all_algns2, out_file):
 
 def write_pairsam(
         algn1, algn2, readID, junction_index, sams1, sams2, out_file,
-        drop_readid, drop_sam, add_junction_index, add_columns):
+        drop_readid, drop_sam, add_junction_index, add_columns, pysam_backend):
     """
     SAM is already tab-separated and
     any printable character between ! and ~ may appear in the PHRED field!
@@ -948,15 +951,26 @@ def write_pairsam(
     ]
 
     if not drop_sam:
-        for sams in [sams1, sams2]:
-            cols.append(
-                _pairsam_format.INTER_SAM_SEP.join([
-                    sam.to_string().replace('\t', _pairsam_format.SAM_SEP) # String representation of pysam alignment
-                    + _pairsam_format.SAM_SEP
-                    + 'Yt:Z:' + algn1['type'] + algn2['type']
-                for sam in sams
-                ])
-            )
+        if pysam_backend:
+            for sams in [sams1, sams2]:
+                cols.append(
+                    _pairsam_format.INTER_SAM_SEP.join([
+                        sam.to_string().replace('\t', _pairsam_format.SAM_SEP) # String representation of pysam alignment
+                        + _pairsam_format.SAM_SEP
+                        + 'Yt:Z:' + algn1['type'] + algn2['type']
+                    for sam in sams
+                    ])
+                )
+        else:
+            for sams in [sams1, sams2]:
+                cols.append(
+                    _pairsam_format.INTER_SAM_SEP.join([
+                        (sam.replace('\t', _pairsam_format.SAM_SEP)
+                         + _pairsam_format.SAM_SEP
+                         + 'Yt:Z:' + algn1['type'] + algn2['type'])
+                        for sam in sams
+                    ])
+                )
 
     if add_junction_index:
         cols.append(junction_index)
