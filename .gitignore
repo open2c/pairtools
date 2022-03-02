@@ -93,3 +93,4 @@ ENV/
 
 # cython compiled C extension
 _*.c
+*.DS_Store
