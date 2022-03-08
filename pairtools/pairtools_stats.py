@@ -522,7 +522,7 @@ class PairCounter(Mapping):
                     union_keys_with_dups = list(self._stat[k].keys()) + list(
                         other._stat[k].keys()
                     )
-                    # OrderedDict.fromkeys will take care of keys' order and duplicates in a consistent manner:
+                    # dict.fromkeys will take care of keys' order and duplicates in a consistent manner:
                     # https://stackoverflow.com/questions/1720421/how-to-concatenate-two-lists-in-python
                     # last comment to the 3rd Answer
                     sum_stat._stat[k] = dict.fromkeys(union_keys_with_dups)
@@ -544,10 +544,10 @@ class PairCounter(Mapping):
             return self.__add__(other)
 
     def flatten(self):
-        """return a flattened OrderedDic (formatted same way as .stats file)
+        """return a flattened dict (formatted same way as .stats file)
 
         """
-        # OrderedDict for flat store:
+        # dict for flat store:
         flat_stat = {}
 
         # Storing statistics
@@ -590,7 +590,7 @@ class PairCounter(Mapping):
                         # store key,value pair:
                         flat_stat[formatted_key] = freq
 
-        # return flattened OrderedDict
+        # return flattened dict
         return flat_stat
 
     def save(self, outstream):

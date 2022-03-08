@@ -106,9 +106,6 @@ def test_mock_pairsam():
         assert len(dup_pairs) > 0
         assert len(unmapped_pairs) > 0
         import pandas as pd
-        print(pd.DataFrame(dedup_pairs))
-        print()
-        print(pd.DataFrame(dup_pairs))
         
         # check that all pairsam entries survived deduping:
 

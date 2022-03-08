@@ -375,7 +375,7 @@ def dedup_py(
             )
 
     if backend == "cython":
-        streaming_dedup(
+        streaming_dedup_cython(
             method,
             max_mismatch,
             sep,
@@ -618,8 +618,8 @@ def streaming_dedup_by_chunk(
             chunk[mapped & duplicates].to_csv(
                 outstream_dups, index=False, header=False, sep="\t"
             )
-            if save_parent_id:
-                chunk = chunk.drop(columns=["parent_readID"])
+        if save_parent_id:
+            chunk = chunk.drop(columns=["parent_readID"])
         chunk[mapped & (~duplicates)].to_csv(
             outstream, index=False, header=False, sep="\t"
         )
@@ -633,7 +633,7 @@ def streaming_dedup_by_chunk(
     print(f"time per mln pairs: {t/N*1e6}")
 
 
-def streaming_dedup(
+def streaming_dedup_cython(
     method,
     max_mismatch,
     sep,
