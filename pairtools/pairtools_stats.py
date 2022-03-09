@@ -75,22 +75,7 @@ def stats_py(input_path, output, merge, **kwargs):
 
     for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
         stats.add_pairs_from_dataframe(chunk)
-    # for line in body_stream:
-    #     cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
-
-    #     # algn1:
-    #     chrom1 = cols[_pairsam_format.COL_C1]
-    #     pos1 = int(cols[_pairsam_format.COL_P1])
-    #     strand1 = cols[_pairsam_format.COL_S1]
-    #     # algn2:
-    #     chrom2 = cols[_pairsam_format.COL_C2]
-    #     pos2 = int(cols[_pairsam_format.COL_P2])
-    #     strand2 = cols[_pairsam_format.COL_S2]
-    #     # pair type:
-    #     pair_type = cols[_pairsam_format.COL_PTYPE]
-
-    #     stats.add_pair(chrom1, pos1, strand1, chrom2, pos2, strand2, pair_type)
-
+    
     # save statistics to file ...
     stats.save(outstream)
 

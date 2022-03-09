@@ -396,7 +396,7 @@ def dedup_py(
             mark_dups,
         )
     elif backend in ("scipy", "sklearn"):
-        streaming_dedup_by_chunk(
+        streaming_dedup(
             in_stream=instream,
             colnames=column_names,
             chunksize=chunksize,
@@ -480,10 +480,7 @@ def dedup_chunk(
     if N > 0:
         if backend == "sklearn":
             a = neighbors.radius_neighbors_graph(
-                df[["pos1", "pos2"]],
-                radius=r,
-                p=p,
-                n_jobs=n_proc,
+                df[["pos1", "pos2"]], radius=r, p=p, n_jobs=n_proc,
             )
             a0, a1 = a.nonzero()
         elif backend == "scipy":
@@ -572,7 +569,7 @@ def _dedup_by_chunk(
         yield marked
 
 
-def streaming_dedup_by_chunk(
+def streaming_dedup(
     in_stream,
     colnames,
     chunksize,
