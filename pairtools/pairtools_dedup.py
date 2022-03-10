@@ -170,7 +170,8 @@ MAX_LEN = 10000
     "--save-parent-id",
     is_flag=True,
     help="If specified, duplicate pairs are marked with the readID of the retained"
-    "deduped read. Only has effect with scipy or sklearn backend",
+    " deduped read in the 'parent_readID' field."
+    " Only has effect with scipy or sklearn backend",
 )
 @click.option(
     "--backend",
@@ -462,6 +463,41 @@ def dedup_chunk(
     unmapped_chrom="!",
     n_proc=1,
 ):
+    """Mark duplicates in a dataframe of pairs
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe with pairs, has to contain columns 'chrom1', 'pos1', 'chrom2', 'pos2'
+        'strand1', 'strand2'
+    r : int
+        Allowed distance between two pairs to call them duplicates
+    method : str
+        'sum' or 'max' - whether 'r' uses sum of distances on two ends of pairs, or the
+        maximal distance
+    keep_parent_read_id : bool
+        If True, the read ID of the read that was not labelled as a duplicate from a
+        group of duplicates is recorded for each read marked as duplicate.
+        Only possible with non-cython backends
+    extra_col_pairs : list of tuples
+        List of extra column pairs that need to match between two reads for them be
+        considered duplicates (e.g. useful if alleles are annotated)
+    backend : str
+        'scipy', 'sklearn', 'cython'
+    unmapped_chrom : str, optional
+        Which character denotes unmapped reads in the chrom1/chrom2 fields,
+        by default "!"
+    n_proc : int, optional
+        How many cores to use, by default 1
+        Only works for 'sklearn' backend
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with marked duplicates (extra boolean field 'duplicate'), and
+        optionally recorded 'parent_readID'
+
+    """
     if method not in ("max", "sum"):
         raise ValueError('Unknown method, only "sum" or "max" allowed')
     if backend == "sklearn":
