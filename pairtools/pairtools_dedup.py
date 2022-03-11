@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8  -*-
+from distutils.log import warn
 import sys
 import ast
 import warnings
@@ -109,37 +110,43 @@ MAX_LEN = 10000
     "--c1",
     type=int,
     default=_pairsam_format.COL_C1,
-    help="Chrom 1 column; default {}".format(_pairsam_format.COL_C1),
+    help=f"Chrom 1 column; default {_pairsam_format.COL_C1}"
+    " Only works with '--backend cython'; deprecated",
 )
 @click.option(
     "--c2",
     type=int,
     default=_pairsam_format.COL_C2,
-    help="Chrom 2 column; default {}".format(_pairsam_format.COL_C2),
+    help=f"Chrom 2 column; default {_pairsam_format.COL_C2}"
+    " Only works with '--backend cython'; deprecated",
 )
 @click.option(
     "--p1",
     type=int,
     default=_pairsam_format.COL_P1,
-    help="Position 1 column; default {}".format(_pairsam_format.COL_P1),
+    help=f"Position 1 column; default {_pairsam_format.COL_P1}"
+    " Only works with '--backend cython'; deprecated",
 )
 @click.option(
     "--p2",
     type=int,
     default=_pairsam_format.COL_P2,
-    help="Position 2 column; default {}".format(_pairsam_format.COL_P2),
+    help=f"Position 2 column; default {_pairsam_format.COL_P2}"
+    " Only works with '--backend cython'; deprecated",
 )
 @click.option(
     "--s1",
     type=int,
     default=_pairsam_format.COL_S1,
-    help="Strand 1 column; default {}".format(_pairsam_format.COL_S1),
+    help=f"Strand 1 column; default {_pairsam_format.COL_S1}"
+    " Only works with '--backend cython'; deprecated",
 )
 @click.option(
     "--s2",
     type=int,
     default=_pairsam_format.COL_S2,
-    help="Strand 2 column; default {}".format(_pairsam_format.COL_S2),
+    help=f"Strand 2 column; default {_pairsam_format.COL_S2}"
+    " Only works with '--backend cython'; deprecated",
 )
 @click.option(
     "--unmapped-chrom",
@@ -175,9 +182,10 @@ MAX_LEN = 10000
 )
 @click.option(
     "--backend",
-    type=click.Choice(["cython", "scipy", "sklearn"]),
+    type=click.Choice(["scipy", "sklearn", "cython"]),
     default="scipy",
-    help="What backend to use",
+    help="What backend to use"
+    " 'cython' is deprecated and provided for backwards compatibility",
 )
 @click.option(
     "-p",
@@ -376,6 +384,11 @@ def dedup_py(
             )
 
     if backend == "cython":
+        warnings.warn(
+            "'cython' backend is deprecated and provided only"
+            " for backwards compatibility",
+            DeprecationWarning,
+        )
         streaming_dedup_cython(
             method,
             max_mismatch,
