@@ -376,12 +376,8 @@ def dedup_py(
     extra_cols2 = []
     if extra_col_pair is not None:
         for col1, col2 in extra_col_pair:
-            extra_cols1.append(
-                int(col1) if col1.isdigit() else column_names.index(col1)
-            )
-            extra_cols2.append(
-                int(col2) if col2.isdigit() else column_names.index(col2)
-            )
+            extra_cols1.append(column_names[col1] if col1.isdigit() else col1)
+            extra_cols2.append(column_names[col2] if col2.isdigit() else col2)
 
     if backend == "cython":
         warnings.warn(
@@ -389,6 +385,8 @@ def dedup_py(
             " for backwards compatibility",
             DeprecationWarning,
         )
+        extra_cols1 = [column_names.index(col) for col in extra_cols1]
+        extra_cols2 = [column_names.index(col) for col in extra_cols2]
         streaming_dedup_cython(
             method,
             max_mismatch,
