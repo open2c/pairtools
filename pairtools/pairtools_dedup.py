@@ -92,6 +92,14 @@ MAX_LEN = 10000
     help="Number of pairs in each chunk. Reduce for lower memory footprint",
 )
 @click.option(
+    "--carryover",
+    type=int,
+    default=100,
+    show_default=True,
+    help="Number of deduped pairs to carry over from previous chunk to the new chunk"
+    " to avoid breaking duplicate clusters",
+)
+@click.option(
     "--sep",
     type=str,
     default=_pairsam_format.PAIRSAM_SEP_ESCAPE,
@@ -203,6 +211,7 @@ def dedup(
     output_unmapped,
     output_stats,
     chunksize,
+    carryover,
     max_mismatch,
     method,
     sep,
@@ -239,6 +248,7 @@ def dedup(
         output_unmapped,
         output_stats,
         chunksize,
+        carryover,
         max_mismatch,
         method,
         sep,
@@ -267,6 +277,7 @@ def dedup_py(
     output_unmapped,
     output_stats,
     chunksize,
+    carryover,
     max_mismatch,
     method,
     sep,
@@ -412,6 +423,7 @@ def dedup_py(
             in_stream=instream,
             colnames=column_names,
             chunksize=chunksize,
+            carryover=carryover,
             method=method,
             mark_dups=mark_dups,
             max_mismatch=max_mismatch,
@@ -578,6 +590,7 @@ def _dedup_by_chunk(
     colnames,
     method,
     chunksize,
+    carryover,
     mark_dups,
     max_mismatch,
     extra_col_pairs,
@@ -610,9 +623,8 @@ def _dedup_by_chunk(
         nodups = marked[~marked["duplicate"]]
 
         nodups = nodups[colnames]
-        i = max(nodups.shape[0] // 100, 100)
-        old_nodups = nodups.iloc[-i:].reset_index(drop=True)
-        old_i = i
+        old_nodups = nodups.iloc[-carryover:].reset_index(drop=True)
+        old_i = carryover
         yield marked
 
 
@@ -620,6 +632,7 @@ def streaming_dedup(
     in_stream,
     colnames,
     chunksize,
+    carryover,
     method,
     mark_dups,
     max_mismatch,
@@ -639,6 +652,7 @@ def streaming_dedup(
         colnames=colnames,
         method=method,
         chunksize=chunksize,
+        carryover=carryover,
         mark_dups=mark_dups,
         max_mismatch=max_mismatch,
         extra_col_pairs=extra_col_pairs,
