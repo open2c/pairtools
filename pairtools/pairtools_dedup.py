@@ -87,9 +87,10 @@ MAX_LEN = 10000
 @click.option(
     "--chunksize",
     type=int,
-    default=3100000,
+    default=1_000_000,
     show_default=True,
-    help="Number of pairs in each chunk. Reduce for lower memory footprint",
+    help="Number of pairs in each chunk. Reduce for lower memory footprint."
+    " Below 10,000 performance starts suffering significantly",
 )
 @click.option(
     "--carryover",
@@ -97,7 +98,7 @@ MAX_LEN = 10000
     default=100,
     show_default=True,
     help="Number of deduped pairs to carry over from previous chunk to the new chunk"
-    " to avoid breaking duplicate clusters",
+    " to avoid breaking duplicate clusters.",
 )
 @click.option(
     "--sep",
