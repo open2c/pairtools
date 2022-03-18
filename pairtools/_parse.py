@@ -4,6 +4,7 @@ Set of functions used for pairsam parse, migrated from pairtools/pairtools_parse
 
 from . import _pairsam_format
 
+
 def streaming_classify(
     instream,
     outstream,
@@ -23,7 +24,6 @@ def streaming_classify(
     Parse input sam file and write to the outstream(s)
     """
 
-    pysam_backend = kwargs.get("pysam_backend", False)
     parse2 = kwargs.get("parse2", False)
 
     ### Store output parameters in usable form:
@@ -34,7 +34,7 @@ def streaming_classify(
         )
     )
     sam_tags = [col for col in add_columns if len(col) == 2 and col.isupper()]
-    store_seq = "seq" in add_columns
+    store_seq = ("seq" in add_columns) and (not drop_seq)
 
     ### Create temporary variables that will be populated by parsing reads at each iteration over input:
     prev_readID = ""  # Placeholder for the read id
@@ -54,16 +54,14 @@ def streaming_classify(
             instream, None
         )  # required for proper parsing of the last read
 
-        if pysam_backend:
-            readID = aligned_segment.query_name if aligned_segment else None
-        else:
-            readID = aligned_segment.split("\t", 1)[0] if aligned_segment else None
+        readID = aligned_segment.query_name if aligned_segment else None
         if readID_transform is not None and readID is not None:
             readID = eval(readID_transform)
 
         # Perform parsing and writing when all the segments are parsed from the read:
         if not (aligned_segment) or ((readID != prev_readID) and prev_readID):
 
+            # Define parser:
             if not parse2:
                 parsed_pair = parse_sams_into_pair(
                     sams1,
@@ -74,10 +72,9 @@ def streaming_classify(
                     kwargs["walks_policy"],
                     kwargs["report_alignment_end"] == "3",
                     sam_tags,
-                    store_seq,
-                    pysam_backend,
+                    store_seq
                 )
-            else: # parse2 mode requested:
+            else:  # parse2 mode requested:
                 parsed_pair = parse2_sams_into_pair(
                     sams1,
                     sams2,
@@ -87,8 +84,7 @@ def streaming_classify(
                     sam_tags,
                     store_seq,
                     kwargs["single_end"],
-                    kwargs["coordinate_system"],
-                    pysam_backend,
+                    kwargs["coordinate_system"]
                 )
 
             for (
@@ -99,7 +95,7 @@ def streaming_classify(
                 junction_index,
             ) in parsed_pair:
 
-                if parse2: # Set the alignment end
+                if parse2: # Set the alignment end, TODO: update
                     if kwargs["report_alignment_end"] == "5":
                         algn1["pos"] = algn1["pos5"]
                         algn2["pos"] = algn2["pos5"]
@@ -124,10 +120,10 @@ def streaming_classify(
                     sams2,
                     outstream,
                     drop_readid,
+                    drop_seq,
                     drop_sam,
                     add_junction_index,
-                    add_columns,
-                    pysam_backend,
+                    add_columns
                 )
 
                 # add a pair to PairCounter if stats output is requested:
@@ -142,7 +138,7 @@ def streaming_classify(
                         algn1["type"] + algn2["type"],
                     )
 
-                if out_alignments_stream: # Note that this mode is not guaranteed to work in parse2:
+                if out_alignments_stream: # Note that output alignments are disabled in parse2:
                     write_all_algnments(
                         prev_readID, all_algns1, all_algns2, out_alignments_stream
                     )
@@ -151,10 +147,7 @@ def streaming_classify(
             sams2.clear()
 
         if aligned_segment is not None:
-            if pysam_backend:
-                push_pysam(aligned_segment, drop_seq, sams1, sams2)
-            else:
-                push_sam(aligned_segment, drop_seq, sams1, sams2)
+            push_pysam(aligned_segment, sams1, sams2)
             prev_readID = readID
 
 
@@ -167,8 +160,7 @@ def parse_sams_into_pair(
     walks_policy,
     report_3_alignment_end,
     sam_tags,
-    store_seq,
-    pysam_backend,
+    store_seq
 ):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments
@@ -193,30 +185,9 @@ def parse_sams_into_pair(
         return [[algns1[0], algns2[0], algns1, algns2, junction_index]]
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [
-        parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
-        if pysam_backend
-        else parse_algn(
-            sam.rstrip().split("\t"),
-            min_mapq,
-            report_3_alignment_end,
-            sam_tags,
-            store_seq,
-        )
-        for sam in sams1
-    ]
-    algns2 = [
-        parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
-        if pysam_backend
-        else parse_algn(
-            sam.rstrip().split("\t"),
-            min_mapq,
-            report_3_alignment_end,
-            sam_tags,
-            store_seq,
-        )
-        for sam in sams2
-    ]
+    algns1 = [ parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq) for sam in sams1 ]
+    algns2 = [ parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq) for sam in sams2 ]
+
     algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
     algns2 = sorted(algns2, key=lambda algn: algn["dist_to_5"])
 
@@ -244,112 +215,67 @@ def parse_sams_into_pair(
             # Report linear alignments after deduplication of complex walks with default settings:
             return parse_complex_walk(algns1, algns2, max_molecule_size, 'read')
 
-        # Report only two alignments for a read pair
-        rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
-
-        # Walk was rescued as a simple walk:
-        if rescued_linear_side is not None:
-            junction_index = (
-                f'{1}{"f" if rescued_linear_side==1 else "r"}'  # TODO: replace
-            )
-        # Walk is unrescuable:
         else:
-            if walks_policy == "mask":
-                hic_algn1 = _mask_alignment(dict(hic_algn1))
-                hic_algn2 = _mask_alignment(dict(hic_algn2))
-                hic_algn1["type"] = "W"
-                hic_algn2["type"] = "W"
+            # Report only two alignments for a read pair
+            rescued_linear_side = rescue_walk(algns1, algns2, max_molecule_size)
 
-            elif walks_policy == "5any":
-                hic_algn1 = algns1[0]
-                hic_algn2 = algns2[0]
+            # Walk was rescued as a simple walk:
+            if rescued_linear_side is not None:
+                junction_index = (
+                    f'{1}{"f" if rescued_linear_side==1 else "r"}'  # TODO: replace
+                )
+            # Walk is unrescuable:
+            else:
+                if walks_policy == "mask":
+                    hic_algn1 = _mask_alignment(dict(hic_algn1))
+                    hic_algn2 = _mask_alignment(dict(hic_algn2))
+                    hic_algn1["type"] = "W"
+                    hic_algn2["type"] = "W"
 
-            elif walks_policy == "5unique":
-                hic_algn1 = algns1[0]
-                for algn in algns1:
-                    if algn["is_mapped"] and algn["is_unique"]:
-                        hic_algn1 = algn
-                        break
+                elif walks_policy == "5any":
+                    hic_algn1 = algns1[0]
+                    hic_algn2 = algns2[0]
 
-                hic_algn2 = algns2[0]
-                for algn in algns2:
-                    if algn["is_mapped"] and algn["is_unique"]:
-                        hic_algn2 = algn
-                        break
+                elif walks_policy == "5unique":
+                    hic_algn1 = algns1[0]
+                    for algn in algns1:
+                        if algn["is_mapped"] and algn["is_unique"]:
+                            hic_algn1 = algn
+                            break
 
-            elif walks_policy == "3any":
-                hic_algn1 = algns1[-1]
-                hic_algn2 = algns2[-1]
+                    hic_algn2 = algns2[0]
+                    for algn in algns2:
+                        if algn["is_mapped"] and algn["is_unique"]:
+                            hic_algn2 = algn
+                            break
 
-            elif walks_policy == "3unique":
-                hic_algn1 = algns1[-1]
-                for algn in algns1[::-1]:
-                    if algn["is_mapped"] and algn["is_unique"]:
-                        hic_algn1 = algn
-                        break
+                elif walks_policy == "3any":
+                    hic_algn1 = algns1[-1]
+                    hic_algn2 = algns2[-1]
 
-                hic_algn2 = algns2[-1]
-                for algn in algns2[::-1]:
-                    if algn["is_mapped"] and algn["is_unique"]:
-                        hic_algn2 = algn
-                        break
+                elif walks_policy == "3unique":
+                    hic_algn1 = algns1[-1]
+                    for algn in algns1[::-1]:
+                        if algn["is_mapped"] and algn["is_unique"]:
+                            hic_algn1 = algn
+                            break
 
-            # lower-case reported walks on the chimeric side
-            if walks_policy != "mask":
-                if is_chimeric_1:
-                    hic_algn1 = dict(hic_algn1)
-                    hic_algn1["type"] = hic_algn1["type"].lower()
-                if is_chimeric_2:
-                    hic_algn2 = dict(hic_algn2)
-                    hic_algn2["type"] = hic_algn2["type"].lower()
+                    hic_algn2 = algns2[-1]
+                    for algn in algns2[::-1]:
+                        if algn["is_mapped"] and algn["is_unique"]:
+                            hic_algn2 = algn
+                            break
+
+                # lower-case reported walks on the chimeric side
+                if walks_policy != "mask":
+                    if is_chimeric_1:
+                        hic_algn1 = dict(hic_algn1)
+                        hic_algn1["type"] = hic_algn1["type"].lower()
+                    if is_chimeric_2:
+                        hic_algn2 = dict(hic_algn2)
+                        hic_algn2["type"] = hic_algn2["type"].lower()
 
     return [[hic_algn1, hic_algn2, algns1, algns2, junction_index]]
-
-
-def parse_cigar(cigar):
-    """Parse cigar string."""
-    matched_bp = 0
-    algn_ref_span = 0
-    algn_read_span = 0
-    read_len = 0
-    clip5_ref = 0
-    clip3_ref = 0
-
-    if cigar != "*":
-        cur_num = 0
-        for char in cigar:
-            charval = ord(char)
-            if charval >= 48 and charval <= 57:
-                cur_num = cur_num * 10 + (charval - 48)
-            else:
-                if char == "M":
-                    matched_bp += cur_num
-                    algn_ref_span += cur_num
-                    algn_read_span += cur_num
-                    read_len += cur_num
-                elif char == "I":
-                    algn_read_span += cur_num
-                    read_len += cur_num
-                elif char == "D":
-                    algn_ref_span += cur_num
-                elif char == "S" or char == "H":
-                    read_len += cur_num
-                    if matched_bp == 0:
-                        clip5_ref = cur_num
-                    else:
-                        clip3_ref = cur_num
-
-                cur_num = 0
-
-    return {
-        "clip5_ref": clip5_ref,
-        "clip3_ref": clip3_ref,
-        "cigar": cigar,
-        "algn_ref_span": algn_ref_span,
-        "algn_read_span": algn_read_span,
-        "read_len": read_len,
-        "matched_bp": matched_bp,
-    }
 
 
 def parse_cigar_pysam(read):
@@ -426,82 +352,6 @@ def empty_alignment():
     }
 
 
-def parse_algn(
-    samcols, min_mapq, report_3_alignment_end=False, sam_tags=None, store_seq=False
-):
-    """Parse sam alignments."""
-    is_mapped = (int(samcols[1]) & 0x04) == 0
-    mapq = int(samcols[4])
-    is_unique = mapq >= min_mapq
-    is_linear = not any([col.startswith("SA:Z:") for col in samcols[11:]])
-
-    cigar = parse_cigar(samcols[5])
-
-    if is_mapped:
-        if (int(samcols[1]) & 0x10) == 0:
-            strand = "+"
-            dist_to_5 = cigar["clip5_ref"]
-            dist_to_3 = cigar["clip3_ref"]
-        else:
-            strand = "-"
-            dist_to_5 = cigar["clip3_ref"]
-            dist_to_3 = cigar["clip5_ref"]
-
-        if is_unique:
-            chrom = samcols[2]
-            if strand == "+":
-                pos5 = int(samcols[3])
-                pos3 = int(samcols[3]) + cigar["algn_ref_span"] - 1
-            else:
-                pos5 = int(samcols[3]) + cigar["algn_ref_span"] - 1
-                pos3 = int(samcols[3])
-        else:
-            chrom = _pairsam_format.UNMAPPED_CHROM
-            strand = _pairsam_format.UNMAPPED_STRAND
-            pos5 = _pairsam_format.UNMAPPED_POS
-            pos3 = _pairsam_format.UNMAPPED_POS
-    else:
-        chrom = _pairsam_format.UNMAPPED_CHROM
-        strand = _pairsam_format.UNMAPPED_STRAND
-        pos5 = _pairsam_format.UNMAPPED_POS
-        pos3 = _pairsam_format.UNMAPPED_POS
-
-        dist_to_5 = 0
-        dist_to_3 = 0
-
-    algn = {
-        "chrom": chrom,
-        "pos5": pos5,
-        "pos3": pos3,
-        "strand": strand,
-        "mapq": mapq,
-        "is_mapped": is_mapped,
-        "is_unique": is_unique,
-        "is_linear": is_linear,
-        "dist_to_5": dist_to_5,
-        "dist_to_3": dist_to_3,
-        "type": ("N" if not is_mapped else ("M" if not is_unique else "U")),
-    }
-
-    algn.update(cigar)
-
-    algn["pos"] = algn["pos3"] if report_3_alignment_end else algn["pos5"]
-
-    if sam_tags:
-        for tag in sam_tags:
-            algn[tag] = ""
-
-        for col in samcols[11:]:
-            for tag in sam_tags:
-                if col.startswith(tag + ":"):
-                    algn[tag] = col[5:]
-                    continue
-
-    if store_seq:
-        algn["seq"] = samcols[9]
-
-    return algn
-
 
 def parse_algn_pysam(
     sam, min_mapq, report_3_alignment_end=False, sam_tags=None, store_seq=False
@@ -520,9 +370,7 @@ def parse_algn_pysam(
     mapq = sam.mapq
     is_unique = sam.is_unique(min_mapq)
     is_linear = sam.is_linear
-
     cigar = parse_cigar_pysam(sam)
-
     if is_mapped:
         if (flag & 0x10) == 0:
             strand = "+"
@@ -545,6 +393,7 @@ def parse_algn_pysam(
                 pos3 = (
                     sam.reference_end + 1
                 )  # Note that pysam output is zero-based, thus add +1
+
         else:
             chrom = _pairsam_format.UNMAPPED_CHROM
             strand = _pairsam_format.UNMAPPED_STRAND
@@ -760,30 +609,7 @@ def check_pair_order(algn1, algn2, chrom_enum):
     return has_correct_order
 
 
-def push_sam(line, drop_seq, sams1, sams2):
-    """Push line into list of sam entries"""
-
-    sam = line.rstrip()
-    if drop_seq:
-        split_sam = sam.split("\t")
-        split_sam[9] = "*"
-        split_sam[10] = "*"
-        sam = "\t".join(split_sam)
-
-        flag = split_sam[1]
-        flag = int(flag)
-    else:
-        _, flag, _ = sam.split("\t", 2)
-        flag = int(flag)
-
-    if (flag & 0x40) != 0:
-        sams1.append(sam)
-    else:
-        sams2.append(sam)
-    return
-
-
-def push_pysam(sam, drop_seq, sams1, sams2):
+def push_pysam(sam, sams1, sams2):
     """Parse pysam AlignedSegment (sam) into pairtools sams entry"""
 
     flag = sam.flag
@@ -831,10 +657,10 @@ def write_pairsam(
     sams2,
     out_file,
     drop_readid,
+    drop_seq,
     drop_sam,
     add_junction_index,
     add_columns,
-    pysam_backend,
 ):
     """
     SAM is already tab-separated and
@@ -854,38 +680,25 @@ def write_pairsam(
     ]
 
     if not drop_sam:
-        if pysam_backend:
-            for sams in [sams1, sams2]:
-                cols.append(
-                    _pairsam_format.INTER_SAM_SEP.join(
-                        [
-                            sam.to_string().replace(
-                                "\t", _pairsam_format.SAM_SEP
-                            )  # String representation of pysam alignment
-                            + _pairsam_format.SAM_SEP
-                            + "Yt:Z:"
-                            + algn1["type"]
-                            + algn2["type"]
-                            for sam in sams
-                        ]
-                    )
+        for sams in [sams1, sams2]:
+            # if drop_seq:
+            #     for sam in sams:
+            #         sam.query_qualities = ''
+            #         sam.query_sequence = ''
+            cols.append(
+                _pairsam_format.INTER_SAM_SEP.join(
+                    [
+                        sam.to_string().replace(
+                            "\t", _pairsam_format.SAM_SEP
+                        )  # String representation of pysam alignment
+                        + _pairsam_format.SAM_SEP
+                        + "Yt:Z:"
+                        + algn1["type"]
+                        + algn2["type"]
+                        for sam in sams
+                    ]
                 )
-        else:
-            for sams in [sams1, sams2]:
-                cols.append(
-                    _pairsam_format.INTER_SAM_SEP.join(
-                        [
-                            (
-                                sam.replace("\t", _pairsam_format.SAM_SEP)
-                                + _pairsam_format.SAM_SEP
-                                + "Yt:Z:"
-                                + algn1["type"]
-                                + algn2["type"]
-                            )
-                            for sam in sams
-                        ]
-                    )
-                )
+            )
 
     if add_junction_index:
         cols.append(junction_index)
@@ -908,8 +721,7 @@ def parse2_sams_into_pair(
     sam_tags,
     store_seq,
     single_end,
-    coordinate_system,
-    pysam_backend,
+    coordinate_system
 ):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments in parse2 mode
@@ -930,12 +742,7 @@ def parse2_sams_into_pair(
     if single_end:
         sams = sams2  # TODO: Check why it is always the second alignment, and not the first one
         # Generate a sorted, gap-filled list of all alignments
-        algns1 = [
-            parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
-            if pysam_backend
-            else parse_algn(sam.rstrip().split("\t"), min_mapq, sam_tags, store_seq)
-            for sam in sams
-        ]
+        algns1 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq) for sam in sams1]
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
         if max_inter_align_gap is not None:
             _convert_gaps_into_alignments(algns1, max_inter_align_gap)
@@ -966,20 +773,9 @@ def parse2_sams_into_pair(
             return [[algns1[0], algns2[0], algns1, algns2, "1u"]]
 
         # Generate a sorted, gap-filled list of all alignments
-        algns1 = [
-            parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
-            if pysam_backend
-            else
-            parse_algn(sam.rstrip().split("\t"), min_mapq, report_3_alignment_end, sam_tags, store_seq)
-            for sam in sams1
-        ]
-        algns2 = [
-            parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq)
-            if pysam_backend
-            else
-            parse_algn(sam.rstrip().split("\t"), min_mapq, report_3_alignment_end, sam_tags, store_seq)
-            for sam in sams2
-        ]
+        algns1 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq) for sam in sams1]
+        algns2 = [parse_algn_pysam(sam, min_mapq, report_3_alignment_end, sam_tags, store_seq) for sam in sams2]
+
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
         algns2 = sorted(algns2, key=lambda algn: algn["dist_to_5"])
 
@@ -1074,7 +870,7 @@ def parse_complex_walk(
     n_algns1 = len(algns1)
     n_algns2 = len(algns2)
 
-    # Iterative search of overlap, let's initialize some useful variables:
+    # Iterative search of overlap, initialize some useful variables:
     current_forward_junction = current_reverse_junction = 1  # p. 1, initialization
     remaining_forward_junctions = (
         n_algns1 - 1
@@ -1209,8 +1005,6 @@ def parse_complex_walk(
         ) = current_reverse_junction
 
     # Report all the sequential alignments:
-
-    # Report all the sequential chimeric pairs in the forward read up to overlap:
     for i in range(0, n_algns1 - last_reported_alignment_forward):
         push_pair(
             algns1[i],
@@ -1481,81 +1275,3 @@ def pairs_do_overlap(algns1, algns2, allowed_offset=5):
     else:
         return 0
 
-
-# TODO: check whether we need this broken function
-# def parse_alternative_algns(samcols):
-#    alt_algns = []
-#    for col in samcols[11:]:
-#        if not col.startswith('XA:Z:'):
-#            continue
-#
-#        for SA in col[5:].split(';'):
-#            if not SA:
-#                continue
-#            SAcols = SA.split(',')
-#
-#            chrom = SAcols[0]
-#            strand = '-' if SAcols[1]<0 else '+'
-#
-#            cigar = parse_cigar(SAcols[2])
-#            NM = SAcols[3]
-#
-#            pos = _pairsam_format.UNMAPPED_POS
-#            if strand == '+':
-#                pos = int(SAcols[1])
-#            else:
-#                pos = int(SAcols[1]) + cigar['algn_ref_span']
-#
-#            alt_algns.append({
-#                'chrom': chrom,
-#                'pos': pos,
-#                'strand': strand,
-#                'mapq': mapq, # TODO: Is not defined in this piece of code
-#                'is_mapped': True,
-#                'is_unique': False,
-#                'is_linear': None,
-#                'cigar': cigar,
-#                'NM': NM,
-#                'dist_to_5': cigar['clip5_ref'] if strand == '+' else cigar['clip3_ref'],
-#            })
-#
-#    return supp_algns # TODO: This one seems not to be used in the code...
-
-# def parse_supp(samcols, min_mapq):
-#    supp_algns = []
-#    for col in samcols[11:]:
-#        if not col.startswith('SA:Z:'):
-#            continue
-#
-#        for SA in col[5:].split(';'):
-#            if not SA:
-#                continue
-#            SAcols = SA.split(',')
-#            mapq = int(SAcols[4])
-#            is_unique = (mapq >= min_mapq)
-#
-#            chrom = SAcols[0] if is_unique else _pairsam_format.UNMAPPED_CHROM
-#            strand = SAcols[2] if is_unique else _pairsam_format.UNMAPPED_STRAND
-#
-#            cigar = parse_cigar(SAcols[3])
-#
-#            pos = _pairsam_format.UNMAPPED_POS
-#            if is_unique:
-#                if strand == '+':
-#                    pos = int(SAcols[1])
-#                else:
-#                    pos = int(SAcols[1]) + cigar['algn_ref_span']
-#
-#            supp_algns.append({
-#                'chrom': chrom,
-#                'pos': pos,
-#                'strand': strand,
-#                'mapq': mapq,
-#                'is_mapped': True,
-#                'is_unique': is_unique,
-#                'is_linear': None,
-#                'cigar': cigar,
-#                'dist_to_5': cigar['clip5_ref'] if strand == '+' else cigar['clip3_ref'],
-#            })
-#
-#    return supp_algns

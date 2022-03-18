@@ -111,10 +111,20 @@ def extract_chromsizes(header):
     return chromsizes
 
 
-def get_chromsizes_from_sam_header(samheader):
-    """Convert sam header to pairtools chromosomes (Ordered dict)."""
-    SQs = [l.split("\t") for l in samheader if l.startswith("@SQ")]
-    chromsizes = [(sq[1][3:], int(sq[2][3:])) for sq in SQs]
+def get_chromsizes_from_pysam_header(samheader):
+    """Convert pysam header to pairtools chromosomes (Ordered dict).
+
+    Example of pysam header converted to dict:
+    OrderedDict([
+        ('SQ', [{'SN': 'chr1', 'LN': 248956422},
+         {'SN': 'chr10', 'LN': 133797422},
+         {'SN': 'chr11', 'LN': 135086622},
+         {'SN': 'chr12', 'LN': 133275309}]),
+        ('PG', [{'ID': 'bwa', 'PN': 'bwa', 'VN': '0.7.17-r1188', 'CL': 'bwa mem -t 8 -SP -v1 hg38.fa test_1.1.fastq.gz test_2.1.fastq.gz'}])
+    ])
+    """
+    SQs = samheader.to_dict()["SQ"]
+    chromsizes = [(sq["SN"], int(sq["LN"])) for sq in SQs]
     return OrderedDict(chromsizes)
 
 

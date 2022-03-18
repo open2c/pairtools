@@ -160,11 +160,6 @@ EXTRA_COLUMNS = [
     help="specifies whether the 5' or 3' end of the alignment is reported as"
     " the position of the Hi-C read.",
 )
-@click.option(
-    "--pysam-backend",
-    is_flag=True,
-    help="If specified, parse files with pysam for speedup.",
-)
 @common_io_options
 def parse2(
     sam_path,
@@ -218,25 +213,13 @@ def parse2_py(
     coordinate_system,
     **kwargs
 ):
-    pysam_backend = kwargs.get("pysam_backend", False)
 
     ### Set up input stream
-    if pysam_backend:
-        if sam_path:  # open input sam file with pysam
-            input_sam = AlignmentFilePairtoolized(sam_path, "r")
-        else:  # read from stdin
-            input_sam = AlignmentFilePairtoolized("_", "r")
-    else:
-        instream = (
-            _fileio.auto_open(
-                sam_path,
-                mode="r",
-                nproc=kwargs.get("nproc_in"),
-                command=kwargs.get("cmd_in", None),
-            )
-            if sam_path
-            else sys.stdin
-        )
+    if sam_path:  # open input sam file with pysam
+        input_sam = AlignmentFilePairtoolized(sam_path, "r", threads=kwargs.get('nproc_in'))
+    else:  # read from stdin
+        input_sam = AlignmentFilePairtoolized("_", "r", threads=kwargs.get('nproc_in'))
+
 
     ### Set up output streams
     outstream = (
@@ -296,10 +279,7 @@ def parse2_py(
         columns.pop(columns.index("junction_index"))
 
     ### Parse header
-    if pysam_backend:
-        samheader = input_sam.header
-    else:
-        samheader, input_sam = _headerops.get_header(instream, comment_char="@")
+    samheader = input_sam.header
 
     if not samheader:
         raise ValueError(
@@ -307,10 +287,7 @@ def parse2_py(
         )
 
     ### Parse chromosome files present in the input
-    if pysam_backend:
-        sam_chromsizes = _headerops.get_chromsizes_from_pysam_header(samheader)
-    else:
-        sam_chromsizes = _headerops.get_chromsizes_from_sam_header(samheader)
+    sam_chromsizes = _headerops.get_chromsizes_from_pysam_header(samheader)
     chromosomes = _headerops.get_chrom_order(chroms_path, list(sam_chromsizes.keys()))
 
     ### Write new header to the pairsam file
@@ -321,13 +298,10 @@ def parse2_py(
         shape="whole matrix" if kwargs["no_flip"] else "upper triangle",
     )
 
-    if pysam_backend:
-        header = _headerops.insert_samheader_pysam(header, samheader)
-    else:
-        header = _headerops.insert_samheader(header, samheader)
+    header = _headerops.insert_samheader_pysam(header, samheader)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l + "\n" for l in header))
-
+    
     ### Parse input and write to the outputs
     streaming_classify(
         input_sam,
