@@ -175,14 +175,6 @@ def parse(
     sam_path,
     chroms_path,
     output,
-    assembly,
-    min_mapq,
-    max_molecule_size,
-    drop_readid,
-    drop_seq,
-    drop_sam,
-    add_junction_index,
-    add_columns,
     output_parsed_alignments,
     output_stats,
     **kwargs
@@ -196,14 +188,6 @@ def parse(
         sam_path,
         chroms_path,
         output,
-        assembly,
-        min_mapq,
-        max_molecule_size,
-        drop_readid,
-        drop_seq,
-        drop_sam,
-        add_junction_index,
-        add_columns,
         output_parsed_alignments,
         output_stats,
         **kwargs
@@ -214,14 +198,6 @@ def parse_py(
     sam_path,
     chroms_path,
     output,
-    assembly,
-    min_mapq,
-    max_molecule_size,
-    drop_readid,
-    drop_seq,
-    drop_sam,
-    add_junction_index,
-    add_columns,
     output_parsed_alignments,
     output_stats,
     **kwargs
@@ -274,6 +250,7 @@ def parse_py(
     out_stat = PairCounter() if output_stats else None
 
     ### Set up output parameters
+    add_columns = kwargs.get("add_columns", [])
     add_columns = [col for col in add_columns.split(",") if col]
     for col in add_columns:
         if not ((col in EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())):
@@ -283,11 +260,11 @@ def parse_py(
         [c + side for c in add_columns for side in ["1", "2"]]
     )
 
-    if drop_sam:
+    if kwargs.get("drop_sam", True):
         columns.pop(columns.index("sam1"))
         columns.pop(columns.index("sam2"))
 
-    if not add_junction_index:
+    if not kwargs.get("add_junction_index", False):
         columns.pop(columns.index("junction_index"))
 
     ### Parse header
@@ -304,7 +281,7 @@ def parse_py(
 
     ### Write new header to the pairsam file
     header = _headerops.make_standard_pairsheader(
-        assembly=assembly,
+        assembly=kwargs.get("assembly", ""),
         chromsizes=[(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
         columns=columns,
         shape="whole matrix" if kwargs["no_flip"] else "upper triangle",
@@ -319,13 +296,6 @@ def parse_py(
         input_sam,
         outstream,
         chromosomes,
-        min_mapq,
-        max_molecule_size,
-        drop_readid,
-        drop_seq,
-        drop_sam,
-        add_junction_index,
-        add_columns,
         out_alignments_stream,
         out_stat,
         **kwargs

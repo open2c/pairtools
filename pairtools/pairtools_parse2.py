@@ -48,6 +48,15 @@ EXTRA_COLUMNS = [
     "ordered lexicographically following the names provided.",
 )
 @click.option(
+    "-o",
+    "--output",
+    type=str,
+    default="",
+    help="output file. "
+    " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
+    "By default, the output is printed into stdout. ",
+)
+@click.option(
     "--assembly",
     type=str,
     help="Name of genome assembly (e.g. hg19, mm10) to store in the pairs header.",
@@ -80,26 +89,6 @@ EXTRA_COLUMNS = [
 )
 @click.option(
     "--single-end", is_flag=True, help="If specified, the input is single-end."
-)
-# Reporting options:
-@click.option(
-    "-o",
-    "--output",
-    type=str,
-    default="",
-    help="output file. "
-    " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
-    "By default, the output is printed into stdout. ",
-)
-@click.option(
-    "--coordinate-system",
-    type=click.Choice(["read", "walk", "pair"]),
-    default="read",
-    help="coordinate system for reporting the walk. "
-    ' "read" - orient each pair as it appeared on a read, starting from 5\'-end of forward then reverse read. '
-    ' "walk" - orient each pair as it appeared sequentially in the reconstructed walk. '
-    ' "pair" - re-orient each pair as if it was sequenced independently by Hi-C. ',
-    show_default=True,
 )
 @click.option(
     "--no-flip",
@@ -147,11 +136,31 @@ EXTRA_COLUMNS = [
     ),
 )
 @click.option(
+    "--output-parsed-alignments",
+    type=str,
+    default="",
+    help="output file for all parsed alignments, including walks."
+    " Useful for debugging and rnalysis of walks."
+    " If file exists, it will be open in the append mode."
+    " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
+    " By default, not used.",
+)
+@click.option(
     "--output-stats",
     type=str,
     default="",
     help="output file for various statistics of pairs file. "
     " By default, statistics is not generated.",
+)
+@click.option(
+    "--report-position",
+    type=click.Choice(["junction", "outer", "walk", "read"]),
+    default="outer",
+)
+@click.option(
+    "--report-orientation",
+    type=click.Choice(["pair", "read", "walk", "junction"]),
+    default="pair",
 )
 @click.option(
     "--report-alignment-end",
@@ -165,15 +174,8 @@ def parse2(
     sam_path,
     chroms_path,
     output,
-    assembly,
-    min_mapq,
-    drop_readid,
-    drop_seq,
-    drop_sam,
-    add_junction_index,
-    add_columns,
+    output_parsed_alignments,
     output_stats,
-    coordinate_system,
     **kwargs
 ):
     """Find ligation junctions in .sam, make .pairs.
@@ -185,15 +187,8 @@ def parse2(
         sam_path,
         chroms_path,
         output,
-        assembly,
-        min_mapq,
-        drop_readid,
-        drop_seq,
-        drop_sam,
-        add_junction_index,
-        add_columns,
+        output_parsed_alignments,
         output_stats,
-        coordinate_system,
         **kwargs
     )
 
@@ -202,15 +197,8 @@ def parse2_py(
     sam_path,
     chroms_path,
     output,
-    assembly,
-    min_mapq,
-    drop_readid,
-    drop_seq,
-    drop_sam,
-    add_junction_index,
-    add_columns,
+    output_parsed_alignments,
     output_stats,
-    coordinate_system,
     **kwargs
 ):
 
@@ -232,16 +220,16 @@ def parse2_py(
         if output
         else sys.stdout
     )
-    # out_alignments_stream = (
-    #     _fileio.auto_open(
-    #         output_parsed_alignments,
-    #         mode="w",
-    #         nproc=kwargs.get("nproc_out"),
-    #         command=kwargs.get("cmd_out", None),
-    #     )
-    #     if output_parsed_alignments
-    #     else None
-    # )
+    out_alignments_stream = (
+        _fileio.auto_open(
+            output_parsed_alignments,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output_parsed_alignments
+        else None
+    )
     out_stats_stream = (
         _fileio.auto_open(
             output_stats,
@@ -253,15 +241,16 @@ def parse2_py(
         else None
     )
 
-    # if out_alignments_stream:
-    #     out_alignments_stream.write(
-    #         "readID\tside\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n"
-    #     )
+    if out_alignments_stream:
+        out_alignments_stream.write(
+            "readID\tside\tchrom\tpos\tstrand\tmapq\tcigar\tdist_5_lo\tdist_5_hi\tmatched_bp\n"
+        )
 
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
 
     ### Set up output parameters
+    add_columns = kwargs.get("add_columns", [])
     add_columns = [col for col in add_columns.split(",") if col]
     for col in add_columns:
         if not ((col in EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())):
@@ -271,11 +260,11 @@ def parse2_py(
         [c + side for c in add_columns for side in ["1", "2"]]
     )
 
-    if drop_sam:
+    if kwargs.get("drop_sam", True):
         columns.pop(columns.index("sam1"))
         columns.pop(columns.index("sam2"))
 
-    if not add_junction_index:
+    if not kwargs.get("add_junction_index", False):
         columns.pop(columns.index("junction_index"))
 
     ### Parse header
@@ -292,7 +281,7 @@ def parse2_py(
 
     ### Write new header to the pairsam file
     header = _headerops.make_standard_pairsheader(
-        assembly=assembly,
+        assembly=kwargs.get("assembly", ""),
         chromsizes=[(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
         columns=columns,
         shape="whole matrix" if kwargs["no_flip"] else "upper triangle",
@@ -307,16 +296,8 @@ def parse2_py(
         input_sam,
         outstream,
         chromosomes,
-        min_mapq,
-        None, # max_molecule_size
-        drop_readid,
-        drop_seq,
-        drop_sam,
-        add_junction_index,
-        add_columns,
-        None, # out_alignments_stream
+        out_alignments_stream,
         out_stat,
-        coordinate_system=coordinate_system,
         parse2=True,
         **kwargs
     )
@@ -327,9 +308,8 @@ def parse2_py(
 
     if outstream != sys.stdout:
         outstream.close()
-    # # close optional output streams if needed:
-    # if out_alignments_stream:
-    #     out_alignments_stream.close()
+    if out_alignments_stream:
+        out_alignments_stream.close()
     if out_stats_stream:
         out_stats_stream.close()
 
