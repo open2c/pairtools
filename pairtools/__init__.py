@@ -93,7 +93,7 @@ def common_io_options(func):
         default=None, 
         help='A command to decompress the input file. '
              'If provided, fully overrides the auto-guessed command. '
-             'Does not work with stdin. '
+             'Does not work with stdin and pairtools parse. '
              'Must read input from stdin and print output into stdout. '
              'EXAMPLE: pbgzip -dc -n 3'
         )
@@ -123,7 +123,6 @@ from .pairtools_split import split
 from .pairtools_restrict import restrict
 from .pairtools_phase import phase
 from .pairtools_parse import parse
-from ._parse import parse_cigar, parse_algn # TODO: is this import needed?
 from .pairtools_stats import stats
 from .pairtools_sample import sample
 from .pairtools_filterbycov import filterbycov
