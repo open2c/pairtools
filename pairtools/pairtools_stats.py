@@ -436,36 +436,54 @@ class PairCounter(Mapping):
                 'chrom1', 'pos1', 'chrom2', 'pos2', 'strand1', 'strand2', 'pair_type'
         """
 
-        self._stat["total"] += df.shape[0]
+        total_count = df.shape[0]
+        self._stat["total"] += total_count
+
         # collect pair type stats including DD:
         for pair_type, type_count in df["pair_type"].value_counts().items():
             self._stat["pair_types"][pair_type] = (
                 self._stat["pair_types"].get(pair_type, 0) + type_count
             )
+
+        # Count the unmapped by the "unmapped" chromosomes (debatable, as WW are also marked as ! and they might be mapped):
         unmapped_count = np.logical_and(
             df["chrom1"] == unmapped_chrom, df["chrom2"] == unmapped_chrom
         ).sum()
         self._stat["total_unmapped"] += int(unmapped_count)
-        mapped = df[(df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom)]
-        self._stat["total_mapped"] += mapped.shape[0]
+
+        # Count the mapped:
+        df_mapped = df[(df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom)]
+        mapped_count = df_mapped.shape[0]
+
+        self._stat["total_mapped"] += mapped_count
         self._stat["total_single_sided_mapped"] += int(
-            df.shape[0] - (mapped.shape[0] + unmapped_count)
+            total_count - (mapped_count + unmapped_count)
         )
-        dups_count = (mapped["pair_type"] == "DD").sum()
+
+        # Count the duplicates:
+        if "duplicate" in df_mapped.columns:
+            mask_mapped = df_mapped["duplicate"]
+        else:
+            mask_mapped = (df_mapped["pair_type"] == "DD")
+        dups_count = mask_mapped.sum()
         self._stat["total_dups"] += int(dups_count)
-        self._stat["total_nodups"] += int(df.shape[0] - dups_count)
+        self._stat["total_nodups"] += int(mapped_count - dups_count)
+
+        # Count pairs per chromosome:
         for (chrom1, chrom2), chrom_count in (
-            mapped[["chrom1", "chrom2"]].value_counts().items()
+            df_mapped[["chrom1", "chrom2"]].value_counts().items()
         ):
             self._stat["chrom_freq"][(chrom1, chrom2)] = (
                 self._stat["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
             )
-        cis = mapped[mapped["chrom1"] == mapped["chrom2"]]
+
+        # Count cis-trans by pairs:
+        cis = df_mapped[df_mapped["chrom1"] == df_mapped["chrom2"]]
         self._stat["cis"] += cis.shape[0]
-        self._stat["trans"] += mapped.shape[0] - cis.shape[0]
+        self._stat["trans"] += df_mapped.shape[0] - cis.shape[0]
         dist = np.abs(cis["pos2"].values - cis["pos1"].values)
 
-        cis["bin_idx"] = np.searchsorted(self._dist_bins, dist, "right") - 1
+        cis.loc[:, "bin_idx"] = np.searchsorted(self._dist_bins, dist, "right") - 1
         for (strand1, strand2, bin_id), strand_bin_count in (
             cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
         ):

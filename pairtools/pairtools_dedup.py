@@ -532,19 +532,31 @@ def dedup_chunk(
     else:
         p = np.inf
 
-    unmapped_id = (df["chrom1"] == unmapped_chrom) | (df["chrom2"] == unmapped_chrom)
-    unmapped = df[unmapped_id]
+    # Store the index of the dataframe:
+    index_colname = df.index.name
+    if index_colname is None:
+        index_colname = 'index'
+    df = df.reset_index() # Remove the index temporarily
 
-    df = df[~unmapped_id]
-    N = df.shape[0]
-    if N > 0:
+    # Set up columns to store the dedup info:
+    df.loc[:, "clusterid"] = np.nan
+    df.loc[:, "duplicate"] = False
+
+    # Split mapped and unmapped reads:
+    mask_unmapped = (df["chrom1"] == unmapped_chrom) | (df["chrom2"] == unmapped_chrom)
+    df_unmapped = df.loc[mask_unmapped, :].copy()
+    df_mapped = df.loc[~mask_unmapped, :].copy()
+    N_mapped = df_mapped.shape[0]
+
+    # If there are some mapped reads, dedup them:
+    if N_mapped > 0:
         if backend == "sklearn":
             a = neighbors.radius_neighbors_graph(
-                df[["pos1", "pos2"]], radius=r, p=p, n_jobs=n_proc,
+                df_mapped[["pos1", "pos2"]], radius=r, p=p, n_jobs=n_proc,
             )
             a0, a1 = a.nonzero()
         elif backend == "scipy":
-            z = scipy.spatial.cKDTree(df[["pos1", "pos2"]])
+            z = scipy.spatial.cKDTree(df_mapped[["pos1", "pos2"]])
             a = z.query_pairs(r=r, p=p, output_type="ndarray")
             a0 = a[:, 0]
             a1 = a[:, 1]
@@ -559,31 +571,35 @@ def dedup_chunk(
         )
         nonpos_matches = np.all(
             [
-                df.iloc[a0, df.columns.get_loc(lc)].values
-                == df.iloc[a1, df.columns.get_loc(rc)].values
+                df_mapped.iloc[a0, df_mapped.columns.get_loc(lc)].values
+                == df_mapped.iloc[a1, df_mapped.columns.get_loc(rc)].values
                 for (lc, rc) in need_to_match
             ],
             axis=0,
         )
         a0 = a0[nonpos_matches]
         a1 = a1[nonpos_matches]
-        a_mat = coo_matrix((np.ones_like(a0), (a0, a1)), shape=(N, N))
+        a_mat = coo_matrix((np.ones_like(a0), (a0, a1)), shape=(N_mapped, N_mapped))
 
-        df["clusterid"] = connected_components(a_mat, directed=False)[1]
+        # Set up inferred clusterIDs:
+        df_mapped.loc[:, "clusterid"] = connected_components(a_mat, directed=False)[1]
 
-    else:
-        df["clusterid"] = np.nan
-    dups = df["clusterid"].duplicated()
-    df["duplicate"] = False
+    mask_dups = df_mapped["clusterid"].duplicated()
+    df_mapped.loc[mask_dups, "duplicate"] = True
+
+    # Mark parent IDs if requested:
     if keep_parent_read_id:
-        df["parent_readID"] = df["clusterid"].map(
-            df[~dups].set_index("clusterid")["readID"]
+        df_mapped.loc[:, "parent_readID"] = df_mapped["clusterid"].map(
+            df_mapped[~mask_dups].set_index("clusterid")["readID"]
         )
-        unmapped["parent_readID"] = ""
-    unmapped["duplicate"] = False
+        df_unmapped.loc[:, "parent_readID"] = ""
 
-    df.iloc[dups, df.columns.get_loc("duplicate")] = True
-    return pd.concat([unmapped, df.drop(["clusterid"], axis=1)]).reset_index(drop=True)
+    # Reconstruct original dataframe with removed duplicated reads:
+    df = pd.concat([df_unmapped, df_mapped]).reset_index(drop=True)
+    df = df.set_index(index_colname) # Set up the original index
+    df = df.drop(["clusterid"], axis=1) # Remove the information that we don't need anymore:
+
+    return df
 
 
 def _dedup_by_chunk(
@@ -600,17 +616,19 @@ def _dedup_by_chunk(
     backend,
     n_proc,
 ):
+    # Stream the input dataframe:
     dfs = pd.read_table(
         in_stream, comment=comment_char, names=colnames, chunksize=chunksize
     )
 
-    old_nodups = pd.DataFrame([])
-    old_i = 0
+    # Set up the carryover dataframe:
+    df_prev_nodups = pd.DataFrame([])
+    prev_i = 0
+
+    # Iterate over chunks:
     for df in dfs:
-        marked = dedup_chunk(
-            pd.concat([old_nodups, df], axis=0, ignore_index=True).reset_index(
-                drop=True
-            ),
+        df_marked = dedup_chunk(
+            pd.concat([df_prev_nodups, df], axis=0, ignore_index=True).reset_index(drop=True),
             r=max_mismatch,
             method=method,
             keep_parent_read_id=save_parent_id,
@@ -618,15 +636,19 @@ def _dedup_by_chunk(
             backend=backend,
             n_proc=n_proc,
         )
-        marked = marked.iloc[old_i:, :].reset_index(drop=True)
+        df_marked = df_marked.loc[prev_i:, :].reset_index(drop=True)
+        mask_duplicated = df_marked["duplicate"]
         if mark_dups:
-            marked.iloc[marked["duplicate"], marked.columns.get_loc("pair_type")] = "DD"
-        nodups = marked[~marked["duplicate"]]
+            df_marked.loc[mask_duplicated, "pair_type"] = "DD"
 
-        nodups = nodups[colnames]
-        old_nodups = nodups.iloc[-carryover:].reset_index(drop=True)
-        old_i = carryover
-        yield marked
+        # Filter out duplicates and store specific columns:
+        df_nodups = df_marked.loc[~mask_duplicated, colnames]
+
+        # Re-define carryover pairs:
+        df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
+        prev_i = carryover
+
+        yield df_marked
 
 
 def streaming_dedup(
@@ -662,30 +684,47 @@ def streaming_dedup(
         backend=backend,
         n_proc=n_proc,
     )
+
     t0 = time.time()
     N = 0
-    for chunk in deduped_chunks:
-        N += chunk.shape[0]
+
+    for df_chunk in deduped_chunks:
+        N += df_chunk.shape[0]
+
+        # Write the stats if requested:
         if out_stat is not None:
-            out_stat.add_pairs_from_dataframe(chunk, unmapped_chrom=unmapped_chrom)
-        mapped = np.logical_and(
-            (chunk["chrom1"] != unmapped_chrom), (chunk["chrom2"] != unmapped_chrom)
+            out_stat.add_pairs_from_dataframe(df_chunk, unmapped_chrom=unmapped_chrom)
+
+        # Define masks of unmapped and duplicated reads:
+        mask_mapped = np.logical_and(
+            (df_chunk["chrom1"] != unmapped_chrom), (df_chunk["chrom2"] != unmapped_chrom)
         )
-        duplicates = chunk["duplicate"]
-        chunk = chunk.drop(columns=["duplicate"])
+        mask_duplicates = df_chunk["duplicate"]
+
+        # Clean up dataframe:
+        df_chunk = df_chunk.drop(columns=["duplicate"])
+
+        # Stream the dups:
         if outstream_dups:
-            chunk[mapped & duplicates].to_csv(
+            df_chunk.loc[mask_mapped & mask_duplicates, :].to_csv(
                 outstream_dups, index=False, header=False, sep="\t"
             )
+
+        # Drop readID if it was created (not needed for nodup and unmapped pairs):
         if save_parent_id:
-            chunk = chunk.drop(columns=["parent_readID"])
-        chunk[mapped & (~duplicates)].to_csv(
-            outstream, index=False, header=False, sep="\t"
-        )
+            df_chunk = df_chunk.drop(columns=["parent_readID"])
+
+        # Stream unmapped:
         if outstream_unmapped:
-            chunk[~mapped].to_csv(
+            df_chunk.loc[~mask_mapped, :].to_csv(
                 outstream_unmapped, index=False, header=False, sep="\t"
             )
+
+        # Stream unique pairs:
+        df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
+            outstream, index=False, header=False, sep="\t"
+        )
+
     t1 = time.time()
     t = t1 - t0
     print(f"total time: {t}")
@@ -738,9 +777,6 @@ def streaming_dedup_cython(
     cols_buffer = []
     chromDict = {}
     strandDict = {}
-    n_unmapped = 0
-    n_dups = 0
-    n_nodups = 0
     curMaxLen = max(MAX_LEN, dd.getLen())
 
     t0 = time.time()
