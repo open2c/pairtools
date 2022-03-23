@@ -646,7 +646,7 @@ def _dedup_by_chunk(
 
         # Re-define carryover pairs:
         df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
-        prev_i = carryover
+        prev_i = len(df_prev_nodups)
 
         yield df_marked
 
