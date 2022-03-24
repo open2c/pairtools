@@ -31,6 +31,8 @@ MAX_LEN = 10000
 
 @cli.command()
 @click.argument("pairs_path", type=str, required=False)
+
+### Output files:
 @click.option(
     "-o",
     "--output",
@@ -68,6 +70,8 @@ MAX_LEN = 10000
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
     " By default, statistics are not printed.",
 )
+
+### Set the dedup method:
 @click.option(
     "--max-mismatch",
     type=int,
@@ -85,12 +89,24 @@ MAX_LEN = 10000
     show_default=True,
 )
 @click.option(
+    "--backend",
+    type=click.Choice(["scipy", "sklearn", "cython"]),
+    default="scipy",
+    help="What backend to use: scipy and sklearn are based on KD-trees,"
+    " cython is online indexed list-based algorithm. " # TODO: add a nt on difference between approaches
+    " Cython is an original version used in pairtools since its beginning. "
+    # " 'cython' is deprecated and provided for backwards compatibility",
+)
+
+### Scipy and sklearn-specific options:
+@click.option(
     "--chunksize",
     type=int,
     default=1_000_000,
     show_default=True,
     help="Number of pairs in each chunk. Reduce for lower memory footprint."
-    " Below 10,000 performance starts suffering significantly",
+    " Below 10,000 performance starts suffering significantly. "
+    " Only works with '--backend scipy or sklearn'",
 )
 @click.option(
     "--carryover",
@@ -98,8 +114,44 @@ MAX_LEN = 10000
     default=100,
     show_default=True,
     help="Number of deduped pairs to carry over from previous chunk to the new chunk"
-    " to avoid breaking duplicate clusters.",
+    " to avoid breaking duplicate clusters."
+    " Only works with '--backend scipy or sklearn'",
 )
+@click.option(
+    "-p",
+    "--n-proc",
+    type=int,
+    default=1,
+    help="Number of cores to use. Only applies with sklearn backend."
+    "Still needs testing whether it is ever useful.",
+)
+
+### Output options:
+@click.option(
+    "--mark-dups",
+    is_flag=True,
+    help='If specified, duplicate pairs are marked as DD in "pair_type" and '
+    "as a duplicate in the sam entries.",
+)
+@click.option(
+    "--keep-parent-id",
+    is_flag=True,
+    help="If specified, duplicate pairs are marked with the readID of the retained"
+    " deduped read in the 'parent_readID' field.",
+)
+@click.option(
+    "--extra-col-pair",
+    nargs=2,
+    # type=click.Tuple([str, str]),
+    multiple=True,
+    help="Extra columns that also must match for two pairs to be marked as "
+    "duplicates. Can be either provided as 0-based column indices or as column "
+    'names (requires the "#columns" header field). The option can be provided '
+    "multiple times if multiple column pairs must match. "
+    'Example: --extra-col-pair "phase1" "phase2"',
+)
+
+### Input options:
 @click.option(
     "--sep",
     type=str,
@@ -120,42 +172,42 @@ MAX_LEN = 10000
     type=int,
     default=_pairsam_format.COL_C1,
     help=f"Chrom 1 column; default {_pairsam_format.COL_C1}"
-    " Only works with '--backend cython'; deprecated",
+    " Only works with '--backend cython'",
 )
 @click.option(
     "--c2",
     type=int,
     default=_pairsam_format.COL_C2,
     help=f"Chrom 2 column; default {_pairsam_format.COL_C2}"
-    " Only works with '--backend cython'; deprecated",
+    " Only works with '--backend cython'",
 )
 @click.option(
     "--p1",
     type=int,
     default=_pairsam_format.COL_P1,
     help=f"Position 1 column; default {_pairsam_format.COL_P1}"
-    " Only works with '--backend cython'; deprecated",
+    " Only works with '--backend cython'",
 )
 @click.option(
     "--p2",
     type=int,
     default=_pairsam_format.COL_P2,
     help=f"Position 2 column; default {_pairsam_format.COL_P2}"
-    " Only works with '--backend cython'; deprecated",
+    " Only works with '--backend cython'",
 )
 @click.option(
     "--s1",
     type=int,
     default=_pairsam_format.COL_S1,
     help=f"Strand 1 column; default {_pairsam_format.COL_S1}"
-    " Only works with '--backend cython'; deprecated",
+    " Only works with '--backend cython'",
 )
 @click.option(
     "--s2",
     type=int,
     default=_pairsam_format.COL_S2,
     help=f"Strand 2 column; default {_pairsam_format.COL_S2}"
-    " Only works with '--backend cython'; deprecated",
+    " Only works with '--backend cython'",
 )
 @click.option(
     "--unmapped-chrom",
@@ -164,45 +216,6 @@ MAX_LEN = 10000
     help="Placeholder for a chromosome on an unmapped side; default {}".format(
         _pairsam_format.UNMAPPED_CHROM
     ),
-)
-@click.option(
-    "--mark-dups",
-    is_flag=True,
-    help='If specified, duplicate pairs are marked as DD in "pair_type" and '
-    "as a duplicate in the sam entries.",
-)
-@click.option(
-    "--extra-col-pair",
-    nargs=2,
-    # type=click.Tuple([str, str]),
-    multiple=True,
-    help="Extra columns that also must match for two pairs to be marked as "
-    "duplicates. Can be either provided as 0-based column indices or as column "
-    'names (requires the "#columns" header field). The option can be provided '
-    "multiple times if multiple column pairs must match. "
-    'Example: --extra-col-pair "phase1" "phase2"',
-)
-@click.option(
-    "--save-parent-id",
-    is_flag=True,
-    help="If specified, duplicate pairs are marked with the readID of the retained"
-    " deduped read in the 'parent_readID' field."
-    " Only has effect with scipy or sklearn backend",
-)
-@click.option(
-    "--backend",
-    type=click.Choice(["scipy", "sklearn", "cython"]),
-    default="scipy",
-    help="What backend to use"
-    " 'cython' is deprecated and provided for backwards compatibility",
-)
-@click.option(
-    "-p",
-    "--n-proc",
-    type=int,
-    default=1,
-    help="Number of cores to use. Only applies with sklearn backend."
-    "Still needs testing whether it is ever useful.",
 )
 @common_io_options
 def dedup(
@@ -227,7 +240,7 @@ def dedup(
     unmapped_chrom,
     mark_dups,
     extra_col_pair,
-    save_parent_id,
+    keep_parent_id,
     backend,
     n_proc,
     **kwargs,
@@ -264,11 +277,15 @@ def dedup(
         unmapped_chrom,
         mark_dups,
         extra_col_pair,
-        save_parent_id,
+        keep_parent_id,
         backend,
         n_proc,
         **kwargs,
     )
+
+
+if __name__ == "__main__":
+    dedup()
 
 
 def dedup_py(
@@ -293,11 +310,12 @@ def dedup_py(
     unmapped_chrom,
     mark_dups,
     extra_col_pair,
-    save_parent_id,
+    keep_parent_id,
     backend,
     n_proc,
     **kwargs,
 ):
+
     sep = ast.literal_eval('"""' + sep + '"""')
     send_header_to_dedup = send_header_to in ["both", "dedup"]
     send_header_to_dup = send_header_to in ["both", "dups"]
@@ -374,7 +392,8 @@ def dedup_py(
         outstream.writelines((l + "\n" for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
         dups_header = header
-        dups_header[-1] += " parent_readID"
+        if keep_parent_id:
+            dups_header[-1] += " parent_readID"
         outstream_dups.writelines((l + "\n" for l in dups_header))
     if (
         outstream_unmapped
@@ -392,11 +411,11 @@ def dedup_py(
             extra_cols2.append(column_names[col2] if col2.isdigit() else col2)
 
     if backend == "cython":
-        warnings.warn(
-            "'cython' backend is deprecated and provided only"
-            " for backwards compatibility",
-            DeprecationWarning,
-        )
+        # warnings.warn(
+        #     "'cython' backend is deprecated and provided only"
+        #     " for backwards compatibility",
+        #     DeprecationWarning,
+        # )
         extra_cols1 = [column_names.index(col) for col in extra_cols1]
         extra_cols2 = [column_names.index(col) for col in extra_cols2]
         streaming_dedup_cython(
@@ -418,6 +437,7 @@ def dedup_py(
             outstream_unmapped,
             out_stat,
             mark_dups,
+            keep_parent_id
         )
     elif backend in ("scipy", "sklearn"):
         streaming_dedup(
@@ -429,12 +449,12 @@ def dedup_py(
             mark_dups=mark_dups,
             max_mismatch=max_mismatch,
             extra_col_pairs=list(extra_col_pair),
+            keep_parent_id=keep_parent_id,
             unmapped_chrom=unmapped_chrom,
             comment_char=comment_char,
             outstream=outstream,
             outstream_dups=outstream_dups,
             outstream_unmapped=outstream_unmapped,
-            save_parent_id=save_parent_id,
             out_stat=out_stat,
             backend=backend,
             n_proc=n_proc,
@@ -466,22 +486,142 @@ def dedup_py(
         out_stats_stream.close()
 
 
-def fetchadd(key, mydict):
-    key = key.strip()
-    if key not in mydict:
-        mydict[key] = len(mydict)
-    return mydict[key]
+### Cython deduplication ####
+def streaming_dedup(
+    in_stream,
+    colnames,
+    chunksize,
+    carryover,
+    method,
+    mark_dups,
+    max_mismatch,
+    extra_col_pairs,
+    unmapped_chrom,
+    comment_char,
+    outstream,
+    outstream_dups,
+    outstream_unmapped,
+    keep_parent_id,
+    out_stat,
+    backend,
+    n_proc,
+):
+
+    deduped_chunks = _dedup_stream(
+        in_stream=in_stream,
+        colnames=colnames,
+        method=method,
+        chunksize=chunksize,
+        carryover=carryover,
+        mark_dups=mark_dups,
+        max_mismatch=max_mismatch,
+        extra_col_pairs=extra_col_pairs,
+        keep_parent_id=keep_parent_id,
+        comment_char=comment_char,
+        backend=backend,
+        n_proc=n_proc,
+    )
+
+    t0 = time.time()
+    N = 0
+
+    for df_chunk in deduped_chunks:
+        N += df_chunk.shape[0]
+
+        # Write the stats if requested:
+        if out_stat is not None:
+            out_stat.add_pairs_from_dataframe(df_chunk, unmapped_chrom=unmapped_chrom)
+
+        # Define masks of unmapped and duplicated reads:
+        mask_mapped = np.logical_and(
+            (df_chunk["chrom1"] != unmapped_chrom), (df_chunk["chrom2"] != unmapped_chrom)
+        )
+        mask_duplicates = df_chunk["duplicate"]
+
+        # Clean up dataframe:
+        df_chunk = df_chunk.drop(columns=["duplicate"])
+
+        # Stream the dups:
+        if outstream_dups:
+            df_chunk.loc[mask_mapped & mask_duplicates, :].to_csv(
+                outstream_dups, index=False, header=False, sep="\t"
+            )
+
+        # Drop readID if it was created (not needed for nodup and unmapped pairs):
+        if keep_parent_id:
+            df_chunk = df_chunk.drop(columns=["parent_readID"])
+
+        # Stream unmapped:
+        if outstream_unmapped:
+            df_chunk.loc[~mask_mapped, :].to_csv(
+                outstream_unmapped, index=False, header=False, sep="\t"
+            )
+
+        # Stream unique pairs:
+        df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
+            outstream, index=False, header=False, sep="\t"
+        )
+
+    t1 = time.time()
+    t = t1 - t0
+    print(f"total time: {t}")
+    print(f"time per mln pairs: {t/N*1e6}")
 
 
-def ar(mylist, val):
-    return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
+def _dedup_stream(
+    in_stream,
+    colnames,
+    method,
+    chunksize,
+    carryover,
+    mark_dups,
+    max_mismatch,
+    extra_col_pairs,
+    keep_parent_id,
+    comment_char,
+    backend,
+    n_proc,
+):
+    # Stream the input dataframe:
+    dfs = pd.read_table(
+        in_stream, comment=comment_char, names=colnames, chunksize=chunksize
+    )
+
+    # Set up the carryover dataframe:
+    df_prev_nodups = pd.DataFrame([])
+    prev_i = 0
+
+    # Iterate over chunks:
+    for df in dfs:
+        df_marked = _dedup_chunk(
+            pd.concat([df_prev_nodups, df], axis=0, ignore_index=True).reset_index(drop=True),
+            r=max_mismatch,
+            method=method,
+            keep_parent_id=keep_parent_id,
+            extra_col_pairs=extra_col_pairs,
+            backend=backend,
+            n_proc=n_proc,
+        )
+        df_marked = df_marked.loc[prev_i:, :].reset_index(drop=True)
+        mask_duplicated = df_marked["duplicate"]
+        if mark_dups:
+            df_marked.loc[mask_duplicated, "pair_type"] = "DD"
+
+        # Filter out duplicates and store specific columns:
+        df_nodups = df_marked.loc[~mask_duplicated, colnames]
+
+        # Re-define carryover pairs:
+        df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
+        prev_i = len(df_prev_nodups)
+
+        yield df_marked
 
 
-def dedup_chunk(
+def _dedup_chunk(
     df,
     r,
     method,
-    keep_parent_read_id,
+    keep_parent_id,
     extra_col_pairs,
     backend,
     unmapped_chrom="!",
@@ -499,7 +639,7 @@ def dedup_chunk(
     method : str
         'sum' or 'max' - whether 'r' uses sum of distances on two ends of pairs, or the
         maximal distance
-    keep_parent_read_id : bool
+    keep_parent_id : bool
         If True, the read ID of the read that was not labelled as a duplicate from a
         group of duplicates is recorded for each read marked as duplicate.
         Only possible with non-cython backends
@@ -588,7 +728,7 @@ def dedup_chunk(
     df_mapped.loc[mask_dups, "duplicate"] = True
 
     # Mark parent IDs if requested:
-    if keep_parent_read_id:
+    if keep_parent_id:
         df_mapped.loc[:, "parent_readID"] = df_mapped["clusterid"].map(
             df_mapped[~mask_dups].set_index("clusterid")["readID"]
         )
@@ -600,135 +740,6 @@ def dedup_chunk(
     df = df.drop(["clusterid"], axis=1) # Remove the information that we don't need anymore:
 
     return df
-
-
-def _dedup_by_chunk(
-    in_stream,
-    colnames,
-    method,
-    chunksize,
-    carryover,
-    mark_dups,
-    max_mismatch,
-    extra_col_pairs,
-    save_parent_id,
-    comment_char,
-    backend,
-    n_proc,
-):
-    # Stream the input dataframe:
-    dfs = pd.read_table(
-        in_stream, comment=comment_char, names=colnames, chunksize=chunksize
-    )
-
-    # Set up the carryover dataframe:
-    df_prev_nodups = pd.DataFrame([])
-    prev_i = 0
-
-    # Iterate over chunks:
-    for df in dfs:
-        df_marked = dedup_chunk(
-            pd.concat([df_prev_nodups, df], axis=0, ignore_index=True).reset_index(drop=True),
-            r=max_mismatch,
-            method=method,
-            keep_parent_read_id=save_parent_id,
-            extra_col_pairs=extra_col_pairs,
-            backend=backend,
-            n_proc=n_proc,
-        )
-        df_marked = df_marked.loc[prev_i:, :].reset_index(drop=True)
-        mask_duplicated = df_marked["duplicate"]
-        if mark_dups:
-            df_marked.loc[mask_duplicated, "pair_type"] = "DD"
-
-        # Filter out duplicates and store specific columns:
-        df_nodups = df_marked.loc[~mask_duplicated, colnames]
-
-        # Re-define carryover pairs:
-        df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
-        prev_i = len(df_prev_nodups)
-
-        yield df_marked
-
-
-def streaming_dedup(
-    in_stream,
-    colnames,
-    chunksize,
-    carryover,
-    method,
-    mark_dups,
-    max_mismatch,
-    extra_col_pairs,
-    unmapped_chrom,
-    comment_char,
-    outstream,
-    outstream_dups,
-    outstream_unmapped,
-    save_parent_id,
-    out_stat,
-    backend,
-    n_proc,
-):
-    deduped_chunks = _dedup_by_chunk(
-        in_stream=in_stream,
-        colnames=colnames,
-        method=method,
-        chunksize=chunksize,
-        carryover=carryover,
-        mark_dups=mark_dups,
-        max_mismatch=max_mismatch,
-        extra_col_pairs=extra_col_pairs,
-        save_parent_id=save_parent_id,
-        comment_char=comment_char,
-        backend=backend,
-        n_proc=n_proc,
-    )
-
-    t0 = time.time()
-    N = 0
-
-    for df_chunk in deduped_chunks:
-        N += df_chunk.shape[0]
-
-        # Write the stats if requested:
-        if out_stat is not None:
-            out_stat.add_pairs_from_dataframe(df_chunk, unmapped_chrom=unmapped_chrom)
-
-        # Define masks of unmapped and duplicated reads:
-        mask_mapped = np.logical_and(
-            (df_chunk["chrom1"] != unmapped_chrom), (df_chunk["chrom2"] != unmapped_chrom)
-        )
-        mask_duplicates = df_chunk["duplicate"]
-
-        # Clean up dataframe:
-        df_chunk = df_chunk.drop(columns=["duplicate"])
-
-        # Stream the dups:
-        if outstream_dups:
-            df_chunk.loc[mask_mapped & mask_duplicates, :].to_csv(
-                outstream_dups, index=False, header=False, sep="\t"
-            )
-
-        # Drop readID if it was created (not needed for nodup and unmapped pairs):
-        if save_parent_id:
-            df_chunk = df_chunk.drop(columns=["parent_readID"])
-
-        # Stream unmapped:
-        if outstream_unmapped:
-            df_chunk.loc[~mask_mapped, :].to_csv(
-                outstream_unmapped, index=False, header=False, sep="\t"
-            )
-
-        # Stream unique pairs:
-        df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
-            outstream, index=False, header=False, sep="\t"
-        )
-
-    t1 = time.time()
-    t = t1 - t0
-    print(f"total time: {t}")
-    print(f"time per mln pairs: {t/N*1e6}")
 
 
 def streaming_dedup_cython(
@@ -750,8 +761,39 @@ def streaming_dedup_cython(
     outstream_unmapped,
     out_stat,
     mark_dups,
+    keep_parent_id=False,
+    readid_ind=0
 ):
+    """
+    Cython-powered deduplication with online algorithm based on indexed list.
 
+    Parameters
+    ----------
+    method: "max" or "sum"
+    max_mismatch: maximum allowed mismatch to count the pairs as duplicates
+    sep: separator of the fields in the input file
+    c1ind: index of the chr1 column
+    c2ind: index of the chr2 column
+    p1ind: index of the pos1 column
+    p2ind: index of the pos2 column
+    s1ind: index of the strand1 column
+    s2ind: index of the strand2 column
+    extra_cols1: extra columns for left alignment in a pair to add
+    extra_cols2: extra columns for right alignment in a pair to add
+    unmapped_chrom: Symbol of the chromosome for the unmapped alignment
+    instream: input stream of pair file
+    outstream: output stram of deduplicated pairs
+    outstream_dups: output stream of duplicates (optionally with added parent_id, see keep_parent_id option)
+    outstream_unmapped: output stram of unmapped pairs
+    out_stat: output statistics
+    mark_dups: if True, will add "DD" as the pair_type
+    keep_parent_id: if True, additional column "parent_readID will be added to the output, can be useful for optical duplicates search
+    readid_ind: index of the readID column in the input file
+
+    Returns
+    -------
+
+    """
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
     if bool(extra_cols1) and bool(extra_cols2):
         maxind = max(maxind, max(extra_cols1), max(extra_cols2))
@@ -765,7 +807,7 @@ def streaming_dedup_cython(
         ptind = _pairsam_format.COL_PTYPE
         maxind = max(maxind, ptind)
 
-    dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False)
+    dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False, keep_parent_id=keep_parent_id)
 
     c1 = []
     c2 = []
@@ -773,6 +815,7 @@ def streaming_dedup_cython(
     p2 = []
     s1 = []
     s2 = []
+    idx = []
     line_buffer = []
     cols_buffer = []
     chromDict = {}
@@ -783,6 +826,7 @@ def streaming_dedup_cython(
     N = 0
 
     instream = iter(instream)
+    read_idx = 0 # read index to mark the parent readID
     while True:
         rawline = next(instream, None)
         stripline = rawline.strip() if rawline else None
@@ -826,6 +870,10 @@ def streaming_dedup_cython(
                 c2.append(fetchadd(cols[c2ind], chromDict))
                 p1.append(int(cols[p1ind]))
                 p2.append(int(cols[p2ind]))
+
+                idx.append(read_idx)
+                read_idx += 1
+
                 if bool(extra_cols1) and bool(extra_cols2):
                     s1.append(
                         fetchadd("".join(cols[i] for i in all_scols1), strandDict)
@@ -838,11 +886,22 @@ def streaming_dedup_cython(
                     s2.append(fetchadd(cols[s2ind], strandDict))
             N += 1
         if (not stripline) or (len(c1) == curMaxLen):
-            res = dd.push(
-                ar(c1, 32), ar(c2, 32), ar(p1, 32), ar(p2, 32), ar(s1, 32), ar(s2, 32)
-            )
+            if keep_parent_id:
+                res, parents = dd.push(
+                    ar(c1, 32), ar(c2, 32), ar(p1, 32), ar(p2, 32), ar(s1, 32), ar(s2, 32)
+                )
+            else:
+                res = dd.push(
+                    ar(c1, 32), ar(c2, 32), ar(p1, 32), ar(p2, 32), ar(s1, 32), ar(s2, 32)
+                )
+
             if not stripline:
-                res = np.concatenate([res, dd.finish()])
+                if keep_parent_id:
+                    res_tmp, parents_tmp = dd.finish()
+                    parents = np.concatenate([parents, parents_tmp])
+                else:
+                    res_tmp = dd.finish()
+                res = np.concatenate([res, res_tmp])
 
             for i in range(len(res)):
                 # not duplicated pair:
@@ -873,13 +932,17 @@ def streaming_dedup_cython(
                             "DD",
                         )
                     if outstream_dups:
-                        outstream_dups.write(
-                            # DD-marked pair:
-                            sep.join(mark_split_pair_as_dup(cols_buffer[i]))
-                            if mark_dups
-                            # pair as is:
-                            else line_buffer[i]
-                        )
+                        if mark_dups: # DD-marked pair:
+                            output = sep.join(mark_split_pair_as_dup(cols_buffer[i]))
+                        else: # pair as is:
+                            output = line_buffer[i]
+
+                        if keep_parent_id: # Add parentID as the last column:
+                            parent_readID = line_buffer[parents[i]].split(sep)[readid_ind]
+                            output = sep.join([output, parent_readID])
+
+                        outstream_dups.write(output)
+
                         # don't forget terminal newline
                         outstream_dups.write("\n")
 
@@ -901,6 +964,7 @@ def streaming_dedup_cython(
                     )
                 break
         # process next line ...
+
     # all lines have been processed at this point.
     # streaming_dedup is over.
     t1 = time.time()
@@ -909,5 +973,12 @@ def streaming_dedup_cython(
     print(f"time per mln pairs: {t/N*1e6}")
 
 
-if __name__ == "__main__":
-    dedup()
+def fetchadd(key, mydict):
+    key = key.strip()
+    if key not in mydict:
+        mydict[key] = len(mydict)
+    return mydict[key]
+
+
+def ar(mylist, val):
+    return np.array(mylist, dtype={8: np.int8, 16: np.int16, 32: np.int32}[val])
