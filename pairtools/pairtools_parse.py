@@ -229,7 +229,7 @@ def parse_py(
     if sam_path:  # open input sam file with pysam
         input_sam = AlignmentFilePairtoolized(sam_path, "r", threads=kwargs.get('nproc_in'))
     else:  # read from stdin
-        input_sam = AlignmentFilePairtoolized("_", "r", threads=kwargs.get('nproc_in'))
+        input_sam = AlignmentFilePairtoolized("-", "r", threads=kwargs.get('nproc_in'))
 
     ### Set up output streams
     outstream = (
