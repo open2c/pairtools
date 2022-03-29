@@ -65,7 +65,7 @@ MAX_LEN = 10000
     "--output-stats",
     type=str,
     default="",
-    help="output file for duplicate statistics. "
+    help="output file for duplicate statistics."
     " If file exists, it will be open in the append mode."
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
     " By default, statistics are not printed.",
@@ -93,8 +93,12 @@ MAX_LEN = 10000
     type=click.Choice(["scipy", "sklearn", "cython"]),
     default="scipy",
     help="What backend to use: scipy and sklearn are based on KD-trees,"
-    " cython is online indexed list-based algorithm. " # TODO: add a nt on difference between approaches
-    " Cython is an original version used in pairtools since its beginning. "
+    " cython is online indexed list-based algorithm."  # TODO: add a nt on difference between approaches
+    " Cython is the original version used in pairtools since its beginning."
+    " It is available for backwards compatibility and to allow specification of the"
+    " columns order."
+    " Now the default scipy backend is generally the fastest, and with chunksize below"
+    " 1 mln has the lowest memory requirements."
     # " 'cython' is deprecated and provided for backwards compatibility",
 )
 
@@ -105,7 +109,8 @@ MAX_LEN = 10000
     default=1_000_000,
     show_default=True,
     help="Number of pairs in each chunk. Reduce for lower memory footprint."
-    " Below 10,000 performance starts suffering significantly. "
+    " Below 10,000 performance starts suffering significantly and the algorithm might"
+    " miss a few duplicates with non-zero --max-mismatch."
     " Only works with '--backend scipy or sklearn'",
 )
 @click.option(
@@ -437,7 +442,7 @@ def dedup_py(
             outstream_unmapped,
             out_stat,
             mark_dups,
-            keep_parent_id
+            keep_parent_id,
         )
     elif backend in ("scipy", "sklearn"):
         streaming_dedup(
@@ -534,7 +539,8 @@ def streaming_dedup(
 
         # Define masks of unmapped and duplicated reads:
         mask_mapped = np.logical_and(
-            (df_chunk["chrom1"] != unmapped_chrom), (df_chunk["chrom2"] != unmapped_chrom)
+            (df_chunk["chrom1"] != unmapped_chrom),
+            (df_chunk["chrom2"] != unmapped_chrom),
         )
         mask_duplicates = df_chunk["duplicate"]
 
@@ -594,7 +600,9 @@ def _dedup_stream(
     # Iterate over chunks:
     for df in dfs:
         df_marked = _dedup_chunk(
-            pd.concat([df_prev_nodups, df], axis=0, ignore_index=True).reset_index(drop=True),
+            pd.concat([df_prev_nodups, df], axis=0, ignore_index=True).reset_index(
+                drop=True
+            ),
             r=max_mismatch,
             method=method,
             keep_parent_id=keep_parent_id,
@@ -675,8 +683,8 @@ def _dedup_chunk(
     # Store the index of the dataframe:
     index_colname = df.index.name
     if index_colname is None:
-        index_colname = 'index'
-    df = df.reset_index() # Remove the index temporarily
+        index_colname = "index"
+    df = df.reset_index()  # Remove the index temporarily
 
     # Set up columns to store the dedup info:
     df.loc[:, "clusterid"] = np.nan
@@ -736,8 +744,10 @@ def _dedup_chunk(
 
     # Reconstruct original dataframe with removed duplicated reads:
     df = pd.concat([df_unmapped, df_mapped]).reset_index(drop=True)
-    df = df.set_index(index_colname) # Set up the original index
-    df = df.drop(["clusterid"], axis=1) # Remove the information that we don't need anymore:
+    df = df.set_index(index_colname)  # Set up the original index
+    df = df.drop(
+        ["clusterid"], axis=1
+    )  # Remove the information that we don't need anymore:
 
     return df
 
@@ -762,7 +772,7 @@ def streaming_dedup_cython(
     out_stat,
     mark_dups,
     keep_parent_id=False,
-    readid_ind=0
+    readid_ind=0,
 ):
     """
     Cython-powered deduplication with online algorithm based on indexed list.
@@ -807,7 +817,9 @@ def streaming_dedup_cython(
         ptind = _pairsam_format.COL_PTYPE
         maxind = max(maxind, ptind)
 
-    dd = _dedup.OnlineDuplicateDetector(method, max_mismatch, returnData=False, keep_parent_id=keep_parent_id)
+    dd = _dedup.OnlineDuplicateDetector(
+        method, max_mismatch, returnData=False, keep_parent_id=keep_parent_id
+    )
 
     c1 = []
     c2 = []
@@ -826,7 +838,7 @@ def streaming_dedup_cython(
     N = 0
 
     instream = iter(instream)
-    read_idx = 0 # read index to mark the parent readID
+    read_idx = 0  # read index to mark the parent readID
     while True:
         rawline = next(instream, None)
         stripline = rawline.strip() if rawline else None
@@ -888,11 +900,21 @@ def streaming_dedup_cython(
         if (not stripline) or (len(c1) == curMaxLen):
             if keep_parent_id:
                 res, parents = dd.push(
-                    ar(c1, 32), ar(c2, 32), ar(p1, 32), ar(p2, 32), ar(s1, 32), ar(s2, 32)
+                    ar(c1, 32),
+                    ar(c2, 32),
+                    ar(p1, 32),
+                    ar(p2, 32),
+                    ar(s1, 32),
+                    ar(s2, 32),
                 )
             else:
                 res = dd.push(
-                    ar(c1, 32), ar(c2, 32), ar(p1, 32), ar(p2, 32), ar(s1, 32), ar(s2, 32)
+                    ar(c1, 32),
+                    ar(c2, 32),
+                    ar(p1, 32),
+                    ar(p2, 32),
+                    ar(s1, 32),
+                    ar(s2, 32),
                 )
 
             if not stripline:
@@ -932,13 +954,15 @@ def streaming_dedup_cython(
                             "DD",
                         )
                     if outstream_dups:
-                        if mark_dups: # DD-marked pair:
+                        if mark_dups:  # DD-marked pair:
                             output = sep.join(mark_split_pair_as_dup(cols_buffer[i]))
-                        else: # pair as is:
+                        else:  # pair as is:
                             output = line_buffer[i]
 
-                        if keep_parent_id: # Add parentID as the last column:
-                            parent_readID = line_buffer[parents[i]].split(sep)[readid_ind]
+                        if keep_parent_id:  # Add parentID as the last column:
+                            parent_readID = line_buffer[parents[i]].split(sep)[
+                                readid_ind
+                            ]
                             output = sep.join([output, parent_readID])
 
                         outstream_dups.write(output)
