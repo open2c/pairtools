@@ -163,6 +163,8 @@ cdef class OnlineDuplicateDetector(object):
             self.keep_parent_id = 0
         else:
             self.keep_parent_id = 1
+            self.parent_idxs = np.zeros(0, np.int32)
+
         self.N = 0
         self.c1 = np.zeros(0, np.int32)
         self.c2 = np.zeros(0, np.int32)
@@ -170,7 +172,7 @@ cdef class OnlineDuplicateDetector(object):
         self.p2 = np.zeros(0, np.int32)
         self.s1 = np.zeros(0, np.int32)
         self.s2 = np.zeros(0, np.int32)
-        self.parent_idxs = np.zeros(0, np.int32)
+
         self.rm = np.zeros(0, np.int8)
         if method == "max":
             self.methodid = 0
@@ -198,13 +200,13 @@ cdef class OnlineDuplicateDetector(object):
         self.s2 = self.s2[self.low:]
         pastrm = self.rm[:self.low]
         self.rm = self.rm[self.low:]
-        pastidx = self.parent_idxs[:self.low]
         self.high = self.high-self.low
         self.N = self.N - self.low
         self.low = 0
         if self.returnData == 1:
             return ret
         if self.keep_parent_id == 1: # Return parent readIDs alongside with duplicates mask:
+            pastidx = self.parent_idxs[:self.low]
             return pastrm, pastidx
         return pastrm
 
@@ -265,7 +267,8 @@ cdef class OnlineDuplicateDetector(object):
                     (self.s2[self.low] == self.s2[self.high]) and
                     extraCondition):
                 self.rm[self.high] = 1
-                self.parent_idxs[self.high] = self.low
+                if self.keep_parent_id == 1:
+                    self.parent_idxs[self.high] = self.low
                 self.high += 1
                 continue
             self.high += 1
@@ -280,7 +283,8 @@ cdef class OnlineDuplicateDetector(object):
         self.s1 = np.concatenate([self.s1, s1])
         self.s2 = np.concatenate([self.s2, s2])
         self.rm = np.concatenate([self.rm, np.zeros(len(c1), dtype=np.int8)])
-        self.parent_idxs = np.concatenate([self.parent_idxs, np.zeros(len(c1), dtype=np.int32)])
+        if self.keep_parent_id == 1:
+            self.parent_idxs = np.concatenate([self.parent_idxs, np.zeros(len(c1), dtype=np.int32)])
         self.N = self.N + len(c1)
         return self._run(finish=False)
 
