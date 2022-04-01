@@ -75,7 +75,7 @@ def stats_py(input_path, output, merge, **kwargs):
 
     for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
         stats.add_pairs_from_dataframe(chunk)
-    
+
     # save statistics to file ...
     stats.save(outstream)
 
@@ -452,7 +452,9 @@ class PairCounter(Mapping):
         self._stat["total_unmapped"] += int(unmapped_count)
 
         # Count the mapped:
-        df_mapped = df[(df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom)]
+        df_mapped = df[
+            (df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom)
+        ]
         mapped_count = df_mapped.shape[0]
 
         self._stat["total_mapped"] += mapped_count
@@ -462,10 +464,10 @@ class PairCounter(Mapping):
 
         # Count the duplicates:
         if "duplicate" in df_mapped.columns:
-            mask_mapped = df_mapped["duplicate"]
+            mask_dups = df_mapped["duplicate"]
         else:
-            mask_mapped = (df_mapped["pair_type"] == "DD")
-        dups_count = mask_mapped.sum()
+            mask_dups = df_mapped["pair_type"] == "DD"
+        dups_count = mask_dups.sum()
         self._stat["total_dups"] += int(dups_count)
         self._stat["total_nodups"] += int(mapped_count - dups_count)
 
@@ -478,9 +480,10 @@ class PairCounter(Mapping):
             )
 
         # Count cis-trans by pairs:
-        cis = df_mapped[df_mapped["chrom1"] == df_mapped["chrom2"]]
+        df_nodups = df_mapped[~mask_dups]
+        cis = df_nodups[df_nodups["chrom1"] == df_nodups["chrom2"]]
         self._stat["cis"] += cis.shape[0]
-        self._stat["trans"] += df_mapped.shape[0] - cis.shape[0]
+        self._stat["trans"] += df_nodups.shape[0] - cis.shape[0]
         dist = np.abs(cis["pos2"].values - cis["pos1"].values)
 
         cis.loc[:, "bin_idx"] = np.searchsorted(self._dist_bins, dist, "right") - 1
