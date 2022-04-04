@@ -35,7 +35,7 @@ UTIL_NAME = "pairtools_phase"
     default="XB",
     help="Specifies the mode of bwa reporting."
     " XB will parse 'XB' tag, the input should be generated with: --add-columns XB,AS,XS --min-mapq 0 "
-    " XA will parse 'XA', the input should be generated with: --add-columns XA,NM --min-mapq 0"
+    " XA will parse 'XA', the input should be generated with: --add-columns XA,NM,AS,XS --min-mapq 0"
     " Note that XB tag be added by running bwa with -u tag, present in github version.",
 )
 @common_io_options
@@ -124,6 +124,10 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, **kwarg
             or ("XA2" not in old_column_names)
             or ("NM1" not in old_column_names)
             or ("NM2" not in old_column_names)
+            or ("AS1" not in old_column_names)
+            or ("AS2" not in old_column_names)
+            or ("XS1" not in old_column_names)
+            or ("XS2" not in old_column_names)
         ):
             raise ValueError(
                 "The input pairs file must be parsed with the flag --add-columns XA,NM --min-mapq 0"
@@ -133,6 +137,10 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, **kwarg
         COL_XA2 = old_column_names.index("XA2")
         COL_NM1 = old_column_names.index("NM1")
         COL_NM2 = old_column_names.index("NM2")
+        COL_AS1 = old_column_names.index("AS1")
+        COL_AS2 = old_column_names.index("AS2")
+        COL_XS1 = old_column_names.index("XS1")
+        COL_XS2 = old_column_names.index("XS2")
 
     outstream.writelines((l + "\n" for l in header))
 
@@ -155,6 +163,8 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, **kwarg
                 phase1, chrom_base1 = phase_side_XA(
                     cols[_pairsam_format.COL_C1],
                     cols[COL_XA1],
+                    int(cols[COL_AS1]),
+                    int(cols[COL_XS1]),
                     int(cols[COL_NM1]),
                     phase_suffixes,
                 )
@@ -171,6 +181,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, **kwarg
         if cols[_pairsam_format.COL_C2] != _pairsam_format.UNMAPPED_CHROM:
 
             if tag_mode == "XB":
+
                 phase2, chrom_base2 = phase_side_XB(
                     cols[_pairsam_format.COL_C2],
                     cols[COL_XB2],
@@ -182,6 +193,8 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, **kwarg
                 phase2, chrom_base2 = phase_side_XA(
                     cols[_pairsam_format.COL_C2],
                     cols[COL_XA2],
+                    int(cols[COL_AS2]),
+                    int(cols[COL_XS2]),
                     int(cols[COL_NM2]),
                     phase_suffixes,
                 )
@@ -223,9 +236,7 @@ def phase_side_XB(chrom, XB, AS, XS, phase_suffixes):
     phase, chrom_base = get_chrom_phase(chrom, phase_suffixes)
     XBs = [i for i in XB.split(";") if len(i) > 0]
 
-    if (AS > XS) or (
-        len(XBs) == 0
-    ):  # Primary hit has higher score than the secondary, or there are no alternative hits
+    if (AS > XS):  # Primary hit has higher score than the secondary
         return phase, chrom_base
 
     elif len(XBs) >= 1:
@@ -255,11 +266,11 @@ def phase_side_XB(chrom, XB, AS, XS, phase_suffixes):
     return "!", "!"
 
 
-def phase_side_XA(chrom, XA, NM, phase_suffixes):
+def phase_side_XA(chrom, XA, AS, XS, NM, phase_suffixes):
     phase, chrom_base = get_chrom_phase(chrom, phase_suffixes)
     XAs = [i for i in XA.split(";") if len(i.strip()) > 0]
 
-    if len(XAs) == 0:
+    if (AS > XS):  # Primary hit has higher score than the secondary
         return phase, chrom_base
 
     else:
