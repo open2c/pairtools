@@ -78,7 +78,7 @@ MAX_LEN = 10000
     default=3,
     show_default=True,
     help="Pairs with both sides mapped within this distance (bp) from each "
-    "other are considered duplicates.",
+    "other are considered duplicates. ",
 )
 @click.option(
     "--method",
@@ -93,10 +93,14 @@ MAX_LEN = 10000
     type=click.Choice(["scipy", "sklearn", "cython"]),
     default="scipy",
     help="What backend to use: scipy and sklearn are based on KD-trees,"
-    " cython is online indexed list-based algorithm."  # TODO: add a nt on difference between approaches
+    " cython is online indexed list-based algorithm."
+    " With cython backend, duplication is not transitive with non-zero max mismatch "
+    " (e.g. pairs A and B are duplicates, and B and C are duplicates, then A and C are "
+    " not necessary duplicates of each other), while with scipy and sklearn it's "
+    " transitive (i.e. A and C are necessarily duplicates)."
     " Cython is the original version used in pairtools since its beginning."
     " It is available for backwards compatibility and to allow specification of the"
-    " columns order."
+    " column order."
     " Now the default scipy backend is generally the fastest, and with chunksize below"
     " 1 mln has the lowest memory requirements."
     # " 'cython' is deprecated and provided for backwards compatibility",
