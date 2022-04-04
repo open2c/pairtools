@@ -93,3 +93,7 @@ ENV/
 
 # cython compiled C extension
 _*.c
+*.DS_Store
+
+# VS code settings
+.vscode/*
