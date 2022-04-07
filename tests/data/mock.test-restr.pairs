@@ -1,0 +1,18 @@
+## pairs format v1.0.0
+#shape: upper triangle
+#genome_assembly: unknown
+#samheader: @SQ SN:chr1 LN:10000
+#samheader: @SQ SN:chr2 LN:10000
+#samheader: @PG ID:bwa  PN:bwa  VN:0.7.15-r1140 CL:bwa mem -SP /path/ucsc.hg19.fasta.gz /path/1.fastq.gz /path/2.fastq.gz
+#chromosomes: chr1 chr2
+#chromsize: chr1 10000
+#chromsize: chr2 10000
+#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type rfrag_test1 rfrag_test2
+readid01	chr1	1	chr2	20	+	+	UU	0	0
+readid02	chr1	100	chr2	20	-	+	UU	0	0
+readid03	chr1	100	chr2	20	+	+	UU	0	0
+readid04	chr1	499	chr2	20	+	+	UU	1	0
+readid05	chr1	600	chr2	20	+	+	UU	2	0
+readid06	chr1	1	chr2	200	+	+	UU	0	0
+readid07	chr1	1	chr2	500	+	+	UU	0	1
+readid08	chr1	10001	chr2	10001	+	+	UU	2	1
