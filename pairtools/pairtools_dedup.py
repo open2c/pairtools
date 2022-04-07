@@ -401,8 +401,8 @@ def dedup_py(
         outstream.writelines((l + "\n" for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
         dups_header = header
-        if keep_parent_id:
-            dups_header[-1] += " parent_readID"
+        if keep_parent_id and len(dups_header)>0:
+            dups_header= _headerops.append_columns(dups_header, ["parent_readID"])
         outstream_dups.writelines((l + "\n" for l in dups_header))
     if (
         outstream_unmapped
@@ -911,6 +911,7 @@ def streaming_dedup_cython(
                     ar(s1, 32),
                     ar(s2, 32),
                 )
+
             else:
                 res = dd.push(
                     ar(c1, 32),
@@ -925,6 +926,7 @@ def streaming_dedup_cython(
                 if keep_parent_id:
                     res_tmp, parents_tmp = dd.finish()
                     parents = np.concatenate([parents, parents_tmp])
+
                 else:
                     res_tmp = dd.finish()
                 res = np.concatenate([res, res_tmp])

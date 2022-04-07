@@ -452,9 +452,7 @@ class PairCounter(Mapping):
         self._stat["total_unmapped"] += int(unmapped_count)
 
         # Count the mapped:
-        df_mapped = df[
-            (df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom)
-        ]
+        df_mapped = df.loc[(df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :]
         mapped_count = df_mapped.shape[0]
 
         self._stat["total_mapped"] += mapped_count
@@ -480,15 +478,16 @@ class PairCounter(Mapping):
             )
 
         # Count cis-trans by pairs:
-        df_nodups = df_mapped[~mask_dups]
-        cis = df_nodups[df_nodups["chrom1"] == df_nodups["chrom2"]]
-        self._stat["cis"] += cis.shape[0]
-        self._stat["trans"] += df_nodups.shape[0] - cis.shape[0]
-        dist = np.abs(cis["pos2"].values - cis["pos1"].values)
+        df_nodups = df_mapped.loc[~mask_dups, :]
+        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
+        df_cis = df_nodups.loc[mask_cis, :].copy()
+        self._stat["cis"] += df_cis.shape[0]
+        self._stat["trans"] += df_nodups.shape[0] - df_cis.shape[0]
+        dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
 
-        cis.loc[:, "bin_idx"] = np.searchsorted(self._dist_bins, dist, "right") - 1
+        df_cis.loc[:, "bin_idx"] = np.searchsorted(self._dist_bins, dist, "right") - 1
         for (strand1, strand2, bin_id), strand_bin_count in (
-            cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
+            df_cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
         ):
             self._stat["dist_freq"][strand1 + strand2][bin_id] += strand_bin_count
         self._stat["cis_1kb+"] += int(np.sum(dist >= 1000))

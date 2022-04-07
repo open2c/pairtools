@@ -112,9 +112,6 @@ def mark_duplicates(
             high = low + 1  # restart high
             continue
 
-
-
-
         if methodid == 0:
             extraCondition = (max(abs(p1[low] - p1[high]),
                                   abs(p2[low] - p2[high])) <= max_mismatch)
@@ -202,11 +199,12 @@ cdef class OnlineDuplicateDetector(object):
         self.rm = self.rm[self.low:]
         self.high = self.high-self.low
         self.N = self.N - self.low
-        self.low = 0
         if self.returnData == 1:
+            self.low = 0
             return ret
         if self.keep_parent_id == 1: # Return parent readIDs alongside with duplicates mask:
             pastidx = self.parent_idxs[:self.low]
+            self.low = 0
             return pastrm, pastidx
         return pastrm
 
