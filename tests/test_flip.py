@@ -34,7 +34,9 @@ def test_flip():
                      for l in result.split('\n')
                      if not l.startswith('#') and l.strip()]
 
-    chrom_enum = {'!':0, 'chr1':1, 'chr2': 2}
+    chrom_enum = {'!':0, 'chr1':1, 'chr2': 2, 'chrU':3, 'chrU1': 4}
+    # chrU stands for unannotated chromosome, which has less priority than annotated ones
+    # chrU1 is another unannotated chromosome, which should go lexigographically after chrU
     for orig_pair, flipped_pair in zip(orig_pairs, flipped_pairs):
         has_correct_order = (
                 (chrom_enum[orig_pair[1]], int(orig_pair[2]))

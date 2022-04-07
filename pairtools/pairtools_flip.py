@@ -2,6 +2,7 @@ import sys
 import click
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
+import warnings
 
 UTIL_NAME = 'pairtools_flip'
 
@@ -95,11 +96,24 @@ def flip_py(
     for line in body_stream:
         cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
 
-        has_correct_order = (
-                (chrom_enum[cols[chrom1_col]], int(cols[pos1_col]))
-             <= (chrom_enum[cols[chrom2_col]], int(cols[pos2_col]))
-             )
+        is_annotated1 = cols[chrom1_col] in chrom_enum.keys()
+        is_annotated2 = cols[chrom2_col] in chrom_enum.keys()
+        if not is_annotated1 or not is_annotated2:
+            warnings.warn(f"Unannotated chromosomes in the pairs file!")
+        # Flip so that annotated chromosome stands first:
+        if is_annotated1 and not is_annotated2:
+            has_correct_order = True
+        elif is_annotated2 and not is_annotated1:
+            has_correct_order = False
+        elif not is_annotated1 and not is_annotated2:
+            has_correct_order = cols[chrom1_col]<cols[chrom2_col]
+        else: # both are annotated:
+            has_correct_order = (
+                    (chrom_enum[cols[chrom1_col]], int(cols[pos1_col]))
+                 <= (chrom_enum[cols[chrom2_col]], int(cols[pos2_col]))
+                 )
 
+        # flipping:
         if not has_correct_order:
             for col1, col2 in col_pairs_to_flip:
                 if (col1 < len(cols)) and (col2 < len(cols)):
