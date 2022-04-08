@@ -602,6 +602,13 @@ def _merge_pairheaders(pairheaders, force=False):
     return new_header
 
 
+def all_same_columns(pairheaders):
+    key_target = "#columns:"
+    lines = [[l for l in header if l.startswith(key_target)] for header in pairheaders]
+    all_same = all([l == lines[0] for l in lines])
+    return all_same
+
+
 def merge_headers(headers, force=False):
     samheaders, pairheaders = zip(
         *[extract_fields(h, "samheader", save_rest=True) for h in headers]

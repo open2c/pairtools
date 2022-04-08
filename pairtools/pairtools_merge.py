@@ -107,10 +107,17 @@ UTIL_NAME = 'pairtools_merge'
     show_default=True,
     help='Keep the first header or merge the headers together. Default: merge headers.',
     )
+@click.option(
+    "--concatenate/--no-concatenate",
+    default=False,
+    show_default=True,
+    help='Simple concatenate instead of merging sorted files.',
+    )
 # Using custom IO options
 
 def merge(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
-    """Merge sorted .pairs/.pairsam files. 
+    """Merge .pairs/.pairsam files.
+    By default, assumes that the files are sorted and maintains the sorting.
 
     Merge triu-flipped sorted pairs/pairsam files. If present, the @SQ records 
     of the SAM header must be identical; the sorting order of 
@@ -162,37 +169,46 @@ def merge_py(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, n
         if kwargs.get('keep_first_header', False):
             break
 
+    if not _headerops.all_same_columns(headers):
+        raise ValueError("Input pairs cannot contain different columns")
+
     merged_header = _headerops.merge_headers(headers)
     merged_header = _headerops.append_new_pg(
         merged_header, ID=UTIL_NAME, PN=UTIL_NAME)
 
     outstream.writelines((l+'\n' for l in merged_header))
     outstream.flush()
- 
-    command = r'''
-        /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort
-        -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
-        --merge  
-        --field-separator=$'\''{5}'\''
-        {6}
-        {7}
-        {8}
-        -S {9}
-        {10}
-        '''.replace('\n',' ').format(
-                _pairsam_format.COL_C1+1, 
-                _pairsam_format.COL_C2+1, 
-                _pairsam_format.COL_P1+1, 
-                _pairsam_format.COL_P2+1,
-                _pairsam_format.COL_PTYPE+1,
-                _pairsam_format.PAIRSAM_SEP_ESCAPE,
-                ' --parallel={} '.format(nproc) if nproc > 1 else ' ',
-                ' --batch-size={} '.format(max_nmerge) if max_nmerge else ' ',
-                ' --temporary-directory={} '.format(tmpdir) if tmpdir else ' ',
-                memory,
-                (' --compress-program={} '.format(compress_program)
-                    if compress_program else ' '),
-                )
+
+    # If concatenation requested instead of merging sorted input:
+    if kwargs.get('concatenate', False):
+        command = r'''
+                    /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat '''
+    # Full merge that keeps the ordered input:
+    else:
+        command = r'''
+            /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort
+            -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
+            --merge  
+            --field-separator=$'\''{5}'\''
+            {6}
+            {7}
+            {8}
+            -S {9}
+            {10}
+            '''.replace('\n',' ').format(
+                    _pairsam_format.COL_C1+1,
+                    _pairsam_format.COL_C2+1,
+                    _pairsam_format.COL_P1+1,
+                    _pairsam_format.COL_P2+1,
+                    _pairsam_format.COL_PTYPE+1,
+                    _pairsam_format.PAIRSAM_SEP_ESCAPE,
+                    ' --parallel={} '.format(nproc) if nproc > 1 else ' ',
+                    ' --batch-size={} '.format(max_nmerge) if max_nmerge else ' ',
+                    ' --temporary-directory={} '.format(tmpdir) if tmpdir else ' ',
+                    memory,
+                    (' --compress-program={} '.format(compress_program)
+                        if compress_program else ' '),
+                    )
     for path in paths:
         if kwargs.get('cmd_in', None):
             command += r''' <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(path, kwargs['cmd_in'])
