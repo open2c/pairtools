@@ -276,9 +276,8 @@ def _add_pg_to_samheader(samheader, ID="", PN="", VN=None, CL=None, force=False)
     -------
     new_header : list of str
         A list of new headers lines, stripped of newline characters.
-
-
     """
+
     if VN is None:
         VN = __version__
     if CL is None:
@@ -466,6 +465,7 @@ def merge_chrom_lists(*lsts):
     chrom_list = list(_toposort(g.copy(), tie_breaker=min))
     if sentinel in chrom_list:
         chrom_list.remove(sentinel)
+    chrom_list = sorted(chrom_list)
     return chrom_list
 
 
@@ -548,6 +548,8 @@ def _merge_pairheaders(pairheaders, force=False):
         "#columns:",
     ]
 
+    keys_orginal = [l.split()[0] for header in pairheaders for l in header]
+
     for k in keys_expected_identical:
         lines = [[l for l in header if l.startswith(k)] for header in pairheaders]
         same = all([l == lines[0] for l in lines])
@@ -571,10 +573,14 @@ def _merge_pairheaders(pairheaders, force=False):
         chrom_lists.append(chromlist)
 
     chroms_merged = merge_chrom_lists(*chrom_lists)
-    chrom_lines = [
+    if "#chromosomes:" in keys_orginal:
+        chrom_line = "#chromosomes: {}".format(" ".join(chroms_merged))
+        new_header.extend([chrom_line])
+
+    chromsize_lines = [
         "#chromsize: {} {}".format(chrom, chromsizes[chrom]) for chrom in chroms_merged
     ]
-    new_header.extend(chrom_lines)
+    new_header.extend(chromsize_lines)
 
     # finally, add a sorted list of other unique fields
     other_lines = sorted(
@@ -583,7 +589,7 @@ def _merge_pairheaders(pairheaders, force=False):
             for h in pairheaders
             for l in h
             if not any(
-                l.startswith(k) for k in keys_expected_identical + ["#chromsize"]
+                l.startswith(k) for k in keys_expected_identical + ["#chromosomes", "#chromsize"]
             )
         )
     )

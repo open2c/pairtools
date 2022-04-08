@@ -63,9 +63,9 @@ def test_mock_pairsam():
         raise e
 
     # check that all pairsam entries survived sorting:
-    pairsam_body_1 = [l.strip() for l in open(mock_pairsam_path_1, 'r') 
+    pairsam_body_1 = [l.strip() for l in open(mock_pairsam_path_1, 'r')
                       if not l.startswith('#') and l.strip()]
-    pairsam_body_2 = [l.strip() for l in open(mock_pairsam_path_2, 'r') 
+    pairsam_body_2 = [l.strip() for l in open(mock_pairsam_path_2, 'r')
                       if not l.startswith('#') and l.strip()]
     output_body  = [l.strip() for l in result.split('\n')
                     if not l.startswith('#') and l.strip()]
@@ -80,10 +80,35 @@ def test_mock_pairsam():
             if (cur_pair[0] == prev_pair[0]):
                 assert (cur_pair[1] >= prev_pair[1])
                 if (cur_pair[1] == prev_pair[1]):
-                    assert (cur_pair[2] >= prev_pair[2]) 
+                    assert (cur_pair[2] >= prev_pair[2])
                     if (cur_pair[2] == prev_pair[2]):
                         assert (cur_pair[3] >= prev_pair[3])
 
         prev_pair = cur_pair
 
+    # Check that the header is preserved:
+    try:
+        result = subprocess.check_output(
+            ['python',
+             '-m',
+             'pairtools',
+             'merge',
+             '--keep-first-header',
+             mock_sorted_pairsam_path_1,
+             mock_sorted_pairsam_path_2
+             ],
+            ).decode('ascii')
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
 
+    # check the headers:
+    pairsam_header_1 = [l.strip() for l in open(mock_sorted_pairsam_path_1, 'r')
+                      if l.startswith('#') and l.strip()]
+    pairsam_header_2 = [l.strip() for l in open(mock_sorted_pairsam_path_2, 'r')
+                      if l.startswith('#') and l.strip()]
+    output_header  = [l.strip() for l in result.split('\n')
+                    if l.startswith('#') and l.strip()]
+
+    assert len(pairsam_header_1)+1 == len(output_header)

@@ -46,7 +46,6 @@ UTIL_NAME = 'pairtools_merge'
     default='2G', 
     show_default=True,
     help='The amount of memory used by default.',
-
     )
 
 @click.option(
@@ -102,7 +101,12 @@ UTIL_NAME = 'pairtools_merge'
          'Must read input from stdin and print output into stdout. '
          'EXAMPLE: pbgzip -c -n 8'
     )
-
+@click.option(
+    "--keep-first-header/--no-keep-first-header",
+    default=False,
+    show_default=True,
+    help='Keep the first header or merge the headers together. Default: merge headers.',
+    )
 # Using custom IO options
 
 def merge(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
@@ -126,7 +130,10 @@ def merge(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, npro
 def merge_py(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs):
     paths = sum([glob.glob(mask) for mask in pairs_path], [])
 
-    outstream = (_fileio.auto_open(output, mode='w', 
+    if len(paths)==0:
+        raise ValueError(f"No input paths: {pairs_path}")
+
+    outstream = (_fileio.auto_open(output, mode='w',
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 
                  if output else sys.stdout)
@@ -151,6 +158,10 @@ def merge_py(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, n
         h, _ = _headerops.get_header(f)
         headers.append(h)
         f.close()
+        # Skip other headers if keep_first_header is True (False by default):
+        if kwargs.get('keep_first_header', False):
+            break
+
     merged_header = _headerops.merge_headers(headers)
     merged_header = _headerops.append_new_pg(
         merged_header, ID=UTIL_NAME, PN=UTIL_NAME)
