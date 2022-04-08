@@ -47,10 +47,9 @@ def split(pairsam_path, output_pairs, output_sam, **kwargs):
 
 
 def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
-    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+    instream = _fileio.auto_open(pairsam_path, mode='r',
                                   nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None)) 
-                if pairsam_path else sys.stdin)
+                                  command=kwargs.get('cmd_in', None))
 
     # Output streams
     if (not output_pairs) and (not output_sam):
@@ -58,16 +57,17 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
     if (output_pairs == '-') and (output_sam == '-'):
         raise ValueError('Only one output (pairs or sam) can be printed in stdout!')
 
-    outstream_pairs = (sys.stdout if (output_pairs=='-')
-                       else (_fileio.auto_open(output_pairs, mode='w', 
+    outstream_pairs = None
+    outstream_sam = None
+
+    if output_pairs:
+        outstream_pairs = _fileio.auto_open(output_pairs, mode='w',
                                                nproc=kwargs.get('nproc_out'),
-                                               command=kwargs.get('cmd_out', None)) 
-                             if output_pairs else None))
-    outstream_sam = (sys.stdout if (output_sam=='-')
-                     else (_fileio.auto_open(output_sam, mode='w',
+                                               command=kwargs.get('cmd_out', None))
+    if output_sam:
+        outstream_sam = _fileio.auto_open(output_sam, mode='w',
                                              nproc=kwargs.get('nproc_out'),
                                              command=kwargs.get('cmd_out', None))
-                           if output_sam else None))
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
@@ -93,9 +93,9 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
         sam2col = _pairsam_format.COL_SAM2
         has_sams = True
 
-    if outstream_pairs:
+    if output_pairs:
         outstream_pairs.writelines((l+'\n' for l in header))
-    if outstream_sam:
+    if output_sam:
         outstream_sam.writelines(
             (l[11:].strip()+'\n' for l in header if l.startswith('#samheader:')))
 
@@ -112,22 +112,22 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
                 sam1 = cols.pop(sam1col)
                 sam2 = cols.pop(sam2col)
 
-        if outstream_pairs:
+        if output_pairs:
             # hard-coded tab separator to follow the DCIC pairs standard
             outstream_pairs.write('\t'.join(cols))
             outstream_pairs.write('\n')
         
-        if (outstream_sam and has_sams):
+        if (output_sam and has_sams):
             for col in (sam1, sam2):
                 if col != '.':
                     for sam_entry in col.split(_pairsam_format.INTER_SAM_SEP):
                         outstream_sam.write(sam_entry.replace(_pairsam_format.SAM_SEP,'\t'))
                         outstream_sam.write('\n')
 
-    if outstream_pairs and outstream_pairs != sys.stdout:
+    if output_pairs and outstream_pairs != sys.stdout:
         outstream_pairs.close()
 
-    if outstream_sam and outstream_sam != sys.stdout:
+    if output_sam and outstream_sam != sys.stdout:
         outstream_sam.close()
 
 

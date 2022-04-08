@@ -59,14 +59,12 @@ def phase_py(
     **kwargs
     ):
 
-    instream = (_fileio.auto_open(pairs_path, mode='r',
+    instream = _fileio.auto_open(pairs_path, mode='r',
                                   nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None)) 
-                if pairs_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w', 
+                                  command=kwargs.get('cmd_in', None))
+    outstream = _fileio.auto_open(output, mode='w',
                                    nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None)) 
-                 if output else sys.stdout)
+                                   command=kwargs.get('cmd_out', None))
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)

@@ -49,15 +49,13 @@ def restrict(pairs_path, frags, output, **kwargs):
     restrict_py(pairs_path, frags, output, **kwargs)
 
 def restrict_py(pairs_path, frags, output, **kwargs):
-    instream = (_fileio.auto_open(pairs_path, mode='r',
+    instream = _fileio.auto_open(pairs_path, mode='r',
                                   nproc=kwargs.get('nproc_in'),
                                   command=kwargs.get('cmd_in', None))
-                if pairs_path else sys.stdin)
 
-    outstream = (_fileio.auto_open(output, mode='w',
+    outstream = _fileio.auto_open(output, mode='w',
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None))
-                 if output else sys.stdout)
 
 
     header, body_stream = _headerops.get_header(instream)

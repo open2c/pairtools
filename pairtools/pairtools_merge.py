@@ -140,10 +140,9 @@ def merge_py(pairs_path, output, max_nmerge, tmpdir, memory, compress_program, n
     if len(paths)==0:
         raise ValueError(f"No input paths: {pairs_path}")
 
-    outstream = (_fileio.auto_open(output, mode='w',
+    outstream = _fileio.auto_open(output, mode='w',
                                    nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None)) 
-                 if output else sys.stdout)
+                                   command=kwargs.get('cmd_out', None))
 
     # if there is only one input, bypass merging and do not modify the header
     if len(paths) == 1:

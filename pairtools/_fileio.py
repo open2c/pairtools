@@ -1,7 +1,7 @@
 import shutil
 import pipes
 import subprocess
-
+import sys
 
 class ParseError(Exception):
     pass
@@ -23,6 +23,14 @@ def auto_open(path, mode, nproc=1, command=None):
     .gz - pbgzip if available, otherwise bgzip 
     .lz4 - lz4c (does not support parallel execution)
     '''
+
+    # Empty filepath or False provided
+    if not path or path=="-":
+        if mode=="r":
+            return sys.stdin
+        if mode=="w":
+            return sys.stdout
+
     if command:
         if mode =='w': 
             t = pipes.Template()
@@ -133,7 +141,6 @@ def auto_open(path, mode, nproc=1, command=None):
         return f
     else:
         return open(path, mode)
-
 
 
 class PipedIO:

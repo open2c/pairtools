@@ -35,14 +35,12 @@ def markasdup(pairsam_path, output, **kwargs):
     markasdup_py(pairsam_path, output, **kwargs)
 
 def markasdup_py(pairsam_path, output, **kwargs):
-    instream = (_fileio.auto_open(pairsam_path, mode='r', 
+    instream = _fileio.auto_open(pairsam_path, mode='r',
                                   nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None)) 
-                if pairsam_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w', 
+                                  command=kwargs.get('cmd_in', None))
+    outstream = _fileio.auto_open(output, mode='w',
                                    nproc=kwargs.get('nproc_out'),
                                    command=kwargs.get('cmd_out', None)) 
-                 if output else sys.stdout)
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)

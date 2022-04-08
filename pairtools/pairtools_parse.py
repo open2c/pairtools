@@ -231,36 +231,19 @@ def parse_py(
         input_sam = AlignmentFilePairtoolized("-", "r", threads=kwargs.get('nproc_in'))
 
     ### Set up output streams
-    outstream = (
-        _fileio.auto_open(
-            output,
-            mode="w",
-            nproc=kwargs.get("nproc_out"),
-            command=kwargs.get("cmd_out", None),
-        )
-        if output
-        else sys.stdout
-    )
-    out_alignments_stream = (
-        _fileio.auto_open(
-            output_parsed_alignments,
-            mode="w",
-            nproc=kwargs.get("nproc_out"),
-            command=kwargs.get("cmd_out", None),
-        )
-        if output_parsed_alignments
-        else None
-    )
-    out_stats_stream = (
-        _fileio.auto_open(
-            output_stats,
-            mode="w",
-            nproc=kwargs.get("nproc_out"),
-            command=kwargs.get("cmd_out", None),
-        )
-        if output_stats
-        else None
-    )
+    outstream = _fileio.auto_open(output, mode="w",
+                            nproc=kwargs.get("nproc_out"),
+                            command=kwargs.get("cmd_out", None))
+
+    out_alignments_stream, out_stats_stream = None, None
+    if output_parsed_alignments:
+        out_alignments_stream = _fileio.auto_open(output_parsed_alignments, mode="w",
+                            nproc=kwargs.get("nproc_out"),
+                            command=kwargs.get("cmd_out", None))
+    if output_stats:
+        out_stats_stream = _fileio.auto_open(output_stats, mode="w",
+                            nproc=kwargs.get("nproc_out"),
+                            command=kwargs.get("cmd_out", None))
 
     if out_alignments_stream:
         out_alignments_stream.write(
@@ -335,9 +318,9 @@ def parse_py(
     if outstream != sys.stdout:
         outstream.close()
     # close optional output streams if needed:
-    if out_alignments_stream:
+    if out_alignments_stream and out_alignments_stream != sys.stdout:
         out_alignments_stream.close()
-    if out_stats_stream:
+    if out_stats_stream and out_stats_stream != sys.stdout:
         out_stats_stream.close()
 
 

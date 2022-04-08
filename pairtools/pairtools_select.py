@@ -34,12 +34,13 @@ UTIL_NAME = 'pairtools_select'
         ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
         ' By default, such pairs are dropped.')
 
-@click.option(
-    "--send-comments-to", 
-    type=click.Choice(['selected', 'rest', 'both', 'none']),
-    default="both", 
-    help="Which of the outputs should receive header and comment lines",
-    show_default=True)
+# Deprecated option to be removed in the future:
+# @click.option(
+#     "--send-comments-to",
+#     type=click.Choice(['selected', 'rest', 'both', 'none']),
+#     default="both",
+#     help="Which of the outputs should receive header and comment lines",
+#     show_default=True)
 
 @click.option(
     "--chrom-subset", 
@@ -73,7 +74,7 @@ UTIL_NAME = 'pairtools_select'
 @common_io_options
 
 def select(
-    condition, pairs_path, output, output_rest, send_comments_to,
+    condition, pairs_path, output, output_rest, #send_comments_to,
     chrom_subset, startup_code, type_cast,
     **kwargs
     ):
@@ -115,29 +116,31 @@ def select(
 
     '''
     select_py(
-        condition, pairs_path, output, output_rest, send_comments_to, 
+        condition, pairs_path, output, output_rest, #send_comments_to,
         chrom_subset, startup_code, type_cast,
         **kwargs
     )
     
 def select_py(
-    condition, pairs_path, output, output_rest, send_comments_to, chrom_subset,
+    condition, pairs_path, output, output_rest, #send_comments_to,
+        chrom_subset,
     startup_code, type_cast,
     **kwargs
     ):
 
-    instream = (_fileio.auto_open(pairs_path, mode='r', 
+    instream = _fileio.auto_open(pairs_path, mode='r',
                                   nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None)) 
-                if pairs_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w', 
+                                  command=kwargs.get('cmd_in', None))
+    outstream = _fileio.auto_open(output, mode='w',
                                    nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None)) 
-                 if output else sys.stdout)
-    outstream_rest = (_fileio.auto_open(output_rest, mode='w', 
+                                   command=kwargs.get('cmd_out', None))
+
+    # Optional output created only if requested:
+    outstream_rest = None
+    if output_rest:
+        outstream_rest = _fileio.auto_open(output_rest, mode='w',
                                         nproc=kwargs.get('nproc_out'),
-                                        command=kwargs.get('cmd_out', None)) 
-                      if output_rest else None)
+                                        command=kwargs.get('cmd_out', None))
 
     wildcard_library = {}
     def wildcard_match(x, wildcard):
@@ -176,7 +179,7 @@ def select_py(
     if new_chroms is not None:
         header = _headerops.subset_chroms_in_pairsheader(header, new_chroms)
     outstream.writelines((l+'\n' for l in header))
-    if outstream_rest:
+    if output_rest:
         outstream_rest.writelines((l+'\n' for l in header))
 
     column_names = _headerops.extract_column_names(header)
@@ -213,7 +216,7 @@ def select_py(
     if outstream != sys.stdout:
         outstream.close()
 
-    if outstream_rest:
+    if output_rest and outstream_rest != sys.stdout:
         outstream_rest.close()
 
 if __name__ == '__main__':

@@ -44,26 +44,12 @@ def stats_py(input_path, output, merge, **kwargs):
         do_merge(output, input_path, **kwargs)
         return
 
-    instream = (
-        _fileio.auto_open(
-            input_path[0],
-            mode="r",
-            nproc=kwargs.get("nproc_in"),
-            command=kwargs.get("cmd_in", None),
-        )
-        if input_path
-        else sys.stdin
-    )
-    outstream = (
-        _fileio.auto_open(
-            output,
-            mode="w",
-            nproc=kwargs.get("nproc_out"),
-            command=kwargs.get("cmd_out", None),
-        )
-        if output
-        else sys.stdout
-    )
+    instream = _fileio.auto_open(input_path[0], mode="r",
+                    nproc=kwargs.get("nproc_in"),
+                    command=kwargs.get("cmd_in", None))
+    outstream = _fileio.auto_open(output, mode="w",
+                    nproc=kwargs.get("nproc_out"),
+                    command=kwargs.get("cmd_out", None))
 
     header, body_stream = _headerops.get_header(instream)
     cols = _headerops.extract_column_names(header)
