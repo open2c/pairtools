@@ -126,3 +126,4 @@ from .pairtools_parse import parse
 from .pairtools_stats import stats
 from .pairtools_sample import sample
 from .pairtools_filterbycov import filterbycov
+from .pairtools_header import header
