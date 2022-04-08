@@ -6,6 +6,7 @@ from nose.tools import assert_raises
 
 import subprocess
 from pairtools import _pairsam_format
+
 testdir = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -33,7 +34,7 @@ def test_generate():
                 "--sam-path",
                 mock_sam_path,
                 "--pairsam",
-                mock_pairs_path
+                mock_pairs_path,
             ],
         ).decode("ascii")
     except subprocess.CalledProcessError as e:
@@ -49,7 +50,7 @@ def test_generate():
 
 
 def test_remove():
-    """ Test removal of columns from the file
+    """Test removal of columns from the file
     Example run:
     pairtools header remove-columns tests/data/mock.pairsam -c sam1,sam2
     """
@@ -65,7 +66,7 @@ def test_remove():
                 "remove-columns",
                 "-c",
                 "sam1,sam2",
-                mock_pairs_path
+                mock_pairs_path,
             ],
         ).decode("ascii")
     except subprocess.CalledProcessError as e:
@@ -76,9 +77,12 @@ def test_remove():
     # check if the columns are removed properly:
     pairsam_header = [l.strip() for l in result.split("\n") if l.startswith("#")]
     for l in pairsam_header:
-        if l.startswith('#columns:'):
+        if l.startswith("#columns:"):
             line = l.strip()
-            assert line=="#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type"
+            assert (
+                line
+                == "#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type"
+            )
 
     # check that the pairs got assigned properly
     for l in result.split("\n"):

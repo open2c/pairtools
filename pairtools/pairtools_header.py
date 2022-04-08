@@ -7,7 +7,8 @@ from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 from ._parse_pysam import AlignmentFilePairtoolized
 
 
-UTIL_NAME = 'pairtools_header'
+UTIL_NAME = "pairtools_header"
+
 
 @cli.group()
 def header():
@@ -16,117 +17,138 @@ def header():
     """
     pass
 
+
 # Common options for all header tools:
 def register_subcommand(func):
-    return (
-        header.command()(
-            click.argument(
-                'pairs_path',
-                type=str,
-                required=False
-            )(
+    return header.command()(
+        click.argument("pairs_path", type=str, required=False)(
             click.option(
-                '-o', "--output",
+                "-o",
+                "--output",
                 type=str,
                 default="",
-                help='output file.'
-                     ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
-                     ' By default, the output is printed into stdout.'
+                help="output file."
+                " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
+                " By default, the output is printed into stdout.",
             )(
-            click.option(
-                '--nproc-in',
-                type=int,
-                default=1,
-                show_default=True,
-                help='Number of processes used by the auto-guessed input decompressing command.'
-            )(
-            click.option(
-                '--nproc-out',
-                type=int,
-                default=8,
-                show_default=True,
-                help='Number of processes used by the auto-guessed output compressing command.'
-            )(
-            click.option(
-                '--cmd-in',
-                type=str,
-                default=None,
-                help='A command to decompress the input. '
-                     'If provided, fully overrides the auto-guessed command. '
-                     'Does not work with stdin. '
-                     'Must read input from stdin and print output into stdout. '
-                     'EXAMPLE: pbgzip -dc -n 3'
-            )(
-            click.option(
-                '--cmd-out',
-                type=str,
-                default=None,
-                help='A command to compress the output. '
-                     'If provided, fully overrides the auto-guessed command. '
-                     'Does not work with stdout. '
-                     'Must read input from stdin and print output into stdout. '
-                     'EXAMPLE: pbgzip -c -n 8'
+                click.option(
+                    "--nproc-in",
+                    type=int,
+                    default=1,
+                    show_default=True,
+                    help="Number of processes used by the auto-guessed input decompressing command.",
+                )(
+                    click.option(
+                        "--nproc-out",
+                        type=int,
+                        default=8,
+                        show_default=True,
+                        help="Number of processes used by the auto-guessed output compressing command.",
+                    )(
+                        click.option(
+                            "--cmd-in",
+                            type=str,
+                            default=None,
+                            help="A command to decompress the input. "
+                            "If provided, fully overrides the auto-guessed command. "
+                            "Does not work with stdin. "
+                            "Must read input from stdin and print output into stdout. "
+                            "EXAMPLE: pbgzip -dc -n 3",
+                        )(
+                            click.option(
+                                "--cmd-out",
+                                type=str,
+                                default=None,
+                                help="A command to compress the output. "
+                                "If provided, fully overrides the auto-guessed command. "
+                                "Does not work with stdout. "
+                                "Must read input from stdin and print output into stdout. "
+                                "EXAMPLE: pbgzip -c -n 8",
+                            )(func)
+                        )
+                    )
+                )
             )
-            (func) ))))))
         )
+    )
+
 
 def add_arg_help(func):
-    func.__doc__ = func.__doc__.format("""
+    func.__doc__ = func.__doc__.format(
+        """
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the
     input is decompressed by bgzip/lz4c. By default, the input is read from stdin.
-    """)
+    """
+    )
     return func
 
 
 @register_subcommand
 @add_arg_help
 @click.option(
-    "--columns", "-c",
+    "--columns",
+    "-c",
     help=f"Comma-separated list of columns to be added, e.g.: {','.join(_pairsam_format.COLUMNS)}",
     type=str,
-    required=True
+    required=True,
 )
 def set_columns(pairs_path, output, columns, **kwargs):
-    '''
+    """
     Add the columns to the .pairs/pairsam file
-    '''
-    set_columns_py(
-        pairs_path,
-        output,
-        columns,
-        **kwargs
-    )
+    """
+    set_columns_py(pairs_path, output, columns, **kwargs)
+
 
 def set_columns_py(pairs_path, output, columns, **kwargs):
-    instream = (_fileio.auto_open(pairs_path, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
-                if pairs_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
-                 if output else sys.stdout)
+    instream = (
+        _fileio.auto_open(
+            pairs_path,
+            mode="r",
+            nproc=kwargs.get("nproc_in"),
+            command=kwargs.get("cmd_in", None),
+        )
+        if pairs_path
+        else sys.stdin
+    )
+    outstream = (
+        _fileio.auto_open(
+            output,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output
+        else sys.stdout
+    )
 
     header, body_stream = _headerops.get_header(instream)
-    header = _headerops.set_columns(header, columns.split(','))
-    outstream.writelines((l + '\n' for l in header))
+    header = _headerops.set_columns(header, columns.split(","))
+    outstream.writelines((l + "\n" for l in header))
     outstream.flush()
 
     if body_stream == sys.stdin:
         for line in body_stream:
             outstream.write(line)
     else:
-        command = r'''
-                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat '''
+        command = r"""
+                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat """
 
-        if kwargs.get('cmd_in', None):
-            command += r''' <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path, kwargs['cmd_in'])
-        elif pairs_path.endswith('.gz'):
-            command += r''' <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(kwargs['nproc_in'], pairs_path)
-        elif pairs_path.endswith('.lz4'):
-            command += r''' <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path)
+        if kwargs.get("cmd_in", None):
+            command += r""" <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path, kwargs["cmd_in"]
+            )
+        elif pairs_path.endswith(".gz"):
+            command += (
+                r""" <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                    kwargs["nproc_in"], pairs_path
+                )
+            )
+        elif pairs_path.endswith(".lz4"):
+            command += r""" <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path
+            )
         else:
-            command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(pairs_path)
+            command += r""" <(sed -n -e '\''/^[^#]/,$p'\'' {})""".format(pairs_path)
         command += "'"
 
         subprocess.check_call(command, shell=True, stdout=outstream)
@@ -141,21 +163,23 @@ def set_columns_py(pairs_path, output, columns, **kwargs):
 @register_subcommand
 @add_arg_help
 @click.option(
-    "--reference-file", "-r",
+    "--reference-file",
+    "-r",
     help="Header file for comparison (optional)",
     type=str,
     required=False,
-    default=""
+    default="",
 )
 @click.option(
-    "--reference-columns", "-c",
+    "--reference-columns",
+    "-c",
     help=f"Comma-separated list of columns fro check (optional), e.g.: {','.join(_pairsam_format.COLUMNS)}",
     type=str,
     required=False,
-    default=""
+    default="",
 )
 def validate_columns(pairs_path, output, reference_file, reference_columns, **kwargs):
-    '''
+    """
     Validate the columns of the .pairs/pairsam file against reference or within file.
     If the checks pass, then returns full pairs file. Otherwise throws an exception.
 
@@ -170,75 +194,98 @@ def validate_columns(pairs_path, output, reference_file, reference_columns, **kw
     If no reference_file or columns, then check only the number of columns in the pairs body.
     Checks only the first line in the pairs stream!
 
-    '''
-    validate_columns_py(
+    """
+    validate_columns_py(pairs_path, output, reference_file, reference_columns, **kwargs)
+
+
+def validate_columns_py(
+    pairs_path, output, reference_file, reference_columns, **kwargs
+):
+
+    instream = _fileio.auto_open(
         pairs_path,
-        output,
-        reference_file,
-        reference_columns,
-        **kwargs
+        mode="r",
+        nproc=kwargs.get("nproc_in"),
+        command=kwargs.get("cmd_in", None),
     )
-
-def validate_columns_py(pairs_path, output, reference_file, reference_columns, **kwargs):
-
-    instream = _fileio.auto_open(pairs_path, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
     header, body_stream = _headerops.get_header(instream)
     pairs_columns = _headerops.extract_column_names(header)
 
     # Convert reference columns string into list, if provided
     if reference_columns:
-        reference_columns = reference_columns.split(',')
+        reference_columns = reference_columns.split(",")
 
     # Read the header from reference file
     if reference_file:
-        instream_header = _fileio.auto_open(reference_file, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
+        instream_header = _fileio.auto_open(
+            reference_file,
+            mode="r",
+            nproc=kwargs.get("nproc_in"),
+            command=kwargs.get("cmd_in", None),
+        )
         reference_header, _ = _headerops.get_header(instream_header)
         # Close the reference stream after extraction of the header:
         if instream_header != sys.stdin:
             instream_header.close()
 
         if reference_columns:
-            warnings.warn("--reference-columns are ignored, as --reference-file is provided")
+            warnings.warn(
+                "--reference-columns are ignored, as --reference-file is provided"
+            )
 
         reference_columns = _headerops.extract_column_names(reference_header)
 
     if reference_columns:
         if pairs_columns != reference_columns:
-            raise ValueError(f"Pairs columns differ from reference columns:\n\t{pairs_columns}\n\t{reference_columns}")
+            raise ValueError(
+                f"Pairs columns differ from reference columns:\n\t{pairs_columns}\n\t{reference_columns}"
+            )
 
     # Check that the number of columns in the body corresponds to the header:
     if not _headerops.validate_cols(instream, pairs_columns):
-        raise ValueError(f"Number of columns mismatch:\n\t#columns: {_headerops.SEP_COLS.join(pairs_columns)}\n\t{body_stream.readline()}")
+        raise ValueError(
+            f"Number of columns mismatch:\n\t#columns: {_headerops.SEP_COLS.join(pairs_columns)}\n\t{body_stream.readline()}"
+        )
 
     ########
     # Write the output after successful checks:
-    outstream = (_fileio.auto_open(output, mode='w',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
-                 if output else sys.stdout)
+    outstream = (
+        _fileio.auto_open(
+            output,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output
+        else sys.stdout
+    )
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-    outstream.writelines((l + '\n' for l in header))
+    outstream.writelines((l + "\n" for l in header))
     outstream.flush()
 
     if body_stream == sys.stdin:
         for line in body_stream:
             outstream.write(line)
     else:
-        command = r'''
-                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat '''
+        command = r"""
+                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat """
 
-        if kwargs.get('cmd_in', None):
-            command += r''' <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path, kwargs['cmd_in'])
-        elif pairs_path.endswith('.gz'):
-            command += r''' <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(kwargs['nproc_in'], pairs_path)
-        elif pairs_path.endswith('.lz4'):
-            command += r''' <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path)
+        if kwargs.get("cmd_in", None):
+            command += r""" <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path, kwargs["cmd_in"]
+            )
+        elif pairs_path.endswith(".gz"):
+            command += (
+                r""" <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                    kwargs["nproc_in"], pairs_path
+                )
+            )
+        elif pairs_path.endswith(".lz4"):
+            command += r""" <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path
+            )
         else:
-            command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(pairs_path)
+            command += r""" <(sed -n -e '\''/^[^#]/,$p'\'' {})""".format(pairs_path)
         command += "'"
 
         subprocess.check_call(command, shell=True, stdout=outstream)
@@ -253,53 +300,70 @@ def validate_columns_py(pairs_path, output, reference_file, reference_columns, *
 @register_subcommand
 @add_arg_help
 @click.option(
-    "--columns", "-c",
+    "--columns",
+    "-c",
     help=f"Comma-separated list of columns to be added, e.g.: {','.join(_pairsam_format.COLUMNS)}",
     type=str,
-    required=True
+    required=True,
 )
 def set_columns(pairs_path, output, columns, **kwargs):
-    '''
+    """
     Add the columns to the .pairs/pairsam file
-    '''
-    set_columns_py(
-        pairs_path,
-        output,
-        columns,
-        **kwargs
-    )
+    """
+    set_columns_py(pairs_path, output, columns, **kwargs)
+
 
 def set_columns_py(pairs_path, output, columns, **kwargs):
-    instream = (_fileio.auto_open(pairs_path, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
-                if pairs_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
-                 if output else sys.stdout)
+    instream = (
+        _fileio.auto_open(
+            pairs_path,
+            mode="r",
+            nproc=kwargs.get("nproc_in"),
+            command=kwargs.get("cmd_in", None),
+        )
+        if pairs_path
+        else sys.stdin
+    )
+    outstream = (
+        _fileio.auto_open(
+            output,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output
+        else sys.stdout
+    )
 
     header, body_stream = _headerops.get_header(instream)
-    header = _headerops.set_columns(header, columns.split(','))
+    header = _headerops.set_columns(header, columns.split(","))
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-    outstream.writelines((l + '\n' for l in header))
+    outstream.writelines((l + "\n" for l in header))
     outstream.flush()
 
     if body_stream == sys.stdin:
         for line in body_stream:
             outstream.write(line)
     else:
-        command = r'''
-                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat '''
+        command = r"""
+                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat """
 
-        if kwargs.get('cmd_in', None):
-            command += r''' <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path, kwargs['cmd_in'])
-        elif pairs_path.endswith('.gz'):
-            command += r''' <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(kwargs['nproc_in'], pairs_path)
-        elif pairs_path.endswith('.lz4'):
-            command += r''' <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path)
+        if kwargs.get("cmd_in", None):
+            command += r""" <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path, kwargs["cmd_in"]
+            )
+        elif pairs_path.endswith(".gz"):
+            command += (
+                r""" <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                    kwargs["nproc_in"], pairs_path
+                )
+            )
+        elif pairs_path.endswith(".lz4"):
+            command += r""" <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path
+            )
         else:
-            command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(pairs_path)
+            command += r""" <(sed -n -e '\''/^[^#]/,$p'\'' {})""".format(pairs_path)
         command += "'"
 
         subprocess.check_call(command, shell=True, stdout=outstream)
@@ -311,38 +375,36 @@ def set_columns_py(pairs_path, output, columns, **kwargs):
         outstream.close()
 
 
-
 @register_subcommand
 @add_arg_help
 @click.option(
-    "--reference-file", "-r",
-    help="Header file for transfer",
-    type=str,
-    required=True
+    "--reference-file", "-r", help="Header file for transfer", type=str, required=True
 )
 def transfer(pairs_path, output, reference_file, **kwargs):
-    '''
+    """
     Transfer the header from one pairs file to another
 
-    '''
-    transfer_py(
-        pairs_path,
-        output,
-        reference_file,
-        **kwargs
-    )
+    """
+    transfer_py(pairs_path, output, reference_file, **kwargs)
+
 
 def transfer_py(pairs_path, output, reference_file, **kwargs):
 
-    instream = _fileio.auto_open(pairs_path, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
+    instream = _fileio.auto_open(
+        pairs_path,
+        mode="r",
+        nproc=kwargs.get("nproc_in"),
+        command=kwargs.get("cmd_in", None),
+    )
     header, body_stream = _headerops.get_header(instream, ignore_warning=True)
 
-     # Read the header from reference file
-    instream_header = _fileio.auto_open(reference_file, mode='r',
-                              nproc=kwargs.get('nproc_in'),
-                              command=kwargs.get('cmd_in', None))
+    # Read the header from reference file
+    instream_header = _fileio.auto_open(
+        reference_file,
+        mode="r",
+        nproc=kwargs.get("nproc_in"),
+        command=kwargs.get("cmd_in", None),
+    )
     reference_header, _ = _headerops.get_header(instream_header)
     # Close the reference stream after extraction of the header:
     if instream_header != sys.stdin:
@@ -352,34 +414,52 @@ def transfer_py(pairs_path, output, reference_file, **kwargs):
 
     # Check that the number of columns in the body corresponds to the header:
     if not _headerops.validate_cols(instream, reference_columns):
-        raise ValueError(f"Number of columns mismatch:\n\t#columns: {_headerops.SEP_COLS.join(reference_columns)}\n\t{body_stream.readline()}")
+        raise ValueError(
+            f"Number of columns mismatch:\n\t#columns: {_headerops.SEP_COLS.join(reference_columns)}\n\t{body_stream.readline()}"
+        )
 
     ########
     # Write the output after successful checks:
-    outstream = (_fileio.auto_open(output, mode='w',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
-                 if output else sys.stdout)
+    outstream = (
+        _fileio.auto_open(
+            output,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output
+        else sys.stdout
+    )
 
-    reference_header = _headerops.append_new_pg(reference_header, ID=UTIL_NAME, PN=UTIL_NAME)
-    outstream.writelines((l + '\n' for l in reference_header))
+    reference_header = _headerops.append_new_pg(
+        reference_header, ID=UTIL_NAME, PN=UTIL_NAME
+    )
+    outstream.writelines((l + "\n" for l in reference_header))
     outstream.flush()
 
     if body_stream == sys.stdin:
         for line in body_stream:
             outstream.write(line)
     else:
-        command = r'''
-                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat '''
+        command = r"""
+                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat """
 
-        if kwargs.get('cmd_in', None):
-            command += r''' <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path, kwargs['cmd_in'])
-        elif pairs_path.endswith('.gz'):
-            command += r''' <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(kwargs['nproc_in'], pairs_path)
-        elif pairs_path.endswith('.lz4'):
-            command += r''' <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path)
+        if kwargs.get("cmd_in", None):
+            command += r""" <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path, kwargs["cmd_in"]
+            )
+        elif pairs_path.endswith(".gz"):
+            command += (
+                r""" <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                    kwargs["nproc_in"], pairs_path
+                )
+            )
+        elif pairs_path.endswith(".lz4"):
+            command += r""" <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path
+            )
         else:
-            command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(pairs_path)
+            command += r""" <(sed -n -e '\''/^[^#]/,$p'\'' {})""".format(pairs_path)
         command += "'"
 
         subprocess.check_call(command, shell=True, stdout=outstream)
@@ -389,7 +469,6 @@ def transfer_py(pairs_path, output, reference_file, **kwargs):
 
     if outstream != sys.stdout:
         outstream.close()
-
 
 
 @register_subcommand
@@ -418,14 +497,14 @@ def transfer_py(pairs_path, output, reference_file, **kwargs):
     default="",
     help="Report columns describing alignments "
     "Can take multiple values as a comma-separated list."
-    f"By default, assign standard .pairs columns: {','.join(_pairsam_format.COLUMNS)}"
+    f"By default, assign standard .pairs columns: {','.join(_pairsam_format.COLUMNS)}",
 )
 @click.option(
     "--extra-columns",
     type=click.STRING,
     default="",
     help="Report extra columns describing alignments "
-    "Can take multiple values as a comma-separated list."
+    "Can take multiple values as a comma-separated list.",
 )
 @click.option(
     "--assembly",
@@ -447,25 +526,21 @@ def transfer_py(pairs_path, output, reference_file, **kwargs):
     f"\nif pairsam, then to: {','.join(_pairsam_format.COLUMNS_PAIRSAM)}",
 )
 def generate(pairs_path, output, chroms_path, sam_path, columns, assembly, **kwargs):
-    '''
+    """
     Generate the header
 
-    '''
-    generate_py(
-        pairs_path,
-        output,
-        chroms_path,
-        sam_path,
-        columns,
-        assembly,
-        **kwargs
-    )
+    """
+    generate_py(pairs_path, output, chroms_path, sam_path, columns, assembly, **kwargs)
+
 
 def generate_py(pairs_path, output, chroms_path, sam_path, columns, assembly, **kwargs):
 
-    instream = _fileio.auto_open(pairs_path, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
+    instream = _fileio.auto_open(
+        pairs_path,
+        mode="r",
+        nproc=kwargs.get("nproc_in"),
+        command=kwargs.get("cmd_in", None),
+    )
     header, body_stream = _headerops.get_header(instream, ignore_warning=True)
 
     # Parse chromosome sizes present in the input chromosomes:
@@ -475,7 +550,9 @@ def generate_py(pairs_path, output, chroms_path, sam_path, columns, assembly, **
 
     # Parse chromosome sizes present in sam input:
     if sam_path:  # open input sam file with pysam
-        input_sam = AlignmentFilePairtoolized(sam_path, "r", threads=kwargs.get('nproc_in'))
+        input_sam = AlignmentFilePairtoolized(
+            sam_path, "r", threads=kwargs.get("nproc_in")
+        )
         samheader = input_sam.header
         chromsizes = _headerops.get_chromsizes_from_pysam_header(samheader)
         # if chroms_path:
@@ -485,16 +562,16 @@ def generate_py(pairs_path, output, chroms_path, sam_path, columns, assembly, **
 
     # Read the input columns:
     if columns:
-        columns = columns.split(',')
+        columns = columns.split(",")
     else:
-        if kwargs.get('pairs', True):
+        if kwargs.get("pairs", True):
             columns = _pairsam_format.COLUMNS_PAIRS
         else:
             columns = _pairsam_format.COLUMNS_PAIRSAM
 
-    extra_columns = kwargs.get('extra_columns', "")
+    extra_columns = kwargs.get("extra_columns", "")
     if extra_columns:
-        columns += extra_columns.split(',')
+        columns += extra_columns.split(",")
 
     # Write new header to the pairsam file
     new_header = _headerops.make_standard_pairsheader(
@@ -511,34 +588,49 @@ def generate_py(pairs_path, output, chroms_path, sam_path, columns, assembly, **
 
     # Check that the number of columns in the body corresponds to the header:
     if not _headerops.validate_cols(instream, columns):
-        raise ValueError(f"Number of columns mismatch:\n\t#columns: {_headerops.SEP_COLS.join(columns)}\n\t{body_stream.readline()}")
+        raise ValueError(
+            f"Number of columns mismatch:\n\t#columns: {_headerops.SEP_COLS.join(columns)}\n\t{body_stream.readline()}"
+        )
 
     ########
     # Write the output after successful checks:
-    outstream = (_fileio.auto_open(output, mode='w',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
-                 if output else sys.stdout)
+    outstream = (
+        _fileio.auto_open(
+            output,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output
+        else sys.stdout
+    )
 
-
-    outstream.writelines((l + '\n' for l in new_header))
+    outstream.writelines((l + "\n" for l in new_header))
     outstream.flush()
 
     if body_stream == sys.stdin:
         for line in body_stream:
             outstream.write(line)
     else:
-        command = r'''
-                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat '''
+        command = r"""
+                   /bin/bash -c 'export LC_COLLATE=C; export LANG=C; cat """
 
-        if kwargs.get('cmd_in', None):
-            command += r''' <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path, kwargs['cmd_in'])
-        elif pairs_path.endswith('.gz'):
-            command += r''' <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(kwargs['nproc_in'], pairs_path)
-        elif pairs_path.endswith('.lz4'):
-            command += r''' <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')'''.format(pairs_path)
+        if kwargs.get("cmd_in", None):
+            command += r""" <(cat {} | {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path, kwargs["cmd_in"]
+            )
+        elif pairs_path.endswith(".gz"):
+            command += (
+                r""" <(bgzip -dc -@ {} {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                    kwargs["nproc_in"], pairs_path
+                )
+            )
+        elif pairs_path.endswith(".lz4"):
+            command += r""" <(lz4c -dc {} | sed -n -e '\''/^[^#]/,$p'\'')""".format(
+                pairs_path
+            )
         else:
-            command += r''' <(sed -n -e '\''/^[^#]/,$p'\'' {})'''.format(pairs_path)
+            command += r""" <(sed -n -e '\''/^[^#]/,$p'\'' {})""".format(pairs_path)
         command += "'"
 
         subprocess.check_call(command, shell=True, stdout=outstream)
@@ -553,61 +645,78 @@ def generate_py(pairs_path, output, chroms_path, sam_path, columns, assembly, **
 @register_subcommand
 @add_arg_help
 @click.option(
-    "--columns", "-c",
+    "--columns",
+    "-c",
     help=f"Comma-separated list of columns to be removed, e.g.: {','.join(_pairsam_format.COLUMNS)}",
     type=str,
-    required=True
+    required=True,
 )
 def remove_columns(pairs_path, output, columns, **kwargs):
-    '''
+    """
     Remove the columns from .pairs/pairsam file
-    '''
-    remove_columns_py(
-        pairs_path,
-        output,
-        columns,
-        **kwargs
-    )
+    """
+    remove_columns_py(pairs_path, output, columns, **kwargs)
+
 
 def remove_columns_py(pairs_path, output, columns, **kwargs):
-    instream = (_fileio.auto_open(pairs_path, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
-                if pairs_path else sys.stdin)
-    outstream = (_fileio.auto_open(output, mode='w',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
-                 if output else sys.stdout)
+    instream = (
+        _fileio.auto_open(
+            pairs_path,
+            mode="r",
+            nproc=kwargs.get("nproc_in"),
+            command=kwargs.get("cmd_in", None),
+        )
+        if pairs_path
+        else sys.stdin
+    )
+    outstream = (
+        _fileio.auto_open(
+            output,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output
+        else sys.stdout
+    )
 
     header, body_stream = _headerops.get_header(instream)
     input_columns = _headerops.extract_column_names(header)
 
     # Filter out unwanted:
-    columns = columns.split(',')
+    columns = columns.split(",")
     for col in columns:
         if col in _pairsam_format.COLUMNS_PAIRS:
-            warnings.warn(f"Removing required {col} column for .pairs format. Output is not .pairs anymore")
+            warnings.warn(
+                f"Removing required {col} column for .pairs format. Output is not .pairs anymore"
+            )
         elif col in _pairsam_format.COLUMNS_PAIRSAM:
-            warnings.warn(f"Removing required {col} column for .pairsam format. Output is not .pairsam anymore")
+            warnings.warn(
+                f"Removing required {col} column for .pairsam format. Output is not .pairsam anymore"
+            )
 
     new_columns = [x for x in input_columns if x not in columns]
 
-    if len(new_columns)==len(input_columns):
-        warnings.warn(f"Column(s) {','.join(columns)} not in the file, the operation has no effect")
+    if len(new_columns) == len(input_columns):
+        warnings.warn(
+            f"Column(s) {','.join(columns)} not in the file, the operation has no effect"
+        )
 
     # Write the header:
     header = _headerops.set_columns(header, new_columns)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-    outstream.writelines((l + '\n' for l in header))
+    outstream.writelines((l + "\n" for l in header))
     outstream.flush()
 
     column_scheme = [input_columns.index(col) for col in new_columns]
 
     for line in body_stream:
-            cols = line.strip().split(_pairsam_format.PAIRSAM_SEP) # split input line
-            cols = [cols[idx] for idx in column_scheme] # re-order the columns according to the scheme:
-            line = _pairsam_format.PAIRSAM_SEP.join(cols) # form the line
-            outstream.write(line+'\n') # write it back
+        cols = line.strip().split(_pairsam_format.PAIRSAM_SEP)  # split input line
+        cols = [
+            cols[idx] for idx in column_scheme
+        ]  # re-order the columns according to the scheme:
+        line = _pairsam_format.PAIRSAM_SEP.join(cols)  # form the line
+        outstream.write(line + "\n")  # write it back
 
     if instream != sys.stdin:
         instream.close()
@@ -616,5 +725,5 @@ def remove_columns_py(pairs_path, output, columns, **kwargs):
         outstream.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     header()
