@@ -59,9 +59,17 @@ def restrict_py(pairs_path, frags, output, **kwargs):
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    header = _headerops.append_columns(header,
+                              ['rfrag1', 'rfrag_start1', 'rfrag_end1',
+                               'rfrag2', 'rfrag_start2', 'rfrag_end2'])
+
     outstream.writelines((l+'\n' for l in header))
     rfrags = np.genfromtxt(
-        frags, delimiter='\t', comments='#', dtype=None,
+        frags,
+        delimiter='\t',
+        comments='#',
+        dtype=None,
+        encoding='ascii',
         names=['chrom', 'start', 'end'])
 
 
@@ -92,7 +100,7 @@ def restrict_py(pairs_path, frags, output, **kwargs):
 
 
 def find_rfrag(rfrags, chrom, pos):
-    rsites_chrom = rfrags[chrom.encode('ascii')]
+    rsites_chrom = rfrags[chrom]
     idx = min(max(0,rsites_chrom.searchsorted(pos, 'right')-1), len(rsites_chrom)-2)
     return idx, rsites_chrom[idx], rsites_chrom[idx+1]
 

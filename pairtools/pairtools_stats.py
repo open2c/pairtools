@@ -5,8 +5,9 @@ import sys
 import click
 
 import numpy as np
+import pandas as pd
 
-from collections import OrderedDict, Mapping
+from collections.abc import Mapping
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
@@ -65,6 +66,7 @@ def stats_py(input_path, output, merge, **kwargs):
     )
 
     header, body_stream = _headerops.get_header(instream)
+    cols = _headerops.extract_column_names(header)
 
     # new stats class stuff would come here ...
     stats = PairCounter()
@@ -153,7 +155,7 @@ class PairCounter(Mapping):
     _KEY_SEP = "/"
 
     def __init__(self, min_log10_dist=0, max_log10_dist=9, log10_dist_bin_step=0.25):
-        self._stat = OrderedDict()
+        self._stat = {}
         # some variables used for initialization:
         # genomic distance bining for the ++/--/-+/+- distribution
         self._dist_bins = np.r_[
@@ -190,18 +192,16 @@ class PairCounter(Mapping):
         self._stat["cis_20kb+"] = 0
         self._stat["cis_40kb+"] = 0
 
-        self._stat["chrom_freq"] = OrderedDict()
+        self._stat["chrom_freq"] = {}
 
-        self._stat["dist_freq"] = OrderedDict(
-            [
-                ("+-", np.zeros(len(self._dist_bins), dtype=np.int)),
-                ("-+", np.zeros(len(self._dist_bins), dtype=np.int)),
-                ("--", np.zeros(len(self._dist_bins), dtype=np.int)),
-                ("++", np.zeros(len(self._dist_bins), dtype=np.int)),
-            ]
-        )
+        self._stat["dist_freq"] = {
+            "+-": np.zeros(len(self._dist_bins), dtype=np.int),
+            "-+": np.zeros(len(self._dist_bins), dtype=np.int),
+            "--": np.zeros(len(self._dist_bins), dtype=np.int),
+            "++": np.zeros(len(self._dist_bins), dtype=np.int),
+        }
         # Summaries are derived from other stats and are recalculated on merge
-        self._stat["summary"] = OrderedDict(
+        self._stat["summary"] = dict(
             [
                 ("frac_cis", 0),
                 ("frac_cis_1kb+", 0),
@@ -353,7 +353,7 @@ class PairCounter(Mapping):
                 # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup', 'summary']
                 # get the first 'key' and keep the remainders in 'key_fields'
                 key = key_fields.pop(0)
-                if key in ["pair_types", "dedup", 'summary']:
+                if key in ["pair_types", "dedup", "summary"]:
                     # assert there is only one element in key_fields left:
                     # 'pair_types' and 'dedup' treated the same
                     if len(key_fields) == 1:
@@ -478,6 +478,79 @@ class PairCounter(Mapping):
         else:
             self._stat["total_single_sided_mapped"] += 1
 
+    def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
+        """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
+    
+        Parameters
+        ----------
+        df: pd.DataFrame
+            DataFrame with pairs. Needs to have columns:
+                'chrom1', 'pos1', 'chrom2', 'pos2', 'strand1', 'strand2', 'pair_type'
+        """
+
+        total_count = df.shape[0]
+        self._stat["total"] += total_count
+
+        # collect pair type stats including DD:
+        for pair_type, type_count in df["pair_type"].value_counts().items():
+            self._stat["pair_types"][pair_type] = (
+                self._stat["pair_types"].get(pair_type, 0) + type_count
+            )
+
+        # Count the unmapped by the "unmapped" chromosomes (debatable, as WW are also marked as ! and they might be mapped):
+        unmapped_count = np.logical_and(
+            df["chrom1"] == unmapped_chrom, df["chrom2"] == unmapped_chrom
+        ).sum()
+        self._stat["total_unmapped"] += int(unmapped_count)
+
+        # Count the mapped:
+        df_mapped = df.loc[
+            (df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :
+        ]
+        mapped_count = df_mapped.shape[0]
+
+        self._stat["total_mapped"] += mapped_count
+        self._stat["total_single_sided_mapped"] += int(
+            total_count - (mapped_count + unmapped_count)
+        )
+
+        # Count the duplicates:
+        if "duplicate" in df_mapped.columns:
+            mask_dups = df_mapped["duplicate"]
+        else:
+            mask_dups = df_mapped["pair_type"] == "DD"
+        dups_count = mask_dups.sum()
+        self._stat["total_dups"] += int(dups_count)
+        self._stat["total_nodups"] += int(mapped_count - dups_count)
+
+        # Count pairs per chromosome:
+        for (chrom1, chrom2), chrom_count in (
+            df_mapped[["chrom1", "chrom2"]].value_counts().items()
+        ):
+            self._stat["chrom_freq"][(chrom1, chrom2)] = (
+                self._stat["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
+            )
+
+        # Count cis-trans by pairs:
+        df_nodups = df_mapped.loc[~mask_dups, :]
+        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
+        df_cis = df_nodups.loc[mask_cis, :].copy()
+        self._stat["cis"] += df_cis.shape[0]
+        self._stat["trans"] += df_nodups.shape[0] - df_cis.shape[0]
+        dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
+
+        df_cis.loc[:, "bin_idx"] = np.searchsorted(self._dist_bins, dist, "right") - 1
+        for (strand1, strand2, bin_id), strand_bin_count in (
+            df_cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
+        ):
+            self._stat["dist_freq"][strand1 + strand2][bin_id] += strand_bin_count
+        self._stat["cis_1kb+"] += int(np.sum(dist >= 1000))
+        self._stat["cis_2kb+"] += int(np.sum(dist >= 2000))
+        self._stat["cis_4kb+"] += int(np.sum(dist >= 4000))
+        self._stat["cis_10kb+"] += int(np.sum(dist >= 10000))
+        self._stat["cis_20kb+"] += int(np.sum(dist >= 20000))
+        self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
+
     def __add__(self, other):
         # both PairCounter are implied to have a list of common fields:
         #
@@ -508,10 +581,10 @@ class PairCounter(Mapping):
                     union_keys_with_dups = list(self._stat[k].keys()) + list(
                         other._stat[k].keys()
                     )
-                    # OrderedDict.fromkeys will take care of keys' order and duplicates in a consistent manner:
+                    # dict.fromkeys will take care of keys' order and duplicates in a consistent manner:
                     # https://stackoverflow.com/questions/1720421/how-to-concatenate-two-lists-in-python
                     # last comment to the 3rd Answer
-                    sum_stat._stat[k] = OrderedDict.fromkeys(union_keys_with_dups)
+                    sum_stat._stat[k] = dict.fromkeys(union_keys_with_dups)
                     # perform a summation:
                     for union_key in sum_stat._stat[k]:
                         sum_stat._stat[k][union_key] = self._stat[k].get(
@@ -531,9 +604,12 @@ class PairCounter(Mapping):
             return self.__add__(other)
 
     def flatten(self):
-        """return a flattened OrderedDic (formatted same way as .stats file)"""
-        # OrderedDict for flat store:
-        flat_stat = OrderedDict()
+
+        """return a flattened dict (formatted same way as .stats file)
+
+        """
+        # dict for flat store:
+        flat_stat = {}
 
         # Storing statistics
         for k, v in self._stat.items():
@@ -560,6 +636,7 @@ class PairCounter(Mapping):
                             flat_stat[formatted_key] = freqs[i]
                 elif (k in ["pair_types", "dedup", "summary"]) and v:
                     # 'pair_types', 'dedup' and 'summary' are simple dicts inside,
+
                     # treat them the exact same way:
                     for k_item, freq in v.items():
                         formatted_key = self._KEY_SEP.join(["{}", "{}"]).format(
@@ -575,7 +652,7 @@ class PairCounter(Mapping):
                         # store key,value pair:
                         flat_stat[formatted_key] = freq
 
-        # return flattened OrderedDict
+        # return flattened dict
         return flat_stat
 
     def save(self, outstream):
