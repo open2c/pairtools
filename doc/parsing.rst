@@ -206,6 +206,10 @@ the ``--max-inter-align-gap`` flag (by default, 20bp).
 Parse2
 -------------------------
 
+If the reads are long enough, the right (reverse) read might read through the left (forward) read's meaningful part.
+And if one of the reads contains ligation junction, this might lead to reporting a fake contact!
+Thus, the pairs of contacts that overlap between left and right reads are intermolecular duplicates.
+
 We call the multi-fragment DNA molecule that is formed during Hi-C (or any other chromosome capture with sequencing) a walk.
 When the walk is sequenced, the read might span multiple ligation junctions of the fragments.
 If the sequenced walk has no more than two different fragments at one side of the read, this can be rescued with simple 
@@ -235,7 +239,7 @@ Here is an example of complex walk:
 ``pairtools parse2`` detects such molecules and **rescues** them.
 
 Briefly, ``pairtools parse2`` detects all the unique ligation junctions, and does not report
-the same junction as a pair multiple times. Importantly, these duplicated pairs might arise when both forward and reverse
+the same junction as a pair multiple times. Importantly, these duplicated pairs might arise when both left and right
 reads read through the same ligation junction. However, these overlaps are successfully merged by ``pairtools parse2``:
 
 .. figure:: _static/rescue_modes_readthrough.svg
@@ -248,13 +252,13 @@ reads read through the same ligation junction. However, these overlaps are succe
 To restore the sequence of ligation events, there is a special field ``junction_index`` that you have as
 a separate column of .pair file when setting ``--add-junction-index`` option. This field contains information on:
 
-- the order of the junction in the recovered walk, starting from 5'-end of forward read
+- the order of the junction in the recovered walk, starting from 5'-end of left read
 - type of the junction:
 
-  - "u" - unconfirmed junction, right and left alignments in the pair originate from different reads (forward or reverse). This might be indirect ligation (mediated by other DNA fragments).
-  - "f" - pair originates from the forward read. This is direct ligation.
-  - "r" - pair originated from the reverse read. Direct ligation.
-  - "b" - pair was sequenced at both forward and reverse read. Direct ligation.
+  - "u" - unconfirmed junction, right and left alignments in the pair originate from different reads (left or right). This might be indirect ligation (mediated by other DNA fragments).
+  - "l" - pair originates from the left read. This is direct ligation.
+  - "r" - pair originated from the right read. Direct ligation.
+  - "b" - pair was sequenced at both left and right read. Direct ligation.
 With this information, the whole sequence of ligation events can be restored from the .pair file.
 
 

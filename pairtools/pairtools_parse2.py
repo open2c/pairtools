@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 from collections import OrderedDict
 import subprocess
 import fileinput
@@ -35,7 +36,6 @@ EXTRA_COLUMNS = [
 
 @cli.command()
 @click.argument("sam_path", type=str, required=False)
-
 # Parsing options:
 @click.option(
     "-c",
@@ -43,9 +43,9 @@ EXTRA_COLUMNS = [
     type=str,
     required=True,
     help="Chromosome order used to flip interchromosomal mates: "
-    "path to a chromosomes file (e.g. UCSC chrom.sizes or similar) whose "
-    "first column lists scaffold names. Any scaffolds not listed will be "
-    "ordered lexicographically following the names provided.",
+         "path to a chromosomes file (e.g. UCSC chrom.sizes or similar) whose "
+         "first column lists scaffold names. Any scaffolds not listed will be "
+         "ordered lexicographically following the names provided.",
 )
 @click.option(
     "-o",
@@ -53,8 +53,25 @@ EXTRA_COLUMNS = [
     type=str,
     default="",
     help="output file. "
-    " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
-    "By default, the output is printed into stdout. ",
+         " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
+         "By default, the output is printed into stdout. ",
+)
+@click.option(
+    "--report-position",
+    type=click.Choice(["junction", "outer", "walk", "read"]),
+    default="outer",
+)
+@click.option(
+    "--report-orientation",
+    type=click.Choice(["junction", "pair", "walk", "read"]),
+    default="pair",
+)
+@click.option(
+    "--report-alignment-end",
+    type=click.Choice(["5", "3"]),
+    default="5",
+    help="specifies whether the 5' or 3' end of the alignment is reported as"
+         " the position of the Hi-C read.",
 )
 @click.option(
     "--assembly",
@@ -74,9 +91,9 @@ EXTRA_COLUMNS = [
     default=20,
     show_default=True,
     help="read segments that are not covered by any alignment and"
-    ' longer than the specified value are treated as "null" alignments.'
-    " These null alignments convert otherwise linear alignments into walks,"
-    " and affect how they get reported as a Hi-C pair.",
+         ' longer than the specified value are treated as "null" alignments.'
+         " These null alignments convert otherwise linear alignments into walks,"
+         " and affect how they get reported as a Hi-C pair.",
 )
 @click.option(
     "--max-fragment-size",
@@ -88,13 +105,20 @@ EXTRA_COLUMNS = [
     "Not used in --single-end mode. ",
 )
 @click.option(
+    "--allowed-offset",
+    type=int,
+    default=3,
+    show_default=True,
+    help="Offset (in nucleotides) to consider alignments overlapping. ",
+)
+@click.option(
     "--single-end", is_flag=True, help="If specified, the input is single-end."
 )
 @click.option(
     "--no-flip",
     is_flag=True,
     help="If specified, do not flip pairs in genomic order and instead preserve "
-    "the order in which they were sequenced.",
+         "the order in which they were sequenced.",
 )
 @click.option(
     "--drop-readid",
@@ -106,10 +130,10 @@ EXTRA_COLUMNS = [
     type=str,
     default=None,
     help="A Python expression to modify read IDs. Useful when read IDs differ "
-    "between the two reads of a pair. Must be a valid Python expression that "
-    "uses variables called readID and/or i (the 0-based index of the read pair "
-    "in the bam file) and returns a new value, e.g. \"readID[:-2]+'_'+str(i)\". "
-    "Make sure that transformed readIDs remain unique!",
+         "between the two reads of a pair. Must be a valid Python expression that "
+         "uses variables called readID and/or i (the 0-based index of the read pair "
+         "in the bam file) and returns a new value, e.g. \"readID[:-2]+'_'+str(i)\". "
+         "Make sure that transformed readIDs remain unique!",
     show_default=True,
 )
 @click.option(
@@ -121,17 +145,17 @@ EXTRA_COLUMNS = [
     "--drop-sam", is_flag=True, help="If specified, do not add sams to the output"
 )
 @click.option(
-    "--add-junction-index",
+    "--add-pair-index",
     is_flag=True,
-    help="If specified, parse2 will report junction index for each pair in the walk",
+    help="If specified, parse2 will report pair index in the walk as additional column",
 )
 @click.option(
     "--add-columns",
     type=click.STRING,
     default="",
     help="Report extra columns describing alignments "
-    "Possible values (can take multiple values as a comma-separated "
-    "list): a SAM tag (any pair of uppercase letters) or {}.".format(
+         "Possible values (can take multiple values as a comma-separated "
+         "list): a SAM tag (any pair of uppercase letters) or {}.".format(
         ", ".join(EXTRA_COLUMNS)
     ),
 )
@@ -140,45 +164,28 @@ EXTRA_COLUMNS = [
     type=str,
     default="",
     help="output file for all parsed alignments, including walks."
-    " Useful for debugging and rnalysis of walks."
-    " If file exists, it will be open in the append mode."
-    " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
-    " By default, not used.",
+         " Useful for debugging and rnalysis of walks."
+         " If file exists, it will be open in the append mode."
+         " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
+         " By default, not used.",
 )
 @click.option(
     "--output-stats",
     type=str,
     default="",
     help="output file for various statistics of pairs file. "
-    " By default, statistics is not generated.",
-)
-@click.option(
-    "--report-position",
-    type=click.Choice(["junction", "outer", "walk", "read"]),
-    default="outer",
-)
-@click.option(
-    "--report-orientation",
-    type=click.Choice(["pair", "read", "walk", "junction"]),
-    default="pair",
-)
-@click.option(
-    "--report-alignment-end",
-    type=click.Choice(["5", "3"]),
-    default="5",
-    help="specifies whether the 5' or 3' end of the alignment is reported as"
-    " the position of the Hi-C read.",
+         " By default, statistics is not generated.",
 )
 @common_io_options
 def parse2(
-    sam_path,
-    chroms_path,
-    output,
-    output_parsed_alignments,
-    output_stats,
-    **kwargs
+        sam_path,
+        chroms_path,
+        output,
+        output_parsed_alignments,
+        output_stats,
+        **kwargs
 ):
-    """Find ligation junctions in .sam, make .pairs.
+    """Find pairs in .sam data, make .pairs.
     SAM_PATH : an input .sam/.bam file with paired-end sequence alignments of
     Hi-C molecules. If the path ends with .bam, the input is decompressed from
     bam with samtools. By default, the input is read from stdin.
@@ -194,20 +201,18 @@ def parse2(
 
 
 def parse2_py(
-    sam_path,
-    chroms_path,
-    output,
-    output_parsed_alignments,
-    output_stats,
-    **kwargs
+        sam_path,
+        chroms_path,
+        output,
+        output_parsed_alignments,
+        output_stats,
+        **kwargs
 ):
-
     ### Set up input stream
     if sam_path:  # open input sam file with pysam
         input_sam = AlignmentFilePairtoolized(sam_path, "r", threads=kwargs.get('nproc_in'))
     else:  # read from stdin
-        input_sam = AlignmentFilePairtoolized("_", "r", threads=kwargs.get('nproc_in'))
-
+        input_sam = AlignmentFilePairtoolized("-", "r", threads=kwargs.get('nproc_in'))
 
     ### Set up output streams
     outstream = (
@@ -264,8 +269,8 @@ def parse2_py(
         columns.pop(columns.index("sam1"))
         columns.pop(columns.index("sam2"))
 
-    if not kwargs.get("add_junction_index", False):
-        columns.pop(columns.index("junction_index"))
+    if not kwargs.get("add_pair_index", False):
+        columns.pop(columns.index("pair_index"))
 
     ### Parse header
     samheader = input_sam.header
@@ -290,7 +295,7 @@ def parse2_py(
     header = _headerops.insert_samheader_pysam(header, samheader)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l + "\n" for l in header))
-    
+
     ### Parse input and write to the outputs
     streaming_classify(
         input_sam,

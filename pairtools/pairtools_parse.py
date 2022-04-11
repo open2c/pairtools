@@ -74,7 +74,8 @@ EXTRA_COLUMNS = [
     show_default=True,
     help="The maximal size of a Hi-C molecule; used to rescue single ligations"
     "(from molecules with three alignments) and to rescue complex ligations."
-    "The default is based on oriented P(s) at short ranges of multiple Hi-C.",
+    "The default is based on oriented P(s) at short ranges of multiple Hi-C."
+    "Not used with walks-policy all.",
 )
 @click.option(
     "--drop-readid",
@@ -90,9 +91,9 @@ EXTRA_COLUMNS = [
     "--drop-sam", is_flag=True, help="If specified, do not add sams to the output"
 )
 @click.option(
-    "--add-junction-index",
+    "--add-pair-index",
     is_flag=True,
-    help="If specified, each pair will have junction index in the molecule",
+    help="If specified, each pair will have pair index in the molecule",
 )
 @click.option(
     "--add-columns",
@@ -179,7 +180,7 @@ def parse(
     output_stats,
     **kwargs
 ):
-    """Find ligation junctions in .sam, make .pairs.
+    """Find ligation pairs in .sam data, make .pairs.
     SAM_PATH : an input .sam/.bam file with paired-end sequence alignments of
     Hi-C molecules. If the path ends with .bam, the input is decompressed from
     bam with samtools. By default, the input is read from stdin.
@@ -264,8 +265,8 @@ def parse_py(
         columns.pop(columns.index("sam1"))
         columns.pop(columns.index("sam2"))
 
-    if not kwargs.get("add_junction_index", False):
-        columns.pop(columns.index("junction_index"))
+    if not kwargs.get("add_pair_index", False):
+        columns.pop(columns.index("pair_index"))
 
     ### Parse header
     samheader = input_sam.header

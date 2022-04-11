@@ -71,7 +71,7 @@ def test_mock_pysam_parse_all():
                 "all",
                 "-c",
                 mock_chroms_path,
-                "--add-junction-index",
+                "--add-pair-index",
                 mock_sam_path,
             ],
         ).decode("ascii")
@@ -100,6 +100,7 @@ def test_mock_pysam_parse_all():
         prev_id = l.split("\t")[0]
 
         assigned_pair = l.split("\t")[1:8] + [l.split("\t")[-1]]
+        print(assigned_pair)
         simulated_pair = (
             l.split("CT:Z:SIMULATED:", 1)[1]
             .split("\031", 1)[0]
