@@ -72,7 +72,7 @@ def test_mock_pysam_parse_all():
                 "all",
                 "-c",
                 mock_chroms_path,
-                "--add-junction-index",
+                "--add-pair-index",
                 mock_sam_path,
             ],
         ).decode("ascii")
@@ -112,3 +112,4 @@ def test_mock_pysam_parse_all():
         print()
 
         assert assigned_pair == simulated_pair
+

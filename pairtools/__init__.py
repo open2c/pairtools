@@ -123,6 +123,7 @@ from .pairtools_split import split
 from .pairtools_restrict import restrict
 from .pairtools_phase import phase
 from .pairtools_parse import parse
+from .pairtools_parse2 import parse2
 from .pairtools_stats import stats
 from .pairtools_sample import sample
 from .pairtools_filterbycov import filterbycov

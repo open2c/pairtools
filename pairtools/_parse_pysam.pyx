@@ -45,3 +45,51 @@ cdef class AlignedSegmentPairtoolized(AlignedSegment):
             #     if 'SA'==tag[0]:
             #         return False
             return True
+
+    property cigar_dict:
+        """Parsed CIGAR as dictionary with interpretable fields"""
+
+        def __get__(self):
+            """Parse cigar tuples reported as cigartuples of pysam read entry.
+            Reports alignment span, clipped nucleotides and more.
+            See https://pysam.readthedocs.io/en/latest/api.html#pysam.AlignedSegment.cigartuples
+            """
+            matched_bp = 0
+            algn_ref_span = 0
+            algn_read_span = 0
+            read_len = 0
+            clip5_ref = 0
+            clip3_ref = 0
+
+            cigarstring = self.cigarstring
+            cigartuples = self.cigartuples
+            if cigartuples is not None:
+                for operation, length in cigartuples:
+                    if operation == 0:  # M, match
+                        matched_bp += length
+                        algn_ref_span += length
+                        algn_read_span += length
+                        read_len += length
+                    elif operation == 1:  # I, insertion
+                        algn_read_span += length
+                        read_len += length
+                    elif operation == 2:  # D, deletion
+                        algn_ref_span += length
+                    elif (
+                            operation == 4 or operation == 5
+                    ):  # S and H, soft clip and hard clip, respectively
+                        read_len += length
+                        if matched_bp == 0:
+                            clip5_ref = length
+                        else:
+                            clip3_ref = length
+
+            return {
+                "clip5_ref": clip5_ref,
+                "clip3_ref": clip3_ref,
+                "cigar": cigarstring,
+                "algn_ref_span": algn_ref_span,
+                "algn_read_span": algn_read_span,
+                "read_len": read_len,
+                "matched_bp": matched_bp,
+            }
