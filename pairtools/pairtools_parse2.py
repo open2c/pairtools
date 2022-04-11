@@ -58,19 +58,29 @@ EXTRA_COLUMNS = [
 )
 @click.option(
     "--report-position",
-    type=click.Choice(["junction", "outer", "walk", "read"]),
+    type=click.Choice(["junction", "read", "walk", "outer"]),
     default="outer",
+    help="Specifies what end will be reported as pos5 of the rescued pairs. "
+         "junction - inner ends of sequential alignments, "
+         "read - 5'-end of alignments relative to the forward and reverse read, "
+         "walk - 5'-end of alignments relative to the whole walk, "
+         "outer - outer ends. "
 )
 @click.option(
     "--report-orientation",
-    type=click.Choice(["junction", "pair", "walk", "read"]),
+    type=click.Choice(["pair", "read", "walk", "junction"]),
     default="pair",
+    help="Specifies what orientation will be reported for the rescued pairs. "
+         "pair - Hi-C-like orientation as if each pair was sequenced independently, "
+         "read - orientation of each left/right read, "
+         "walk - orientation of the walk, "
+         "junction - orientation opposite to 'pair', orientation is reported as if pair was sequenced starting from the junction"
 )
 @click.option(
     "--report-alignment-end",
     type=click.Choice(["5", "3"]),
     default="5",
-    help="specifies whether the 5' or 3' end of the alignment is reported as"
+    help="Specifies whether the 5' or 3' end of the alignment is reported as"
          " the position of the Hi-C read.",
 )
 @click.option(
