@@ -172,12 +172,7 @@ EXTRA_COLUMNS = [
 )
 @common_io_options
 def parse(
-    sam_path,
-    chroms_path,
-    output,
-    output_parsed_alignments,
-    output_stats,
-    **kwargs
+    sam_path, chroms_path, output, output_parsed_alignments, output_stats, **kwargs
 ):
     """Find ligation pairs in .sam data, make .pairs.
     SAM_PATH : an input .sam/.bam file with paired-end sequence alignments of
@@ -185,44 +180,45 @@ def parse(
     bam with samtools. By default, the input is read from stdin.
     """
     parse_py(
-        sam_path,
-        chroms_path,
-        output,
-        output_parsed_alignments,
-        output_stats,
-        **kwargs
+        sam_path, chroms_path, output, output_parsed_alignments, output_stats, **kwargs
     )
 
 
 def parse_py(
-    sam_path,
-    chroms_path,
-    output,
-    output_parsed_alignments,
-    output_stats,
-    **kwargs
+    sam_path, chroms_path, output, output_parsed_alignments, output_stats, **kwargs
 ):
 
     ### Set up input stream
     if sam_path:  # open input sam file with pysam
-        input_sam = AlignmentFilePairtoolized(sam_path, "r", threads=kwargs.get('nproc_in'))
+        input_sam = AlignmentFilePairtoolized(
+            sam_path, "r", threads=kwargs.get("nproc_in")
+        )
     else:  # read from stdin
-        input_sam = AlignmentFilePairtoolized("-", "r", threads=kwargs.get('nproc_in'))
+        input_sam = AlignmentFilePairtoolized("-", "r", threads=kwargs.get("nproc_in"))
 
     ### Set up output streams
-    outstream = _fileio.auto_open(output, mode="w",
-                            nproc=kwargs.get("nproc_out"),
-                            command=kwargs.get("cmd_out", None))
+    outstream = _fileio.auto_open(
+        output,
+        mode="w",
+        nproc=kwargs.get("nproc_out"),
+        command=kwargs.get("cmd_out", None),
+    )
 
     out_alignments_stream, out_stats_stream = None, None
     if output_parsed_alignments:
-        out_alignments_stream = _fileio.auto_open(output_parsed_alignments, mode="w",
-                            nproc=kwargs.get("nproc_out"),
-                            command=kwargs.get("cmd_out", None))
+        out_alignments_stream = _fileio.auto_open(
+            output_parsed_alignments,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
     if output_stats:
-        out_stats_stream = _fileio.auto_open(output_stats, mode="w",
-                            nproc=kwargs.get("nproc_out"),
-                            command=kwargs.get("cmd_out", None))
+        out_stats_stream = _fileio.auto_open(
+            output_stats,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
 
     if out_alignments_stream:
         out_alignments_stream.write(
@@ -276,12 +272,7 @@ def parse_py(
 
     ### Parse input and write to the outputs
     streaming_classify(
-        input_sam,
-        outstream,
-        chromosomes,
-        out_alignments_stream,
-        out_stat,
-        **kwargs
+        input_sam, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
     )
 
     # save statistics to a file if it was requested:

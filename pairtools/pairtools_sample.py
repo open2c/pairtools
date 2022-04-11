@@ -5,68 +5,59 @@ import random
 
 from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
-UTIL_NAME = 'pairtools_sample'
+UTIL_NAME = "pairtools_sample"
+
 
 @cli.command()
-
-@click.argument(
-    'fraction', 
-    type=float,
-    required=True)
-
-@click.argument(
-    'pairs_path', 
+@click.argument("fraction", type=float, required=True)
+@click.argument("pairs_path", type=str, required=False)
+@click.option(
+    "-o",
+    "--output",
     type=str,
-    required=False)
-
+    default="",
+    help="output file."
+    " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
+    " By default, the output is printed into stdout.",
+)
 @click.option(
-    '-o', "--output", 
-    type=str, 
-    default="", 
-    help='output file.'
-        ' If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.'
-        ' By default, the output is printed into stdout.')
-
-@click.option(
-    '-s', "--seed", 
-    type=int, 
-    default=None, 
-    help='the seed of the random number generator.')
-
+    "-s",
+    "--seed",
+    type=int,
+    default=None,
+    help="the seed of the random number generator.",
+)
 @common_io_options
+def sample(fraction, pairs_path, output, seed, **kwargs):
+    """Select a random subset of pairs in a pairs file.
 
-def sample(
-    fraction, pairs_path, output, seed,
-    **kwargs
-    ):
-    '''Select a random subset of pairs in a pairs file.
-
-    FRACTION: the fraction of the randomly selected pairs subset 
+    FRACTION: the fraction of the randomly selected pairs subset
 
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the
     input is decompressed by bgzip/lz4c. By default, the input is read from stdin.
 
-    '''
-    sample_py(
-        fraction, pairs_path, output, seed,
-        **kwargs
-    )
-    
-def sample_py(
-    fraction, pairs_path, output, seed,
-    **kwargs
-    ):
+    """
+    sample_py(fraction, pairs_path, output, seed, **kwargs)
 
-    instream = _fileio.auto_open(pairs_path, mode='r',
-                                  nproc=kwargs.get('nproc_in'),
-                                  command=kwargs.get('cmd_in', None))
-    outstream = _fileio.auto_open(output, mode='w',
-                                   nproc=kwargs.get('nproc_out'),
-                                   command=kwargs.get('cmd_out', None))
+
+def sample_py(fraction, pairs_path, output, seed, **kwargs):
+
+    instream = _fileio.auto_open(
+        pairs_path,
+        mode="r",
+        nproc=kwargs.get("nproc_in"),
+        command=kwargs.get("cmd_in", None),
+    )
+    outstream = _fileio.auto_open(
+        output,
+        mode="w",
+        nproc=kwargs.get("nproc_out"),
+        command=kwargs.get("cmd_out", None),
+    )
 
     header, body_stream = _headerops.get_header(instream)
     header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-    outstream.writelines((l+'\n' for l in header))
+    outstream.writelines((l + "\n" for l in header))
 
     random.seed(seed)
 
@@ -81,5 +72,5 @@ def sample_py(
         outstream.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sample()

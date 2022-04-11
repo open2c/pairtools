@@ -401,8 +401,8 @@ def dedup_py(
         outstream.writelines((l + "\n" for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
         dups_header = header
-        if keep_parent_id and len(dups_header)>0:
-            dups_header= _headerops.append_columns(dups_header, ["parent_readID"])
+        if keep_parent_id and len(dups_header) > 0:
+            dups_header = _headerops.append_columns(dups_header, ["parent_readID"])
         outstream_dups.writelines((l + "\n" for l in dups_header))
     if (
         outstream_unmapped
@@ -704,7 +704,10 @@ def _dedup_chunk(
     if N_mapped > 0:
         if backend == "sklearn":
             a = neighbors.radius_neighbors_graph(
-                df_mapped[["pos1", "pos2"]], radius=r, p=p, n_jobs=n_proc,
+                df_mapped[["pos1", "pos2"]],
+                radius=r,
+                p=p,
+                n_jobs=n_proc,
             )
             a0, a1 = a.nonzero()
         elif backend == "scipy":

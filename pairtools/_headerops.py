@@ -15,6 +15,7 @@ PAIRS_FORMAT_VERSION = "1.0.0"
 SEP_COLS = " "
 SEP_CHROMS = " "
 
+
 def get_header(instream, comment_char="#"):
     """Returns a header from the stream and an the reaminder of the stream
     with the actual data.
@@ -606,7 +607,8 @@ def _merge_pairheaders(pairheaders, force=False):
             for h in pairheaders
             for l in h
             if not any(
-                l.startswith(k) for k in keys_expected_identical + ["#chromosomes", "#chromsize"]
+                l.startswith(k)
+                for k in keys_expected_identical + ["#chromosomes", "#chromsize"]
             )
         )
     )
@@ -657,6 +659,7 @@ def append_columns(header, columns):
         if header[i].startswith("#columns: "):
             header[i] += SEP_COLS + SEP_COLS.join(columns)
     return header
+
 
 # def _guess_genome_assembly(samheader):
 #    PG = [l for l in samheader if l.startswith('@PG') and '\tID:bwa' in l][0]

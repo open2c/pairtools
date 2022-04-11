@@ -112,4 +112,3 @@ def test_mock_pysam_parse_all():
         print()
 
         assert assigned_pair == simulated_pair
-

@@ -27,14 +27,14 @@ UTIL_NAME = "pairtools_stats"
 )
 @common_io_options
 def stats(input_path, output, merge, **kwargs):
-    """Calculate pairs statistics. 
+    """Calculate pairs statistics.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
     If not provided, the input is read from stdin.
-    If --merge is specified, then INPUT_PATH is interpreted as an arbitrary number 
+    If --merge is specified, then INPUT_PATH is interpreted as an arbitrary number
     of stats files to merge.
-    
-    The files with paths ending with .gz/.lz4 are decompressed by bgzip/lz4c. 
+
+    The files with paths ending with .gz/.lz4 are decompressed by bgzip/lz4c.
     """
     stats_py(input_path, output, merge, **kwargs)
 
@@ -44,12 +44,18 @@ def stats_py(input_path, output, merge, **kwargs):
         do_merge(output, input_path, **kwargs)
         return
 
-    instream = _fileio.auto_open(input_path[0], mode="r",
-                    nproc=kwargs.get("nproc_in"),
-                    command=kwargs.get("cmd_in", None))
-    outstream = _fileio.auto_open(output, mode="w",
-                    nproc=kwargs.get("nproc_out"),
-                    command=kwargs.get("cmd_out", None))
+    instream = _fileio.auto_open(
+        input_path[0],
+        mode="r",
+        nproc=kwargs.get("nproc_in"),
+        command=kwargs.get("cmd_in", None),
+    )
+    outstream = _fileio.auto_open(
+        output,
+        mode="w",
+        nproc=kwargs.get("nproc_out"),
+        command=kwargs.get("cmd_out", None),
+    )
 
     header, body_stream = _headerops.get_header(instream)
     cols = _headerops.extract_column_names(header)
@@ -414,7 +420,7 @@ class PairCounter(Mapping):
 
     def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
-    
+
         Parameters
         ----------
         df: pd.DataFrame
@@ -438,7 +444,9 @@ class PairCounter(Mapping):
         self._stat["total_unmapped"] += int(unmapped_count)
 
         # Count the mapped:
-        df_mapped = df.loc[(df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :]
+        df_mapped = df.loc[
+            (df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :
+        ]
         mapped_count = df_mapped.shape[0]
 
         self._stat["total_mapped"] += mapped_count
@@ -535,9 +543,7 @@ class PairCounter(Mapping):
             return self.__add__(other)
 
     def flatten(self):
-        """return a flattened dict (formatted same way as .stats file)
-
-        """
+        """return a flattened dict (formatted same way as .stats file)"""
         # dict for flat store:
         flat_stat = {}
 
@@ -610,4 +616,3 @@ class PairCounter(Mapping):
 
 if __name__ == "__main__":
     stats()
-
