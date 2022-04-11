@@ -1099,11 +1099,15 @@ def format_pair(
         elif pair_type=="u":
             hic_algn2 = flip_orientation(hic_algn2)
     elif report_orientation=="pair":
-        if pair_type in ["l", "r"]:
+        if pair_type=="l":
             hic_algn2 = flip_orientation(hic_algn2)
-    elif report_orientation=="pair":
-        if pair_type in ["l", "r"]:
+        elif pair_type == "r":
             hic_algn1 = flip_orientation(hic_algn1)
+    elif report_orientation=="junction":
+        if pair_type=="l":
+            hic_algn1 = flip_orientation(hic_algn1)
+        elif pair_type=="r":
+            hic_algn2 = flip_orientation(hic_algn2)
         else:
             hic_algn1 = flip_orientation(hic_algn1)
             hic_algn2 = flip_orientation(hic_algn2)
@@ -1117,11 +1121,15 @@ def format_pair(
         elif pair_type=="u":
             hic_algn2 = flip_position(hic_algn2)
     elif report_position=="outer":
-        if pair_type in ["l", "r"]:
+        if pair_type=="l":
             hic_algn2 = flip_position(hic_algn2)
-    elif report_position=="junction":
-        if pair_type in ["l", "r"]:
+        elif pair_type == "r":
             hic_algn1 = flip_position(hic_algn1)
+    elif report_position=="junction":
+        if pair_type == "l":
+            hic_algn1 = flip_position(hic_algn1)
+        elif pair_type == "r":
+            hic_algn2 = flip_position(hic_algn2)
         else:
             hic_algn1 = flip_position(hic_algn1)
             hic_algn2 = flip_position(hic_algn2)
