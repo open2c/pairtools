@@ -24,7 +24,6 @@ def test_preserve():
         print(sys.exc_info())
         raise e
 
-        
     pairsam_body = [l.strip() for l in open(mock_pairsam_path, 'r') 
                     if not l.startswith('#') and l.strip()]
     output_body  = [l.strip() for l in result.split('\n')

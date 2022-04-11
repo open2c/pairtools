@@ -47,6 +47,7 @@ def test_mock_pysam():
         if l.startswith("#") or not l:
             continue
 
+        print(l)
         assigned_pair = l.split("\t")[1:8]
         simulated_pair = l.split("CT:Z:SIMULATED:", 1)[1].split("\031", 1)[0].split(",")
         print(assigned_pair)

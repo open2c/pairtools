@@ -1,4 +1,4 @@
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 import sys
 import copy
 import itertools
@@ -12,7 +12,8 @@ from ._fileio import ParseError
 
 
 PAIRS_FORMAT_VERSION = "1.0.0"
-
+SEP_COLS = " "
+SEP_CHROMS = " "
 
 def get_header(instream, comment_char="#"):
     """Returns a header from the stream and an the reaminder of the stream
@@ -92,7 +93,7 @@ def extract_column_names(header):
     columns = extract_fields(header, "columns")
 
     if len(columns) != 0:
-        return columns[0].split(" ")
+        return columns[0].split(SEP_COLS)
     else:
         return []
 
@@ -103,7 +104,7 @@ def extract_chromsizes(header):
     """
 
     chromsizes_str = extract_fields(header, "chromsize")
-    chromsizes_str = list(zip(*[s.split(" ") for s in chromsizes_str]))
+    chromsizes_str = list(zip(*[s.split(SEP_CHROMS) for s in chromsizes_str]))
     chromsizes = pd.Series(data=chromsizes_str[1], index=chromsizes_str[0]).astype(
         np.int64
     )
@@ -112,10 +113,10 @@ def extract_chromsizes(header):
 
 
 def get_chromsizes_from_pysam_header(samheader):
-    """Convert pysam header to pairtools chromosomes (Ordered dict).
+    """Convert pysam header to pairtools chromosomes dict (ordered by Python default since 3.7).
 
     Example of pysam header converted to dict:
-    OrderedDict([
+    dict([
         ('SQ', [{'SN': 'chr1', 'LN': 248956422},
          {'SN': 'chr10', 'LN': 133797422},
          {'SN': 'chr11', 'LN': 135086622},
@@ -125,7 +126,7 @@ def get_chromsizes_from_pysam_header(samheader):
     """
     SQs = samheader.to_dict()["SQ"]
     chromsizes = [(sq["SN"], int(sq["LN"])) for sq in SQs]
-    return OrderedDict(chromsizes)
+    return dict(chromsizes)
 
 
 def get_chromsizes_from_pysam_header(samheader):
@@ -150,7 +151,7 @@ def get_chrom_order(chroms_file, sam_chroms=None):
     Produce an "enumeration" of chromosomes based on the list
     of chromosomes
     """
-    chrom_enum = OrderedDict()
+    chrom_enum = dict()
     i = 1
     with open(chroms_file, "rt") as f:
         for line in f:
@@ -193,7 +194,7 @@ def make_standard_pairsheader(
         for chrom, length in chromsizes:
             header.append("#chromsize: {} {}".format(chrom, length))
 
-    header.append("#columns: " + " ".join(columns))
+    header.append("#columns: " + SEP_COLS.join(columns))
 
     return header
 
@@ -205,7 +206,7 @@ def subset_chroms_in_pairsheader(header, chrom_subset):
             if line.strip().split()[1] in chrom_subset:
                 new_header.append(line)
         elif line.startswith("#chromosomes:"):
-            line = " ".join(
+            line = SEP_CHROMS.join(
                 ["#chromosomes:"]
                 + [c for c in line.strip().split()[1:] if c in chrom_subset]
             )
@@ -242,8 +243,8 @@ def mark_header_as_sorted(header):
             header.insert(0, "#sorted: chr1-chr2-pos1-pos2")
     for i in range(len(header)):
         if header[i].startswith("#chromosomes"):
-            chroms = header[i][12:].strip().split(" ")
-            header[i] = "#chromosomes: {}".format(" ".join(sorted(chroms)))
+            chroms = header[i][12:].strip().split(SEP_CHROMS)
+            header[i] = "#chromosomes: {}".format(SEP_CHROMS.join(sorted(chroms)))
     return header
 
 
@@ -292,9 +293,8 @@ def _add_pg_to_samheader(samheader, ID="", PN="", VN=None, CL=None, force=False)
     -------
     new_header : list of str
         A list of new headers lines, stripped of newline characters.
-
-
     """
+
     if VN is None:
         VN = __version__
     if CL is None:
@@ -482,6 +482,7 @@ def merge_chrom_lists(*lsts):
     chrom_list = list(_toposort(g.copy(), tie_breaker=min))
     if sentinel in chrom_list:
         chrom_list.remove(sentinel)
+    chrom_list = sorted(chrom_list)
     return chrom_list
 
 
@@ -564,6 +565,8 @@ def _merge_pairheaders(pairheaders, force=False):
         "#columns:",
     ]
 
+    keys_orginal = [l.split()[0] for header in pairheaders for l in header]
+
     for k in keys_expected_identical:
         lines = [[l for l in header if l.startswith(k)] for header in pairheaders]
         same = all([l == lines[0] for l in lines])
@@ -587,10 +590,14 @@ def _merge_pairheaders(pairheaders, force=False):
         chrom_lists.append(chromlist)
 
     chroms_merged = merge_chrom_lists(*chrom_lists)
-    chrom_lines = [
+    if "#chromosomes:" in keys_orginal:
+        chrom_line = "#chromosomes: {}".format(" ".join(chroms_merged))
+        new_header.extend([chrom_line])
+
+    chromsize_lines = [
         "#chromsize: {} {}".format(chrom, chromsizes[chrom]) for chrom in chroms_merged
     ]
-    new_header.extend(chrom_lines)
+    new_header.extend(chromsize_lines)
 
     # finally, add a sorted list of other unique fields
     other_lines = sorted(
@@ -599,7 +606,7 @@ def _merge_pairheaders(pairheaders, force=False):
             for h in pairheaders
             for l in h
             if not any(
-                l.startswith(k) for k in keys_expected_identical + ["#chromsize"]
+                l.startswith(k) for k in keys_expected_identical + ["#chromosomes", "#chromsize"]
             )
         )
     )
@@ -610,6 +617,13 @@ def _merge_pairheaders(pairheaders, force=False):
             new_header = new_header + other_lines
 
     return new_header
+
+
+def all_same_columns(pairheaders):
+    key_target = "#columns:"
+    lines = [[l for l in header if l.startswith(key_target)] for header in pairheaders]
+    all_same = all([l == lines[0] for l in lines])
+    return all_same
 
 
 def merge_headers(headers, force=False):
@@ -625,6 +639,24 @@ def merge_headers(headers, force=False):
 
     return new_header
 
+
+def append_columns(header, columns):
+    """
+    Appends columns to the header, separated by SEP_COLS
+
+    Parameters
+    ----------
+    header: Previous header
+    columns: List of column names to append
+
+    Returns
+    -------
+    Modified header (appended columns to the field "#columns")
+    """
+    for i in range(len(header)):
+        if header[i].startswith("#columns: "):
+            header[i] += SEP_COLS + SEP_COLS.join(columns)
+    return header
 
 # def _guess_genome_assembly(samheader):
 #    PG = [l for l in samheader if l.startswith('@PG') and '\tID:bwa' in l][0]
