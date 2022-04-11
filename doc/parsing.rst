@@ -258,7 +258,7 @@ The complete guide through the reporting options of ``parse2``:
    :align: center
 
 
-.. figure:: _static/report-position.svg
+.. figure:: _static/report-positions.svg
    :width: 60 %
    :alt: parse2 --report-position
    :align: center
