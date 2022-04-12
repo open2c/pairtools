@@ -27,6 +27,7 @@ classifiers = """\
     Programming Language :: Python :: 3.7
     Programming Language :: Python :: 3.8
     Programming Language :: Python :: 3.9
+    Programming Language :: Python :: 3.10
 """
 
 
@@ -55,12 +56,12 @@ install_requires = [l for l in _read("requirements.txt").split("\n") if l]
 def get_ext_modules():
     ext = ".pyx" if HAVE_CYTHON else ".c"
     src_files = glob.glob(
-        os.path.join(os.path.dirname(__file__), "pairtools", "*" + ext)
+        os.path.join(os.path.dirname(__file__), "pairtools", "lib", "*" + ext)
     )
 
     ext_modules = []
     for src_file in src_files:
-        name = "pairtools." + os.path.splitext(os.path.basename(src_file))[0]
+        name = "pairtools.lib." + os.path.splitext(os.path.basename(src_file))[0]
         if not "pysam" in name:
             ext_modules.append(Extension(name, [src_file]))
         else:
@@ -110,7 +111,7 @@ class build_ext(_build_ext):
 setup(
     name="pairtools",
     author="Open2C",
-    author_email="goloborodko.anton@gmail.com",
+    author_email="open.chromosome.collective@gmail.com",
     version=get_version(),
     license="MIT",
     description="CLI tools to process mapped Hi-C data",
@@ -126,8 +127,8 @@ setup(
     python_requires=">=3.7",
     entry_points={
         "console_scripts": [
-            "pairtools = pairtools:cli",
-            #'pairsamtools = pairtools:cli',
+            "pairtools = pairtools.cli:cli",
+            #'pairsamtools = pairtools.cli:cli',
         ]
     },
     packages=find_packages(),

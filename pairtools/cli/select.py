@@ -2,7 +2,8 @@ import sys
 import click
 import re, fnmatch
 
-from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
+from ..lib import fileio, pairsam_format, headerops
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_select"
 
@@ -135,13 +136,13 @@ def select_py(
     **kwargs
 ):
 
-    instream = _fileio.auto_open(
+    instream = fileio.auto_open(
         pairs_path,
         mode="r",
         nproc=kwargs.get("nproc_in"),
         command=kwargs.get("cmd_in", None),
     )
-    outstream = _fileio.auto_open(
+    outstream = fileio.auto_open(
         output,
         mode="w",
         nproc=kwargs.get("nproc_out"),
@@ -151,7 +152,7 @@ def select_py(
     # Optional output created only if requested:
     outstream_rest = None
     if output_rest:
-        outstream_rest = _fileio.auto_open(
+        outstream_rest = fileio.auto_open(
             output_rest,
             mode="w",
             nproc=kwargs.get("nproc_out"),
@@ -190,17 +191,17 @@ def select_py(
 
     TYPES.update(dict(type_cast))
 
-    header, body_stream = _headerops.get_header(instream)
-    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    header, body_stream = headerops.get_header(instream)
+    header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     if new_chroms is not None:
-        header = _headerops.subset_chroms_in_pairsheader(header, new_chroms)
+        header = headerops.subset_chroms_in_pairsheader(header, new_chroms)
     outstream.writelines((l + "\n" for l in header))
     if output_rest:
         outstream_rest.writelines((l + "\n" for l in header))
 
-    column_names = _headerops.extract_column_names(header)
+    column_names = headerops.extract_column_names(header)
     if len(column_names) == 0:
-        column_names = _pairsam_format.COLUMNS
+        column_names = pairsam_format.COLUMNS
 
     if startup_code is not None:
         exec(startup_code, globals())
@@ -221,7 +222,7 @@ def select_py(
     match_func = compile(condition, "<string>", "eval")
 
     for line in body_stream:
-        COLS = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
+        COLS = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
         if eval(match_func):
             outstream.write(line)
         elif outstream_rest:

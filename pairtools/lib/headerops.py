@@ -7,8 +7,9 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from . import __version__, _pairsam_format
-from ._fileio import ParseError
+from .. import __version__
+from . import pairsam_format
+from .fileio import ParseError
 
 
 PAIRS_FORMAT_VERSION = "1.0.0"
@@ -176,7 +177,7 @@ def get_chrom_order(chroms_file, sam_chroms=None):
 def make_standard_pairsheader(
     assembly=None,
     chromsizes=None,
-    columns=_pairsam_format.COLUMNS,
+    columns=pairsam_format.COLUMNS,
     shape="upper triangle",
 ):
     header = []

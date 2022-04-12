@@ -2,7 +2,8 @@ import sys
 import click
 import re, fnmatch
 
-from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
+from ..lib import fileio, pairsam_format, headerops
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_phase"
 
@@ -42,38 +43,38 @@ def phase(pairs_path, output, phase_suffixes, clean_output, **kwargs):
 
 def phase_py(pairs_path, output, phase_suffixes, clean_output, **kwargs):
 
-    instream = _fileio.auto_open(
+    instream = fileio.auto_open(
         pairs_path,
         mode="r",
         nproc=kwargs.get("nproc_in"),
         command=kwargs.get("cmd_in", None),
     )
-    outstream = _fileio.auto_open(
+    outstream = fileio.auto_open(
         output,
         mode="w",
         nproc=kwargs.get("nproc_out"),
         command=kwargs.get("cmd_out", None),
     )
 
-    header, body_stream = _headerops.get_header(instream)
-    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-    old_column_names = _headerops.extract_column_names(header)
+    header, body_stream = headerops.get_header(instream)
+    header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    old_column_names = headerops.extract_column_names(header)
 
     if clean_output:
         new_column_names = [
-            col for col in old_column_names if col in _pairsam_format.COLUMNS
+            col for col in old_column_names if col in pairsam_format.COLUMNS
         ]
         new_column_idxs = [
             i
             for i, col in enumerate(old_column_names)
-            if col in _pairsam_format.COLUMNS
+            if col in pairsam_format.COLUMNS
         ] + [len(old_column_names), len(old_column_names) + 1]
     else:
         new_column_names = list(old_column_names)
 
     new_column_names.append("phase1")
     new_column_names.append("phase2")
-    header = _headerops._update_header_entry(
+    header = headerops._update_header_entry(
         header, "columns", " ".join(new_column_names)
     )
 
@@ -133,15 +134,15 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, **kwargs):
         return "!", "!"
 
     for line in body_stream:
-        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
         cols.append("!")
         cols.append("!")
-        pair_type = cols[_pairsam_format.COL_PTYPE]
+        pair_type = cols[pairsam_format.COL_PTYPE]
 
-        if cols[_pairsam_format.COL_C1] != _pairsam_format.UNMAPPED_CHROM:
+        if cols[pairsam_format.COL_C1] != pairsam_format.UNMAPPED_CHROM:
 
             phase1, chrom_base1 = phase_side(
-                cols[_pairsam_format.COL_C1],
+                cols[pairsam_format.COL_C1],
                 cols[COL_XB1],
                 int(cols[COL_AS1]),
                 int(cols[COL_XS1]),
@@ -149,18 +150,18 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, **kwargs):
             )
 
             cols[-2] = phase1
-            cols[_pairsam_format.COL_C1] = chrom_base1
+            cols[pairsam_format.COL_C1] = chrom_base1
 
             if chrom_base1 == "!":
-                cols[_pairsam_format.COL_C1] = _pairsam_format.UNMAPPED_CHROM
-                cols[_pairsam_format.COL_P1] = str(_pairsam_format.UNMAPPED_POS)
-                cols[_pairsam_format.COL_S1] = _pairsam_format.UNMAPPED_STRAND
+                cols[pairsam_format.COL_C1] = pairsam_format.UNMAPPED_CHROM
+                cols[pairsam_format.COL_P1] = str(pairsam_format.UNMAPPED_POS)
+                cols[pairsam_format.COL_S1] = pairsam_format.UNMAPPED_STRAND
                 pair_type = "M" + pair_type[1]
 
-        if cols[_pairsam_format.COL_C2] != _pairsam_format.UNMAPPED_CHROM:
+        if cols[pairsam_format.COL_C2] != pairsam_format.UNMAPPED_CHROM:
 
             phase2, chrom_base2 = phase_side(
-                cols[_pairsam_format.COL_C2],
+                cols[pairsam_format.COL_C2],
                 cols[COL_XB2],
                 int(cols[COL_AS2]),
                 int(cols[COL_XS2]),
@@ -168,20 +169,20 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, **kwargs):
             )
 
             cols[-1] = phase2
-            cols[_pairsam_format.COL_C2] = chrom_base2
+            cols[pairsam_format.COL_C2] = chrom_base2
 
             if chrom_base2 == "!":
-                cols[_pairsam_format.COL_C2] = _pairsam_format.UNMAPPED_CHROM
-                cols[_pairsam_format.COL_P2] = str(_pairsam_format.UNMAPPED_POS)
-                cols[_pairsam_format.COL_S2] = _pairsam_format.UNMAPPED_STRAND
+                cols[pairsam_format.COL_C2] = pairsam_format.UNMAPPED_CHROM
+                cols[pairsam_format.COL_P2] = str(pairsam_format.UNMAPPED_POS)
+                cols[pairsam_format.COL_S2] = pairsam_format.UNMAPPED_STRAND
                 pair_type = pair_type[0] + "M"
 
-        cols[_pairsam_format.COL_PTYPE] = pair_type
+        cols[pairsam_format.COL_PTYPE] = pair_type
 
         if clean_output:
             cols = [cols[i] for i in new_column_idxs]
 
-        outstream.write(_pairsam_format.PAIRSAM_SEP.join(cols))
+        outstream.write(pairsam_format.PAIRSAM_SEP.join(cols))
         outstream.write("\n")
 
     if instream != sys.stdin:

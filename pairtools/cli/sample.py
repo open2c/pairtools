@@ -3,7 +3,8 @@ import click
 
 import random
 
-from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
+from ..lib import fileio, pairsam_format, headerops
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_sample"
 
@@ -42,21 +43,21 @@ def sample(fraction, pairs_path, output, seed, **kwargs):
 
 def sample_py(fraction, pairs_path, output, seed, **kwargs):
 
-    instream = _fileio.auto_open(
+    instream = fileio.auto_open(
         pairs_path,
         mode="r",
         nproc=kwargs.get("nproc_in"),
         command=kwargs.get("cmd_in", None),
     )
-    outstream = _fileio.auto_open(
+    outstream = fileio.auto_open(
         output,
         mode="w",
         nproc=kwargs.get("nproc_out"),
         command=kwargs.get("cmd_out", None),
     )
 
-    header, body_stream = _headerops.get_header(instream)
-    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    header, body_stream = headerops.get_header(instream)
+    header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l + "\n" for l in header))
 
     random.seed(seed)

@@ -1,7 +1,8 @@
 import sys
 import click
 
-from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
+from ..lib import fileio, pairsam_format, headerops
+from . import cli, common_io_options
 import warnings
 
 UTIL_NAME = "pairtools_flip"
@@ -49,7 +50,7 @@ def flip(pairs_path, chroms_path, output, **kwargs):
 def flip_py(pairs_path, chroms_path, output, **kwargs):
 
     instream = (
-        _fileio.auto_open(
+        fileio.auto_open(
             pairs_path,
             mode="r",
             nproc=kwargs.get("nproc_in"),
@@ -59,7 +60,7 @@ def flip_py(pairs_path, chroms_path, output, **kwargs):
         else sys.stdin
     )
     outstream = (
-        _fileio.auto_open(
+        fileio.auto_open(
             output,
             mode="w",
             nproc=kwargs.get("nproc_out"),
@@ -69,21 +70,21 @@ def flip_py(pairs_path, chroms_path, output, **kwargs):
         else sys.stdout
     )
 
-    chromosomes = _headerops.get_chrom_order(chroms_path)
+    chromosomes = headerops.get_chrom_order(chroms_path)
     chrom_enum = dict(
         zip(
-            [_pairsam_format.UNMAPPED_CHROM] + list(chromosomes),
+            [pairsam_format.UNMAPPED_CHROM] + list(chromosomes),
             range(len(chromosomes) + 1),
         )
     )
 
-    header, body_stream = _headerops.get_header(instream)
-    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    header, body_stream = headerops.get_header(instream)
+    header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     outstream.writelines((l + "\n" for l in header))
 
-    column_names = _headerops.extract_column_names(header)
+    column_names = headerops.extract_column_names(header)
     if len(column_names) == 0:
-        column_names = _pairsam_format.COLUMNS
+        column_names = pairsam_format.COLUMNS
 
     chrom1_col = column_names.index("chrom1")
     chrom2_col = column_names.index("chrom2")
@@ -100,7 +101,7 @@ def flip_py(pairs_path, chroms_path, output, **kwargs):
     ]
 
     for line in body_stream:
-        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
 
         is_annotated1 = cols[chrom1_col] in chrom_enum.keys()
         is_annotated2 = cols[chrom2_col] in chrom_enum.keys()
@@ -127,7 +128,7 @@ def flip_py(pairs_path, chroms_path, output, **kwargs):
             if pair_type_col != -1 and pair_type_col < len(cols):
                 cols[pair_type_col] = cols[pair_type_col][1] + cols[pair_type_col][0]
 
-        outstream.write(_pairsam_format.PAIRSAM_SEP.join(cols))
+        outstream.write(pairsam_format.PAIRSAM_SEP.join(cols))
         outstream.write("\n")
 
     if instream != sys.stdin:

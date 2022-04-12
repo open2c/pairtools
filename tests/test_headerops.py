@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-from pairtools import _headerops
+from pairtools.lib import headerops
 
 from nose.tools import assert_raises, with_setup, raises
 
 
 def test_make_standard_header():
-    header = _headerops.make_standard_pairsheader()
+    header = headerops.make_standard_pairsheader()
 
     assert any([l.startswith("## pairs format") for l in header])
     assert any([l.startswith("#shape") for l in header])
     assert any([l.startswith("#columns") for l in header])
 
-    header = _headerops.make_standard_pairsheader(
+    header = headerops.make_standard_pairsheader(
         chromsizes=[("b", 100), ("c", 100), ("a", 100)]
     )
 
@@ -19,7 +19,7 @@ def test_make_standard_header():
 
 
 def test_samheaderops():
-    header = _headerops.make_standard_pairsheader()
+    header = headerops.make_standard_pairsheader()
     samheader = [
         "@SQ\tSN:chr1\tLN:100",
         "@SQ\tSN:chr2\tLN:100",
@@ -27,14 +27,14 @@ def test_samheaderops():
         "@PG\tID:bwa\tPN:bwa\tCL:bwa",
         "@PG\tID:bwa-2\tPN:bwa\tCL:bwa\tPP:bwa",
     ]
-    header_with_sam = _headerops.insert_samheader(header, samheader)
+    header_with_sam = headerops.insert_samheader(header, samheader)
 
     assert len(header_with_sam) == len(header) + len(samheader)
     for l in samheader:
         assert any([l2.startswith("#samheader") and l in l2 for l2 in header_with_sam])
 
     # test adding new programs to the PG chain
-    header_extra_pg = _headerops.append_new_pg(header_with_sam, ID="test", PN="test")
+    header_extra_pg = headerops.append_new_pg(header_with_sam, ID="test", PN="test")
 
     # test if all lines got transferred
     assert all([(old_l in header_extra_pg) for old_l in header_with_sam])
@@ -58,25 +58,25 @@ def test_samheaderops():
 
 def test_merge_pairheaders():
     headers = [["## pairs format v1.0"], ["## pairs format v1.0"]]
-    merged_header = _headerops._merge_pairheaders(headers)
+    merged_header = headerops._merge_pairheaders(headers)
     assert merged_header == headers[0]
 
     headers = [["## pairs format v1.0", "#a"], ["## pairs format v1.0", "#b"]]
-    merged_header = _headerops._merge_pairheaders(headers)
+    merged_header = headerops._merge_pairheaders(headers)
     assert merged_header == ["## pairs format v1.0", "#a", "#b"]
 
     headers = [
         ["## pairs format v1.0", "#chromsize: chr1 100", "#chromsize: chr2 200"],
         ["## pairs format v1.0", "#chromsize: chr1 100", "#chromsize: chr2 200"],
     ]
-    merged_header = _headerops._merge_pairheaders(headers)
+    merged_header = headerops._merge_pairheaders(headers)
     assert merged_header == headers[0]
 
 
 @raises(Exception)
 def test_merge_different_pairheaders():
     headers = [["## pairs format v1.0"], ["## pairs format v1.1"]]
-    merged_header = _headerops._merge_pairheaders(headers)
+    merged_header = headerops._merge_pairheaders(headers)
 
 
 def test_force_merge_pairheaders():
@@ -84,7 +84,7 @@ def test_force_merge_pairheaders():
         ["## pairs format v1.0", "#chromsize: chr1 100"],
         ["## pairs format v1.0", "#chromsize: chr2 200"],
     ]
-    merged_header = _headerops._merge_pairheaders(headers, force=True)
+    merged_header = headerops._merge_pairheaders(headers, force=True)
     assert merged_header == [
         "## pairs format v1.0",
         "#chromsize: chr1 100",
@@ -97,7 +97,7 @@ def test_merge_samheaders():
         ["@HD\tVN:1"],
         ["@HD\tVN:1"],
     ]
-    merged_header = _headerops._merge_samheaders(headers)
+    merged_header = headerops._merge_samheaders(headers)
     assert merged_header == headers[0]
 
     headers = [
@@ -112,7 +112,7 @@ def test_merge_samheaders():
             "@SQ\tSN:chr2\tLN:100",
         ],
     ]
-    merged_header = _headerops._merge_samheaders(headers)
+    merged_header = headerops._merge_samheaders(headers)
     assert merged_header == headers[0]
 
     headers = [
@@ -125,7 +125,7 @@ def test_merge_samheaders():
             "@PG\tID:bwa\tPN:bwa\tPP:cat",
         ],
     ]
-    merged_header = _headerops._merge_samheaders(headers)
+    merged_header = headerops._merge_samheaders(headers)
     print(merged_header)
     assert merged_header == [
         "@HD\tVN:1",
@@ -144,5 +144,5 @@ def test_merge_headers():
         ]
     ] * 2
 
-    merged_header = _headerops.merge_headers(headers)
+    merged_header = headerops.merge_headers(headers)
     assert merged_header == headers[0]

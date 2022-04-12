@@ -7,7 +7,8 @@ import subprocess
 import shutil
 import warnings
 
-from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
+from ..lib import fileio, pairsam_format, headerops
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_sort"
 
@@ -71,22 +72,22 @@ def sort(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
 
 def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
 
-    instream = _fileio.auto_open(
+    instream = fileio.auto_open(
         pairs_path,
         mode="r",
         nproc=kwargs.get("nproc_in"),
         command=kwargs.get("cmd_in", None),
     )
-    outstream = _fileio.auto_open(
+    outstream = fileio.auto_open(
         output,
         mode="w",
         nproc=kwargs.get("nproc_out"),
         command=kwargs.get("cmd_out", None),
     )
 
-    header, body_stream = _headerops.get_header(instream)
-    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-    header = _headerops.mark_header_as_sorted(header)
+    header, body_stream = headerops.get_header(instream)
+    header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    header = headerops.mark_header_as_sorted(header)
 
     outstream.writelines((l + "\n" for l in header))
 
@@ -115,12 +116,12 @@ def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwarg
         """.replace(
         "\n", " "
     ).format(
-        _pairsam_format.COL_C1 + 1,
-        _pairsam_format.COL_C2 + 1,
-        _pairsam_format.COL_P1 + 1,
-        _pairsam_format.COL_P2 + 1,
-        _pairsam_format.COL_PTYPE + 1,
-        _pairsam_format.PAIRSAM_SEP_ESCAPE,
+        pairsam_format.COL_C1 + 1,
+        pairsam_format.COL_C2 + 1,
+        pairsam_format.COL_P1 + 1,
+        pairsam_format.COL_P2 + 1,
+        pairsam_format.COL_PTYPE + 1,
+        pairsam_format.PAIRSAM_SEP_ESCAPE,
         " --parallel={} ".format(nproc) if nproc > 0 else " ",
         " --temporary-directory={} ".format(tmpdir) if tmpdir else " ",
         memory,

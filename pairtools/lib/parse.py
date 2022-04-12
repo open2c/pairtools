@@ -34,8 +34,7 @@ II. python-based data types are parsed from pysam-based ones:
         Additionally, these functions also output all alignments for each side.
 
 """
-
-from . import _pairsam_format
+from . import pairsam_format
 
 
 def streaming_classify(
@@ -71,7 +70,7 @@ def streaming_classify(
     ### Store output parameters in a usable form:
     chrom_enum = dict(
         zip(
-            [_pairsam_format.UNMAPPED_CHROM] + list(chromosomes),
+            [pairsam_format.UNMAPPED_CHROM] + list(chromosomes),
             range(len(chromosomes) + 1),
         )
     )
@@ -210,11 +209,11 @@ def push_pysam(sam_entry, sams1, sams2):
 
 def empty_alignment():
     return {
-        "chrom": _pairsam_format.UNMAPPED_CHROM,
-        "pos5": _pairsam_format.UNMAPPED_POS,
-        "pos3": _pairsam_format.UNMAPPED_POS,
-        "pos": _pairsam_format.UNMAPPED_POS,
-        "strand": _pairsam_format.UNMAPPED_STRAND,
+        "chrom": pairsam_format.UNMAPPED_CHROM,
+        "pos5": pairsam_format.UNMAPPED_POS,
+        "pos3": pairsam_format.UNMAPPED_POS,
+        "pos": pairsam_format.UNMAPPED_POS,
+        "strand": pairsam_format.UNMAPPED_STRAND,
         "dist_to_5": 0,
         "dist_to_3": 0,
         "mapq": 0,
@@ -272,15 +271,15 @@ def parse_pysam_entry(
                 pos3 = sam.reference_start + 1
 
         else:
-            chrom = _pairsam_format.UNMAPPED_CHROM
-            strand = _pairsam_format.UNMAPPED_STRAND
-            pos5 = _pairsam_format.UNMAPPED_POS
-            pos3 = _pairsam_format.UNMAPPED_POS
+            chrom = pairsam_format.UNMAPPED_CHROM
+            strand = pairsam_format.UNMAPPED_STRAND
+            pos5 = pairsam_format.UNMAPPED_POS
+            pos3 = pairsam_format.UNMAPPED_POS
     else:
-        chrom = _pairsam_format.UNMAPPED_CHROM
-        strand = _pairsam_format.UNMAPPED_STRAND
-        pos5 = _pairsam_format.UNMAPPED_POS
-        pos3 = _pairsam_format.UNMAPPED_POS
+        chrom = pairsam_format.UNMAPPED_CHROM
+        strand = pairsam_format.UNMAPPED_STRAND
+        pos5 = pairsam_format.UNMAPPED_POS
+        pos3 = pairsam_format.UNMAPPED_POS
 
         dist_to_5 = 0
         dist_to_3 = 0
@@ -325,11 +324,11 @@ def mask_alignment(algn):
     """
     Reset the coordinates of an alignment.
     """
-    algn["chrom"] = _pairsam_format.UNMAPPED_CHROM
-    algn["pos5"] = _pairsam_format.UNMAPPED_POS
-    algn["pos3"] = _pairsam_format.UNMAPPED_POS
-    algn["pos"] = _pairsam_format.UNMAPPED_POS
-    algn["strand"] = _pairsam_format.UNMAPPED_STRAND
+    algn["chrom"] = pairsam_format.UNMAPPED_CHROM
+    algn["pos5"] = pairsam_format.UNMAPPED_POS
+    algn["pos3"] = pairsam_format.UNMAPPED_POS
+    algn["pos"] = pairsam_format.UNMAPPED_POS
+    algn["strand"] = pairsam_format.UNMAPPED_STRAND
 
     return algn
 
@@ -1243,8 +1242,8 @@ def check_pair_order(algn1, algn2, chrom_enum):
 
     # If a pair has coordinates on both sides, it must be flipped according to
     # its genomic coordinates.
-    if (algn1["chrom"] != _pairsam_format.UNMAPPED_CHROM) and (
-        algn2["chrom"] != _pairsam_format.UNMAPPED_CHROM
+    if (algn1["chrom"] != pairsam_format.UNMAPPED_CHROM) and (
+        algn2["chrom"] != pairsam_format.UNMAPPED_CHROM
     ):
         has_correct_order = (chrom_enum[algn1["chrom"]], algn1["pos"]) <= (
             chrom_enum[algn2["chrom"]],
@@ -1328,12 +1327,12 @@ def write_pairsam(
                     sam.query_qualities = ""
                     sam.query_sequence = ""
             cols.append(
-                _pairsam_format.INTER_SAM_SEP.join(
+                pairsam_format.INTER_SAM_SEP.join(
                     [
                         sam.to_string().replace(
-                            "\t", _pairsam_format.SAM_SEP
+                            "\t", pairsam_format.SAM_SEP
                         )  # String representation of pysam alignment
-                        + _pairsam_format.SAM_SEP
+                        + pairsam_format.SAM_SEP
                         + "Yt:Z:"
                         + algn1["type"]
                         + algn2["type"]
@@ -1350,4 +1349,4 @@ def write_pairsam(
         cols.append(str(algn1.get(col, "")))
         cols.append(str(algn2.get(col, "")))
 
-    out_file.write(_pairsam_format.PAIRSAM_SEP.join(cols) + "\n")
+    out_file.write(pairsam_format.PAIRSAM_SEP.join(cols) + "\n")

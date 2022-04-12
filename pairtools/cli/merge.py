@@ -5,7 +5,8 @@ import math
 import subprocess
 import click
 
-from . import _fileio, _pairsam_format, _headerops, cli
+from ..lib import fileio, pairsam_format, headerops
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_merge"
 
@@ -150,7 +151,7 @@ def merge_py(
     if len(paths) == 0:
         raise ValueError(f"No input paths: {pairs_path}")
 
-    outstream = _fileio.auto_open(
+    outstream = fileio.auto_open(
         output,
         mode="w",
         nproc=kwargs.get("nproc_out"),
@@ -159,7 +160,7 @@ def merge_py(
 
     # if there is only one input, bypass merging and do not modify the header
     if len(paths) == 1:
-        instream = _fileio.auto_open(
+        instream = fileio.auto_open(
             paths[0],
             mode="r",
             nproc=kwargs.get("nproc_in"),
@@ -174,24 +175,24 @@ def merge_py(
 
     headers = []
     for path in paths:
-        f = _fileio.auto_open(
+        f = fileio.auto_open(
             path,
             mode="r",
             nproc=kwargs.get("nproc_in"),
             command=kwargs.get("cmd_in", None),
         )
-        h, _ = _headerops.get_header(f)
+        h, _ = headerops.get_header(f)
         headers.append(h)
         f.close()
         # Skip other headers if keep_first_header is True (False by default):
         if kwargs.get("keep_first_header", False):
             break
 
-    if not _headerops.all_same_columns(headers):
+    if not headerops.all_same_columns(headers):
         raise ValueError("Input pairs cannot contain different columns")
 
-    merged_header = _headerops.merge_headers(headers)
-    merged_header = _headerops.append_new_pg(merged_header, ID=UTIL_NAME, PN=UTIL_NAME)
+    merged_header = headerops.merge_headers(headers)
+    merged_header = headerops.append_new_pg(merged_header, ID=UTIL_NAME, PN=UTIL_NAME)
 
     outstream.writelines((l + "\n" for l in merged_header))
     outstream.flush()
@@ -215,12 +216,12 @@ def merge_py(
             """.replace(
             "\n", " "
         ).format(
-            _pairsam_format.COL_C1 + 1,
-            _pairsam_format.COL_C2 + 1,
-            _pairsam_format.COL_P1 + 1,
-            _pairsam_format.COL_P2 + 1,
-            _pairsam_format.COL_PTYPE + 1,
-            _pairsam_format.PAIRSAM_SEP_ESCAPE,
+            pairsam_format.COL_C1 + 1,
+            pairsam_format.COL_C2 + 1,
+            pairsam_format.COL_P1 + 1,
+            pairsam_format.COL_P2 + 1,
+            pairsam_format.COL_PTYPE + 1,
+            pairsam_format.PAIRSAM_SEP_ESCAPE,
             " --parallel={} ".format(nproc) if nproc > 1 else " ",
             " --batch-size={} ".format(max_nmerge) if max_nmerge else " ",
             " --temporary-directory={} ".format(tmpdir) if tmpdir else " ",

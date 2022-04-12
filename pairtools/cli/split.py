@@ -4,7 +4,8 @@ import sys
 import pipes
 import click
 
-from . import _fileio, _pairsam_format, _headerops, cli, common_io_options
+from ..lib import fileio, pairsam_format, headerops
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_split"
 
@@ -44,7 +45,7 @@ def split(pairsam_path, output_pairs, output_sam, **kwargs):
 
 
 def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
-    instream = _fileio.auto_open(
+    instream = fileio.auto_open(
         pairsam_path,
         mode="r",
         nproc=kwargs.get("nproc_in"),
@@ -61,23 +62,23 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
     outstream_sam = None
 
     if output_pairs:
-        outstream_pairs = _fileio.auto_open(
+        outstream_pairs = fileio.auto_open(
             output_pairs,
             mode="w",
             nproc=kwargs.get("nproc_out"),
             command=kwargs.get("cmd_out", None),
         )
     if output_sam:
-        outstream_sam = _fileio.auto_open(
+        outstream_sam = fileio.auto_open(
             output_sam,
             mode="w",
             nproc=kwargs.get("nproc_out"),
             command=kwargs.get("cmd_out", None),
         )
 
-    header, body_stream = _headerops.get_header(instream)
-    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-    columns = _headerops.extract_column_names(header)
+    header, body_stream = headerops.get_header(instream)
+    header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    columns = headerops.extract_column_names(header)
 
     has_sams = False
     if columns:
@@ -87,7 +88,7 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
             sam2col = columns.index("sam2")
             columns.pop(max(sam1col, sam2col))
             columns.pop(min(sam1col, sam2col))
-            header = _headerops._update_header_entry(
+            header = headerops._update_header_entry(
                 header, "columns", " ".join(columns)
             )
             has_sams = True
@@ -97,8 +98,8 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
             )
     else:
         # assume that the file has sam columns and follows the pairsam format
-        sam1col = _pairsam_format.COL_SAM1
-        sam2col = _pairsam_format.COL_SAM2
+        sam1col = pairsam_format.COL_SAM1
+        sam2col = pairsam_format.COL_SAM2
         has_sams = True
 
     if output_pairs:
@@ -112,7 +113,7 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
     sam1 = None
     sam2 = None
     for line in body_stream:
-        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
         if has_sams:
             if sam1col < sam2col:
                 sam2 = cols.pop(sam2col)
@@ -129,9 +130,9 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
         if output_sam and has_sams:
             for col in (sam1, sam2):
                 if col != ".":
-                    for sam_entry in col.split(_pairsam_format.INTER_SAM_SEP):
+                    for sam_entry in col.split(pairsam_format.INTER_SAM_SEP):
                         outstream_sam.write(
-                            sam_entry.replace(_pairsam_format.SAM_SEP, "\t")
+                            sam_entry.replace(pairsam_format.SAM_SEP, "\t")
                         )
                         outstream_sam.write("\n")
 
