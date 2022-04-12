@@ -1,140 +1,146 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="84px" height="52px" viewBox="0 0 84 52" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg width="80px" height="56px" viewBox="0 0 80 56" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <title>Slice 1</title>
     <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <line x1="45.9506411" y1="2.94902124" x2="38.161398" y2="2.94902124" id="path4191-9-2-29-3" stroke="#000000" stroke-width="0.5" stroke-dasharray="1.693333333331004,0.5644444444436679"></line>
-        <line x1="22.951208" y1="3.92188358" x2="29.5" y2="12.5" id="path5953-8-5-9-9" stroke="#000000" stroke-width="0.5" stroke-dasharray="3.5,1.2"></line>
-        <line x1="30.8299748" y1="3.92188358" x2="26.5" y2="12.5" id="path5955-8-8-6-1" stroke="#000000" stroke-width="0.5" stroke-dasharray="2.4,1.2"></line>
-        <line x1="46.2000916" y1="3.97177482" x2="41.5866896" y2="8.41819158" id="path5972-8-5-0-8" stroke="#000000" stroke-width="0.5" stroke-dasharray="2.4,1.2"></line>
-        <line x1="52.5" y1="3.5" x2="45.9908408" y2="8.52553762" id="path5974-4-0-2-8" stroke="#000000" stroke-width="0.5" stroke-dasharray="2.4,1.2"></line>
-        <line x1="52.2000916" y1="3.97177482" x2="51.5" y2="16.5" id="path5972-8-5-0-8" stroke="#000000" stroke-width="0.5" stroke-dasharray="2.4,1.2"></line>
-        <line x1="61.5" y1="3.5" x2="47.5" y2="16.5" id="path5974-4-0-2-8" stroke="#000000" stroke-width="0.5" stroke-dasharray="2.4,1.2"></line>
-        <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#C44E52" fill-rule="nonzero" points="27.8407246 23.3600778 28.7000461 24.7267022 29.0405388 24.7286778 29.0405388 21.9868691 28.595782 21.9894091"></polygon>
-        <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" transform="translate(34.440632, 23.357773) scale(-1, 1) translate(-34.440632, -23.357773) " points="33.8407252 23.3600778 34.7000467 24.7267022 35.0405394 24.7286778 35.0405394 21.9868691 34.5957826 21.9894091"></polygon>
-        <g id="Group" transform="translate(47.854578, 31.074467)" fill-rule="nonzero">
-            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" points="0 2.2856106 0.8593186 3.652235 1.1998141 3.6542106 1.1998141 0.9124019 0.7550545 0.9149419"></polygon>
-            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#DEB93E" transform="translate(6.499999, 2.283306) scale(-1, 1) translate(-6.499999, -2.283306) " points="5.9999994 2.2856106 6.7162092 3.652235 6.9999994 3.6542106 6.9999994 0.9124019 6.6293089 0.9149419"></polygon>
-            <text id="3r" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="22.2809297" y="3">3r</tspan>
+        <g id="Group" transform="translate(0.805945, 0.953422)">
+            <line x1="45.1446958" y1="0.995599573" x2="37.3554527" y2="0.995599573" id="path4191-9-2-29-3" stroke="#000000" stroke-width="0.5" stroke-dasharray="1.693333333331004,0.5644444444436679"></line>
+            <line x1="22.1452627" y1="1.96846191" x2="25.6940547" y2="13.5465783" id="path5953-8-5-9-9" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="30.0240295" y1="1.96846191" x2="28.6940547" y2="13.5465783" id="path5955-8-8-6-1" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="45.3941463" y1="2.01835315" x2="40.6940547" y2="7.54657833" id="path5972-8-5-0-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="51.6940547" y1="1.54657833" x2="43.6940547" y2="7.54657833" id="path5974-4-0-2-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="51.3941463" y1="2.01835315" x2="46.6940547" y2="19.5465783" id="path5972-8-5-0-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="60.6940547" y1="1.54657833" x2="50.6940547" y2="19.5465783" id="path5974-4-0-2-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#C44E52" fill-rule="nonzero" transform="translate(27.634686, 26.404352) scale(-1, 1) translate(-27.634686, -26.404352) " points="27.0347793 26.4066561 27.8941008 27.7732805 28.2345935 27.7752561 28.2345935 25.0334474 27.7898367 25.0359874"></polygon>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" points="33.0347793 26.4066561 33.8941008 27.7732805 34.2345935 27.7752561 34.2345935 25.0334474 33.7898367 25.0359874"></polygon>
+            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" transform="translate(42.648540, 36.404352) scale(-1, 1) translate(-42.648540, -36.404352) " points="42.0486327 36.4066559 42.9079513 37.7732803 43.2484468 37.7752559 43.2484468 35.0334472 42.8036872 35.0359872"></polygon>
+            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" points="53.0486313 36.4066559 53.7648411 37.7732803 54.0486313 37.7752559 54.0486313 35.0334472 53.6779408 35.0359872"></polygon>
+            <g id="3r" transform="translate(69.329562, 34.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">3r</tspan>
+                </text>
+            </g>
+            <g id="UU" transform="translate(56.976318, 34.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">UU</tspan>
+                </text>
+            </g>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" transform="translate(33.634687, 31.404352) scale(-1, 1) translate(-33.634687, -31.404352) " points="33.0347795 31.4066559 33.894101 32.7732803 34.2345937 32.7752559 34.2345937 30.0334472 33.7898369 30.0359872"></polygon>
+            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" points="42.0486328 31.4066559 42.9079514 32.7732803 43.2484469 32.7752559 43.2484469 30.0334472 42.8036873 30.0359872"></polygon>
+            <g id="2u" transform="translate(69.095296, 29.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">2u</tspan>
+                </text>
+            </g>
+            <g id="UU" transform="translate(57.007785, 29.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">UU</tspan>
+                </text>
+            </g>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" transform="translate(33.634686, 52.404352) scale(-1, 1) translate(-33.634686, -52.404352) " points="33.0347793 52.4066561 33.8941008 53.7732805 34.2345935 53.7752561 34.2345935 51.0334474 33.7898367 51.0359874"></polygon>
+            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" points="43.048633 52.4066561 43.9079516 53.7732805 44.2484471 53.7752561 44.2484471 51.0334474 43.8036875 51.0359874"></polygon>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#C44E52" fill-rule="nonzero" transform="translate(27.634686, 47.404352) scale(-1, 1) translate(-27.634686, -47.404352) " points="27.0347793 47.4066561 27.8941008 48.7732805 28.2345935 48.7752561 28.2345935 46.0334474 27.7898367 46.0359874"></polygon>
+            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" points="48.048633 47.4066561 48.7648428 48.7732805 49.048633 48.7752561 49.048633 46.0334474 48.6779425 46.0359874"></polygon>
+            <g id="g7455-1-7-1-5" transform="translate(22.094459, 0.000000)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-7-7-3-2" fill="#C44E52" fill-rule="nonzero" stroke-linecap="round" x="1.52655666e-16" y="0.0612360911" width="8.00856412" height="1.86873176"></rect>
+                <g id="g6125-3-5-76-2-7" transform="translate(1.737020, -0.000000)">
+                    <polyline id="path6063-8-1-9-1-9" points="0.1264411 0 0.88246596 0.952153593 0.11753404 1.91552505"></polyline>
+                    <polyline id="path6063-9-3-74-1-5-1" points="3.09012371 0 3.84614858 0.952153593 3.08121666 1.91552505"></polyline>
+                </g>
+                <rect id="rect4138-6-7-7-2-9-9" fill="#009900" fill-rule="nonzero" stroke-linecap="round" x="8.00551838" y="0.0628154061" width="7.21032001" height="1.86873069"></rect>
+                <g id="g6125-3-5-76-1-9-6" transform="translate(9.876804, 0.026190)">
+                    <polyline id="path6063-8-1-9-7-1-3" points="0.1264411 0 0.88246596 0.952153593 0.11753404 1.91552505"></polyline>
+                    <polyline id="path6063-9-3-74-1-7-4-6" points="3.09012371 0 3.84614858 0.952153593 3.08121666 1.91552505"></polyline>
+                </g>
+            </g>
+            <rect id="rect4138-7-1-8-1-4" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" stroke-linecap="round" x="45.2192758" y="0.0612360231" width="6" height="1.86873123"></rect>
+            <rect id="rect4138-7-1-8-1-4" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" stroke-linecap="round" x="51.2192758" y="0.0612360231" width="10" height="1.86873123"></rect>
+            <g id="g6125-3-4-7-8-07-6" transform="translate(53.173824, 0.997449) scale(-1, 1) translate(-53.173824, -0.997449) translate(46.746461, 0.039686)" stroke="#000000" stroke-width="0.5">
+                <polyline id="path6063-8-7-0-0-5-6" points="0.1264411 0 0.88246596 0.952153593 0.11753404 1.91552505"></polyline>
+                <polyline id="path6063-9-3-6-4-3-8-7" points="3.09012371 0 3.84614858 0.952153593 3.08121666 1.91552505"></polyline>
+                <polyline id="path6063-9-9-3-8-0-70-7-2" points="6.05380235 0 6.80982721 0.952153593 6.04489529 1.91552505"></polyline>
+                <polyline id="path6063-9-9-1-3-9-8-6-0-7" points="9.01748382 0 9.77351121 0.952153593 9.00857904 1.91552505"></polyline>
+                <polyline id="path6063-9-9-1-4-80-0-5-9-48-4" points="11.9811684 0 12.737193 0.952153593 11.9722608 1.91552505"></polyline>
+            </g>
+            <path d="M22.3402106,7.5426322 C22.0036831,7.51963109 21.4216139,7.93230489 21.4254152,8.99591013 C21.4293383,10.0595153 22.0114019,10.4716501 22.3479265,10.4486377 L53.2170867,10.4486377 L53.5682106,9.82631793 L56.4102759,9.82631793 L57.0474829,10.4486377 L61.2168731,10.4486377 C61.5820969,10.3551064 62.0252733,9.75410013 62.0183459,8.99239364 C62.0109251,8.23068715 61.572126,7.63558491 61.2091572,7.5426322 L57.0397641,7.5426322 L56.40256,8.16550511 L53.5604947,8.16550511 L53.2093707,7.5426322 L22.3402106,7.5426322 Z" id="path5671-5-9-0-1" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <path d="M22.4048479,13.4150484 C22.0683205,13.3920473 21.4862513,13.8047211 21.4900526,14.8683264 C21.4939757,15.9319316 22.0760393,16.3440664 22.4125639,16.321054 L53.281724,16.321054 L53.632848,15.6987342 L56.4749133,15.6987342 L57.1121202,16.321054 L61.2815105,16.321054 C61.6467343,16.2275227 62.0899106,15.6265164 62.0829832,14.8648099 C62.0755625,14.1031034 61.6367634,13.5080011 61.2737945,13.4150484 L57.1044015,13.4150484 L56.4671973,14.0379213 L53.625132,14.0379213 L53.2740081,13.4150484 L22.4048479,13.4150484 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <path d="M22.4048479,19.4150484 C22.0683205,19.3920473 21.4862513,19.8047211 21.4900526,20.8683264 C21.4939757,21.9319316 22.0760393,22.3440664 22.4125639,22.321054 L53.281724,22.321054 L53.632848,21.6987342 L56.4749133,21.6987342 L57.1121202,22.321054 L61.2815105,22.321054 C61.6467343,22.2275227 62.0899106,21.6265164 62.0829832,20.8648099 C62.0755625,20.1031034 61.6367634,19.5080011 61.2737945,19.4150484 L57.1044015,19.4150484 L56.4671973,20.0379213 L53.625132,20.0379213 L53.2740081,19.4150484 L22.4048479,19.4150484 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <g id="g7464-3-6-2-0" transform="translate(42.267685, 8.980006) scale(-1, 1) translate(-42.267685, -8.980006) translate(40.767685, 7.609101)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-1-7-0-9-6" fill="#3E9ADE" fill-rule="nonzero" stroke-linecap="round" x="1.11022302e-16" y="2.77555756e-17" width="3" height="2.74181073"></rect>
+                <g id="g6125-1-83-6-4" transform="translate(0.229949, 0.073755)">
+                    <polyline id="path6063-9-9-0-21-4-7" points="0.129310566 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-9-0-22-3" points="0.82979092 6.24500451e-17 1.58000842 1.29941462 0.82095228 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-7-5-2-4" points="1.53027155 6.24500451e-17 2.28048906 1.29941462 1.52143292 2.61413837"></polyline>
+                </g>
+            </g>
+            <g id="g7473-9-8-0-7" transform="translate(26.002663, 13.497846)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-1-5-9-5-5-2" fill="#C44E52" fill-rule="nonzero" stroke-linecap="round" x="8.32667268e-17" y="-1.11022302e-16" width="2.51439406" height="2.74181155"></rect>
+                <g id="g6125-9-3-5-52-1" transform="translate(0.485824, 0.060417)">
+                    <polyline id="path6063-9-9-1-5-1-8-9-7" points="0.129310565 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-8-2-2-02-9" points="0.829791201 6.24500451e-17 1.5800087 1.29941462 0.820952565 2.61413837"></polyline>
+                </g>
+            </g>
+            <g id="g7473-9-8-8-8-5" transform="translate(48.730006, 20.962000) rotate(-180.000000) translate(-48.730006, -20.962000) translate(46.730006, 19.591094)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-1-5-9-5-7-3-68" fill="#DEB93E" fill-rule="nonzero" stroke-linecap="round" x="0" y="-1.11022302e-16" width="4" height="2.74181155"></rect>
+                <g id="g6125-9-3-5-5-8-9" transform="translate(1.971430, 0.060417)">
+                    <polyline id="path6063-9-9-1-5-1-8-2-0-5" points="0.129310565 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-8-2-2-4-4-5" points="0.829791201 6.24500451e-17 1.5800087 1.29941462 0.820952565 2.61413837"></polyline>
+                </g>
+                <g id="g6125-9-3-5-5-8-9" transform="translate(0.501986, 0.060417)">
+                    <polyline id="path6063-9-9-1-5-1-8-2-0-5" points="0.129310565 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-8-2-2-4-4-5" points="0.829791201 6.24500451e-17 1.5800087 1.29941462 0.820952565 2.61413837"></polyline>
+                </g>
+            </g>
+            <g id="g7473-9-8-8-8-5-2" transform="translate(33.405568, 8.997083) scale(-1, 1) rotate(-180.000000) translate(-33.405568, -8.997083) translate(32.148371, 7.626177)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-1-5-9-5-7-3-68-1" fill="#009900" fill-rule="nonzero" stroke-linecap="round" x="8.32667268e-17" y="-1.11022302e-16" width="2.51439406" height="2.74181155"></rect>
+                <g id="g6125-9-3-5-5-8-9-5" transform="translate(0.485824, 0.060417)">
+                    <polyline id="path6063-9-9-1-5-1-8-2-0-5-9" points="0.129310565 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-8-2-2-4-4-5-9" points="0.829791201 6.24500451e-17 1.5800087 1.29941462 0.820952565 2.61413837"></polyline>
+                </g>
+            </g>
+            <line x1="30.0583325" y1="1.98471509" x2="31.6940547" y2="7.54657833" id="path5953-8-5-8-56-2-1" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="37.341452" y1="1.94705817" x2="34.6940547" y2="7.54657833" id="path5953-8-5-8-56-2-1-6" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="56.9763183" y="27.1210455">UU</tspan>
             </text>
-            <text id="UU" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="9.9276853" y="3">UU</tspan>
+            <text id="all" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="12.1341037" y="31.1210455">all</tspan>
+            </text>
+            <text id="mask" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="9.17453342" y="43.1210455">mask</tspan>
+            </text>
+            <text id="5any,-5unique" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="3.783648" y="48.1210455">5any, 5unique</tspan>
+            </text>
+            <text id="--walks-policy" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="0" y="22.1210455">--walks-policy</tspan>
+            </text>
+            <text id="pair_index:" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="64.5840657" y="22.1210455">pair_index:</tspan>
+            </text>
+            <text id="1l" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="69.3295627" y="27.1210455">1l</tspan>
+            </text>
+            <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="57.0077854" y="48.1210455">UU</tspan>
+            </text>
+            <text id="3any,-3unique" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="3.783648" y="53.1210455">3any, 3unique</tspan>
+            </text>
+            <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="57.0077854" y="53.1210455">UU</tspan>
+            </text>
+            <text id="WW" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="56.382156" y="43.1210455">WW</tspan>
+            </text>
+            <text id="!" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="31.653852" y="43.1210455">!</tspan>
+            </text>
+            <text id="!" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="47.653852" y="43.1210455">!</tspan>
+            </text>
+            <text id="{" fill="#000000" fill-rule="nonzero" font-family="Helvetica-Light, Helvetica" font-size="15" font-weight="300">
+                <tspan x="20.1965547" y="35.0465783">{</tspan>
             </text>
         </g>
-        <g id="Group-2" transform="translate(33.840725, 26.074467)" fill-rule="nonzero">
-            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" transform="translate(0.599907, 2.283306) scale(-1, 1) translate(-0.599907, -2.283306) " points="-3.55271368e-15 2.2856106 0.8593215 3.652235 1.1998142 3.6542106 1.1998142 0.9124019 0.7550574 0.9149419"></polygon>
-            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" points="14.0138531 2.2856106 14.8731717 3.652235 15.2136672 3.6542106 15.2136672 0.9124019 14.7689076 0.9149419"></polygon>
-            <text id="2u" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="36.0605163" y="3">2u</tspan>
-            </text>
-            <text id="UU" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="23.9730055" y="3">UU</tspan>
-            </text>
-        </g>
-        <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" transform="translate(33.440632, 49.357773) scale(-1, 1) translate(-33.440632, -49.357773) " points="32.8407252 49.3600778 33.7000467 50.7267022 34.0405394 50.7286778 34.0405394 47.9868691 33.5957826 47.9894091"></polygon>
-        <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" points="48.8545783 49.3600778 49.7138969 50.7267022 50.0543924 50.7286778 50.0543924 47.9868691 49.6096328 47.9894091"></polygon>
-        <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#C44E52" fill-rule="nonzero" points="31.8407246 44.3600778 32.7000461 45.7267022 33.0405388 45.7286778 33.0405388 42.9868691 32.595782 42.9894091"></polygon>
-        <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" transform="translate(49.354578, 44.357773) scale(-1, 1) translate(-49.354578, -44.357773) " points="48.8545777 44.3600778 49.5707875 45.7267022 49.8545777 45.7286778 49.8545777 42.9868691 49.4838872 42.9894091"></polygon>
-        <g id="g7455-1-7-1-5" transform="translate(22.865589, 1.844539)" stroke="#000000" stroke-width="0.5">
-            <rect id="rect4138-6-7-7-3-2" fill="#C44E52" fill-rule="nonzero" stroke-linecap="round" x="0.0348149333" y="0.170118758" width="8.00856412" height="1.86873176"></rect>
-            <g id="g6125-3-5-76-2-7" transform="translate(0.856594, 0.095396)">
-                <polyline id="path6063-8-1-9-1-9" points="1.04168239 0.0134866669 1.79770725 0.96564026 1.03277533 1.92901172"></polyline>
-                <polyline id="path6063-9-3-74-1-5-1" points="4.005365 0.0134866669 4.76138987 0.96564026 3.99645795 1.92901172"></polyline>
-            </g>
-            <rect id="rect4138-6-7-7-2-9-9" fill="#009900" fill-rule="nonzero" stroke-linecap="round" x="8.04033331" y="0.171698073" width="7.21032001" height="1.86873069"></rect>
-            <g id="g6125-3-5-76-1-9-6" transform="translate(8.996378, 0.121586)">
-                <polyline id="path6063-8-1-9-7-1-3" points="1.04168239 0.0134866669 1.79770725 0.96564026 1.03277533 1.92901172"></polyline>
-                <polyline id="path6063-9-3-74-1-7-4-6" points="4.005365 0.0134866669 4.76138987 0.96564026 3.99645795 1.92901172"></polyline>
-            </g>
-        </g>
-        <rect id="rect4138-7-1-8-1-4" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" stroke-linecap="round" x="46.0252211" y="2.01465769" width="6" height="1.86873123"></rect>
-        <rect id="rect4138-7-1-8-1-4" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" stroke-linecap="round" x="52.0252211" y="2.01465769" width="10" height="1.86873123"></rect>
-        <g id="g6125-3-4-7-8-07-6" transform="translate(54.322374, 2.979621) scale(-1, 1) translate(-54.322374, -2.979621) translate(47.322374, 1.979621)" stroke="#000000" stroke-width="0.5">
-            <polyline id="path6063-8-7-0-0-5-6" points="1.04168239 0.0134866669 1.79770725 0.96564026 1.03277533 1.92901172"></polyline>
-            <polyline id="path6063-9-3-6-4-3-8-7" points="4.005365 0.0134866669 4.76138987 0.96564026 3.99645795 1.92901172"></polyline>
-            <polyline id="path6063-9-9-3-8-0-70-7-2" points="6.96904364 0.0134866669 7.7250685 0.96564026 6.96013658 1.92901172"></polyline>
-            <polyline id="path6063-9-9-1-3-9-8-6-0-7" points="9.93272511 0.0134866669 10.6887525 0.96564026 9.92382033 1.92901172"></polyline>
-            <polyline id="path6063-9-9-1-4-80-0-5-9-48-4" points="12.8964097 0.0134866669 13.6524343 0.96564026 12.8875021 1.92901172"></polyline>
-        </g>
-        <path d="M23.1461559,8.49605387 C22.8096284,8.47305276 22.2275592,8.88572656 22.2313792,9.9493318 C22.2352836,11.012937 22.8173472,11.4250718 23.1538718,11.4020594 L54.023032,11.4020594 L54.3741559,10.7797396 L57.2162212,10.7797396 L57.8534282,11.4020594 L62.0228184,11.4020594 C62.3880422,11.3085281 62.8312186,10.7075218 62.8242091,9.94581531 C62.8168704,9.18410882 62.3780713,8.58900658 62.0151025,8.49605387 L57.8457094,8.49605387 L57.2085053,9.11892678 L54.36644,9.11892678 L54.015316,8.49605387 L23.1461559,8.49605387 Z" id="path5671-5-9-0-1" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
-        <path d="M23.2107932,12.3684701 C22.8742658,12.345469 22.2921966,12.7581428 22.2960166,13.8217481 C22.299921,14.8853533 22.8819846,15.2974881 23.2185092,15.2744757 L54.0876693,15.2744757 L54.4387933,14.6521559 L57.2808586,14.6521559 L57.9180655,15.2744757 L62.0874558,15.2744757 C62.4526796,15.1809444 62.8958559,14.5799381 62.8888464,13.8182316 C62.8815078,13.0565251 62.4427087,12.4614228 62.0797398,12.3684701 L57.9103468,12.3684701 L57.2731426,12.991343 L54.4310773,12.991343 L54.0799534,12.3684701 L23.2107932,12.3684701 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
-        <path d="M23.2107932,16.3684701 C22.8742658,16.345469 22.2921966,16.7581428 22.2960166,17.8217481 C22.299921,18.8853533 22.8819846,19.2974881 23.2185092,19.2744757 L54.0876693,19.2744757 L54.4387933,18.6521559 L57.2808586,18.6521559 L57.9180655,19.2744757 L62.0874558,19.2744757 C62.4526796,19.1809444 62.8958559,18.5799381 62.8888464,17.8182316 C62.8815078,17.0565251 62.4427087,16.4614228 62.0797398,16.3684701 L57.9103468,16.3684701 L57.2731426,16.991343 L54.4310773,16.991343 L54.0799534,16.3684701 L23.2107932,16.3684701 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
-        <g id="g7464-3-6-2-0" transform="translate(43.146303, 10.335650) scale(-1, 1) translate(-43.146303, -10.335650) translate(41.146303, 8.335650)" stroke="#000000" stroke-width="0.5">
-            <rect id="rect4138-6-1-7-0-9-6" fill="#3E9ADE" fill-rule="nonzero" stroke-linecap="round" x="0.572672253" y="0.226872518" width="3" height="2.74181073"></rect>
-            <g id="g6125-1-83-6-4" transform="translate(0.489609, 0.282222)">
-                <polyline id="path6063-9-9-0-21-4-7" points="0.442323196 0.0184054044 1.1925407 1.31782002 0.43348456 2.63254377"></polyline>
-                <polyline id="path6063-9-9-1-9-0-22-3" points="1.14280355 0.0184054044 1.89302105 1.31782002 1.13396491 2.63254377"></polyline>
-                <polyline id="path6063-9-9-1-4-7-5-2-4" points="1.84328418 0.0184054044 2.59350169 1.31782002 1.83444555 2.63254377"></polyline>
-            </g>
-        </g>
-        <g id="g7473-9-8-0-7" transform="translate(27.986214, 14.186979) scale(-1, 1) translate(-27.986214, -14.186979) translate(26.486214, 12.186979)" stroke="#000000" stroke-width="0.5">
-            <rect id="rect4138-6-1-5-9-5-5-2" fill="#C44E52" fill-rule="nonzero" stroke-linecap="round" x="0.163211933" y="0.264288411" width="2.51439406" height="2.74181155"></rect>
-            <g id="g6125-9-3-5-52-1" transform="translate(0.611099, 0.306300)">
-                <polyline id="path6063-9-9-1-5-1-8-9-7" points="0.167247993 0.0184054044 0.917465498 1.31782002 0.158409358 2.63254377"></polyline>
-                <polyline id="path6063-9-9-1-4-8-2-2-02-9" points="0.867728629 0.0184054044 1.61794613 1.31782002 0.858889993 2.63254377"></polyline>
-            </g>
-        </g>
-        <g id="g7473-9-8-8-8-5" transform="translate(49.358345, 17.550616) scale(-1, 1) rotate(-180.000000) translate(-49.358345, -17.550616) translate(46.858345, 15.550616)" stroke="#000000" stroke-width="0.5">
-            <rect id="rect4138-6-1-5-9-5-7-3-68" fill="#DEB93E" fill-rule="nonzero" stroke-linecap="round" x="0.677605996" y="0.264288411" width="4" height="2.74181155"></rect>
-            <g id="g6125-9-3-5-5-8-9" transform="translate(2.611099, 0.306300)">
-                <polyline id="path6063-9-9-1-5-1-8-2-0-5" points="0.167247993 0.0184054044 0.917465498 1.31782002 0.158409358 2.63254377"></polyline>
-                <polyline id="path6063-9-9-1-4-8-2-2-4-4-5" points="0.867728629 0.0184054044 1.61794613 1.31782002 0.858889993 2.63254377"></polyline>
-            </g>
-            <g id="g6125-9-3-5-5-8-9" transform="translate(1.141655, 0.306300)">
-                <polyline id="path6063-9-9-1-5-1-8-2-0-5" points="0.167247993 0.0184054044 0.917465498 1.31782002 0.158409358 2.63254377"></polyline>
-                <polyline id="path6063-9-9-1-4-8-2-2-4-4-5" points="0.867728629 0.0184054044 1.61794613 1.31782002 0.858889993 2.63254377"></polyline>
-            </g>
-        </g>
-        <g id="g7473-9-8-8-8-5-2" transform="translate(34.291104, 9.585699) scale(-1, 1) rotate(-180.000000) translate(-34.291104, -9.585699) translate(32.791104, 7.585699)" stroke="#000000" stroke-width="0.5">
-            <rect id="rect4138-6-1-5-9-5-7-3-68-1" fill="#009900" fill-rule="nonzero" stroke-linecap="round" x="0.163211933" y="0.264288411" width="2.51439406" height="2.74181155"></rect>
-            <g id="g6125-9-3-5-5-8-9-5" transform="translate(0.611099, 0.306300)">
-                <polyline id="path6063-9-9-1-5-1-8-2-0-5-9" points="0.167247993 0.0184054044 0.917465498 1.31782002 0.158409358 2.63254377"></polyline>
-                <polyline id="path6063-9-9-1-4-8-2-2-4-4-5-9" points="0.867728629 0.0184054044 1.61794613 1.31782002 0.858889993 2.63254377"></polyline>
-            </g>
-        </g>
-        <line x1="30.8642778" y1="3.93813676" x2="32.9277596" y2="8.3638892" id="path5953-8-5-8-56-2-1" stroke="#000000" stroke-width="0.5" stroke-dasharray="2.4,1.2"></line>
-        <line x1="38.1473973" y1="3.90047984" x2="35.4738751" y2="8.51332022" id="path5953-8-5-8-56-2-1-6" stroke="#000000" stroke-width="0.5" stroke-dasharray="2.4,1.2"></line>
-        <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="57.7822636" y="24.0744672">UU</tspan>
-        </text>
-        <text id="all" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="12.940049" y="28.0744672">all</tspan>
-        </text>
-        <text id="mask" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="9.98047871" y="40.0744672">mask</tspan>
-        </text>
-        <text id="5any,-5unique" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="4.58959329" y="45.0744672">5any, 5unique</tspan>
-        </text>
-        <text id="--walks-policy" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="0.805945285" y="19.0744672">--walks-policy</tspan>
-        </text>
-        <text id="junction_index" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="64.390011" y="20.0744672">junction_index</tspan>
-        </text>
-        <text id="1f" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="70.135508" y="24.0744672">1f</tspan>
-        </text>
-        <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="58.8137307" y="45.0744672">UU</tspan>
-        </text>
-        <text id="3any,-3unique" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="4.58959329" y="50.0744672">3any, 3unique</tspan>
-        </text>
-        <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="58.8137307" y="50.0744672">UU</tspan>
-        </text>
-        <text id="WW" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="58.1881013" y="40.0744672">WW</tspan>
-        </text>
-        <text id="!" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="32.4597973" y="40.0744672">!</tspan>
-        </text>
-        <text id="!" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-            <tspan x="48.4597973" y="40.0744672">!</tspan>
-        </text>
-        <text id="{" fill="#000000" fill-rule="nonzero" font-family="Helvetica-Light, Helvetica" font-size="15" font-weight="300">
-            <tspan x="21.0025" y="32">{</tspan>
-        </text>
     </g>
 </svg>

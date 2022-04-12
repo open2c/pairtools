@@ -1,81 +1,13 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import io
-import sys
-import click
-
 import numpy as np
-import pandas as pd
-
 from collections.abc import Mapping
-
-from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
-
-UTIL_NAME = "pairtools_stats"
-
-
-@cli.command()
-@click.argument("input_path", type=str, nargs=-1, required=False)
-@click.option("-o", "--output", type=str, default="", help="output stats tsv file.")
-@click.option(
-    "--merge",
-    is_flag=True,
-    help="If specified, merge multiple input stats files instead of calculating"
-    " statistics of a .pairs/.pairsam file. Merging is performed via summation of"
-    " all overlapping statistics. Non-overlapping statistics are appended to"
-    " the end of the file.",
-)
-@common_io_options
-def stats(input_path, output, merge, **kwargs):
-    """Calculate pairs statistics. 
-
-    INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
-    If not provided, the input is read from stdin.
-    If --merge is specified, then INPUT_PATH is interpreted as an arbitrary number 
-    of stats files to merge.
-    
-    The files with paths ending with .gz/.lz4 are decompressed by bgzip/lz4c. 
-    """
-    stats_py(input_path, output, merge, **kwargs)
-
-
-def stats_py(input_path, output, merge, **kwargs):
-    if merge:
-        do_merge(output, input_path, **kwargs)
-        return
-
-    instream = _fileio.auto_open(input_path[0], mode="r",
-                    nproc=kwargs.get("nproc_in"),
-                    command=kwargs.get("cmd_in", None))
-    outstream = _fileio.auto_open(output, mode="w",
-                    nproc=kwargs.get("nproc_out"),
-                    command=kwargs.get("cmd_out", None))
-
-    header, body_stream = _headerops.get_header(instream)
-    cols = _headerops.extract_column_names(header)
-
-    # new stats class stuff would come here ...
-    stats = PairCounter()
-
-    # Collecting statistics
-
-    for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
-        stats.add_pairs_from_dataframe(chunk)
-
-    # save statistics to file ...
-    stats.save(outstream)
-
-    if instream != sys.stdin:
-        instream.close()
-    if outstream != sys.stdout:
-        outstream.close()
-
+import sys
+from . import fileio
 
 def do_merge(output, files_to_merge, **kwargs):
     # Parse all stats files.
     stats = []
     for stat_file in files_to_merge:
-        f = _fileio.auto_open(
+        f = fileio.auto_open(
             stat_file,
             mode="r",
             nproc=kwargs.get("nproc_in"),
@@ -90,7 +22,7 @@ def do_merge(output, files_to_merge, **kwargs):
     out_stat = sum(stats)
 
     # Save merged stats.
-    outstream = _fileio.auto_open(
+    outstream = fileio.auto_open(
         output,
         mode="w",
         nproc=kwargs.get("nproc_out"),
@@ -269,7 +201,7 @@ class PairCounter(Mapping):
                 continue
             if len(fields) != 2:
                 # expect two _SEP separated values per line:
-                raise _fileio.ParseError(
+                raise fileio.ParseError(
                     "{} is not a valid stats file".format(file_handle.name)
                 )
             # extract key and value, then split the key:
@@ -281,7 +213,7 @@ class PairCounter(Mapping):
                 if key in stat_from_file._stat:
                     stat_from_file._stat[key] = int(fields[1])
                 else:
-                    raise _fileio.ParseError(
+                    raise fileio.ParseError(
                         "{} is not a valid stats file: unknown field {} detected".format(
                             file_handle.name, key
                         )
@@ -296,7 +228,7 @@ class PairCounter(Mapping):
                     if len(key_fields) == 1:
                         stat_from_file._stat[key][key_fields[0]] = int(fields[1])
                     else:
-                        raise _fileio.ParseError(
+                        raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 1 identifier".format(
                                 file_handle.name, key
                             )
@@ -307,7 +239,7 @@ class PairCounter(Mapping):
                     if len(key_fields) == 2:
                         stat_from_file._stat[key][tuple(key_fields)] = int(fields[1])
                     else:
-                        raise _fileio.ParseError(
+                        raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 2 identifiers".format(
                                 file_handle.name, key
                             )
@@ -336,13 +268,13 @@ class PairCounter(Mapping):
                         # store corresponding value:
                         stat_from_file._stat[key][dirs][bin_idx] = int(fields[1])
                     else:
-                        raise _fileio.ParseError(
+                        raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 2 identifiers".format(
                                 file_handle.name, key
                             )
                         )
                 else:
-                    raise _fileio.ParseError(
+                    raise fileio.ParseError(
                         "{} is not a valid stats file: unknown field {} detected".format(
                             file_handle.name, key
                         )
@@ -414,7 +346,7 @@ class PairCounter(Mapping):
 
     def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
-    
+
         Parameters
         ----------
         df: pd.DataFrame
@@ -438,7 +370,9 @@ class PairCounter(Mapping):
         self._stat["total_unmapped"] += int(unmapped_count)
 
         # Count the mapped:
-        df_mapped = df.loc[(df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :]
+        df_mapped = df.loc[
+            (df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :
+        ]
         mapped_count = df_mapped.shape[0]
 
         self._stat["total_mapped"] += mapped_count
@@ -535,9 +469,7 @@ class PairCounter(Mapping):
             return self.__add__(other)
 
     def flatten(self):
-        """return a flattened dict (formatted same way as .stats file)
-
-        """
+        """return a flattened dict (formatted same way as .stats file)"""
         # dict for flat store:
         flat_stat = {}
 
@@ -606,8 +538,3 @@ class PairCounter(Mapping):
         # write flattened version of the PairCounter to outstream
         for k, v in self.flatten().items():
             outstream.write("{}{}{}\n".format(k, self._SEP, v))
-
-
-if __name__ == "__main__":
-    stats()
-

@@ -7,8 +7,9 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from . import __version__, _pairsam_format
-from ._fileio import ParseError
+from .. import __version__
+from . import pairsam_format
+from .fileio import ParseError
 
 
 PAIRS_FORMAT_VERSION = "1.0.0"
@@ -142,7 +143,7 @@ def validate_cols(stream, columns):
     if isinstance(line, bytes):
         line = line.decode()
 
-    ncols_body = len(line.split(_pairsam_format.PAIRSAM_SEP))
+    ncols_body = len(line.split(pairsam_format.PAIRSAM_SEP))
     ncols_reference = len(columns) if isinstance(columns, list) else columns.split(SEP_COLS)
 
     return ncols_body==ncols_reference
@@ -200,6 +201,23 @@ def get_chromsizes_from_file(chroms_file):
     return chrom_sizes
 
 
+def get_chromsizes_from_pysam_header(samheader):
+    """Convert pysam header to pairtools chromosomes (ordered dict).
+
+    Example of pysam header converted to dict:
+    dict([
+        ('SQ', [{'SN': 'chr1', 'LN': 248956422},
+         {'SN': 'chr10', 'LN': 133797422},
+         {'SN': 'chr11', 'LN': 135086622},
+         {'SN': 'chr12', 'LN': 133275309}]),
+        ('PG', [{'ID': 'bwa', 'PN': 'bwa', 'VN': '0.7.17-r1188', 'CL': 'bwa mem -t 8 -SP -v1 hg38.fa test_1.1.fastq.gz test_2.1.fastq.gz'}])
+    ])
+    """
+    SQs = samheader.to_dict()["SQ"]
+    chromsizes = [(sq["SN"], int(sq["LN"])) for sq in SQs]
+    return dict(chromsizes)
+
+
 def get_chrom_order(chroms_file, sam_chroms=None):
     """
     Produce an "enumeration" of chromosomes based on the list
@@ -229,7 +247,7 @@ def get_chrom_order(chroms_file, sam_chroms=None):
 def make_standard_pairsheader(
     assembly=None,
     chromsizes=None,
-    columns=_pairsam_format.COLUMNS,
+    columns=pairsam_format.COLUMNS,
     shape="upper triangle",
 ):
     header = []
@@ -660,7 +678,8 @@ def _merge_pairheaders(pairheaders, force=False):
             for h in pairheaders
             for l in h
             if not any(
-                l.startswith(k) for k in keys_expected_identical + ["#chromosomes", "#chromsize"]
+                l.startswith(k)
+                for k in keys_expected_identical + ["#chromosomes", "#chromsize"]
             )
         )
     )
@@ -711,6 +730,7 @@ def append_columns(header, columns):
         if header[i].startswith("#columns: "):
             header[i] += SEP_COLS + SEP_COLS.join(columns)
     return header
+
 
 def set_columns(header, columns):
     """

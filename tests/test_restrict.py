@@ -8,6 +8,7 @@ import subprocess
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
+
 def test_restrict():
     """Restrict pairs file"""
     mock_pairs_path = os.path.join(testdir, "data", "mock.test-restr.pairs")
@@ -36,12 +37,12 @@ def test_restrict():
         assert any([l in l2 for l2 in output_header])
 
     # check that the pairs got assigned properly
-    cols = [x for x in output_header if x.startswith('#columns')][0].split(' ')[1:]
+    cols = [x for x in output_header if x.startswith("#columns")][0].split(" ")[1:]
 
-    COL_RFRAG1_TRUE = cols.index('rfrag_test1')
-    COL_RFRAG2_TRUE = cols.index('rfrag_test2')
-    COL_RFRAG1_OUTPUT = cols.index('rfrag1')
-    COL_RFRAG2_OUTPUT = cols.index('rfrag2')
+    COL_RFRAG1_TRUE = cols.index("rfrag_test1")
+    COL_RFRAG2_TRUE = cols.index("rfrag_test2")
+    COL_RFRAG1_OUTPUT = cols.index("rfrag1")
+    COL_RFRAG2_OUTPUT = cols.index("rfrag2")
 
     for l in result.split("\n"):
         if l.startswith("#") or not l:
