@@ -22,7 +22,7 @@ UTIL_NAME = "pairtools_phase"
     "--phase-suffixes",
     nargs=2,
     # type=click.Tuple([str, str]),
-    help="phase suffixes.",
+    help="Phase suffixes (of the chrom names), always a pair.",
 )
 @click.option(
     "--clean-output",
@@ -34,20 +34,35 @@ UTIL_NAME = "pairtools_phase"
     type=click.Choice(["XB", "XA"]),
     default="XB",
     help="Specifies the mode of bwa reporting."
-    " XB will parse 'XB' tag, the input should be generated with: --add-columns XB,AS,XS --min-mapq 0 "
     " XA will parse 'XA', the input should be generated with: --add-columns XA,NM,AS,XS --min-mapq 0"
-    " Note that XB tag be added by running bwa with -u tag, present in github version.",
+    " XB will parse 'XB' tag, the input should be generated with: --add-columns XB,AS,XS --min-mapq 0 "
+    " Note that XB tag is added by running bwa with -u tag, present in github version. "
+    " Both modes report similar results: XB reports 0.002% contacts more for phased data, "
+    " while XA can report ~1-2% more unphased contacts because its definition multiple mappers is more premissive. ",
 )
 @click.option(
     "--report-scores/--no-report-scores",
     is_flag=True,
     default=False,
-    help="Report scores of optinal, suboptimal and second suboptimal alignments. "
-         "NM with --tag-mode XA and AS with --tag-mode XB ",
+    help="Report scores of optional, suboptimal and second suboptimal alignments. "
+         "NM (edit distance) with --tag-mode XA and AS (alfn score) with --tag-mode XB ",
 )
 @common_io_options
 def phase(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_scores, **kwargs):
     """Phase pairs mapped to a diploid genome.
+    Diploid genome is the genome with two set of the chromosome variants,
+    where each chromosome has one of two suffixes (phase-suffixes)
+    corresponding to the genome version (phase-suffixes).
+
+    By default, phasing adds two additional columns with phase 0, 1 or "." (unpahsed).
+
+    Phasing is based on detection of chromosome origin of each mapped fragment.
+    Three scores are considered: best alignment score (S1),
+    suboptimal alignment (S2) and second suboptimal alignment (S3) scores.
+    Each fragment can be:
+    1) uniquely mapped and phased (S1>S2>S3, first alignment is the best hit),
+    2) uniquely mapped but unphased (S1=S2>S3, cannot distinguish between chromosome variants),
+    3) multiply mapped (S1=S2=S3) or unmapped.
 
     PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the
     input is decompressed by bgzip/lz4c. By default, the input is read from stdin.
@@ -327,13 +342,10 @@ def phase_side_XA(chrom, XA, AS, XS, NM, phase_suffixes):
         if len(XAs) >= 2:
             alt2_chrom, alt2_pos, alt2_CIGAR, alt2_NM = XAs[1].split(",")
             M3 = int(alt2_NM)
-            if int(alt2_NM) == NM:
+            if int(alt2_NM) == int(alt_NM) == NM:
                 return "!", "!", M1, M2, M3
 
         alt_chrom, alt_pos, alt_CIGAR, alt_NM = XAs[0].split(",")
-
-        # if NM < int(alt_NM):
-        #     return phase, chrom_base
 
         alt_phase, alt_chrom_base = get_chrom_phase(alt_chrom, phase_suffixes)
 
