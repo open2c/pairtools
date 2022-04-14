@@ -197,7 +197,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
         cols.append("!")
         if report_scores:
             for _ in range(6):
-                cols.append("!")
+                cols.append("-1")
         pair_type = cols[pairsam_format.COL_PTYPE]
 
         if cols[pairsam_format.COL_C1] != pairsam_format.UNMAPPED_CHROM:
