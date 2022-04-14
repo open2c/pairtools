@@ -1,6 +1,7 @@
 import sys
 import click
 import re, fnmatch
+import warnings
 
 from ..lib import fileio, pairsam_format, headerops
 from . import cli, common_io_options
@@ -65,6 +66,14 @@ UTIL_NAME = "pairtools_select"
     "are cast to int, other columns are kept as str. Provide as "
     "-t <column_name> <type>, e.g. -t read_len1 int. Multiple entries are allowed.",
 )
+@click.option(
+    "--remove-columns",
+    "-r",
+    help=f"Comma-separated list of columns to be removed, e.g.: {','.join(pairsam_format.COLUMNS)}",
+    type=str,
+    default="",
+    required=False,
+)
 @common_io_options
 def select(
     condition,
@@ -74,6 +83,7 @@ def select(
     chrom_subset,
     startup_code,
     type_cast,
+    remove_columns,
     **kwargs
 ):
     """Select pairs according to some condition.
@@ -121,6 +131,7 @@ def select(
         chrom_subset,
         startup_code,
         type_cast,
+        remove_columns,
         **kwargs
     )
 
@@ -133,6 +144,7 @@ def select_py(
     chrom_subset,
     startup_code,
     type_cast,
+    remove_columns,
     **kwargs
 ):
 
@@ -192,7 +204,33 @@ def select_py(
     TYPES.update(dict(type_cast))
 
     header, body_stream = headerops.get_header(instream)
+
+    # Modify the header:
     header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+
+    # Filter out unwanted columns:
+    if remove_columns:
+        input_columns = headerops.extract_column_names(header)
+        remove_columns = remove_columns.split(",")
+        for col in remove_columns:
+            if col in pairsam_format.COLUMNS_PAIRS:
+                warnings.warn(
+                    f"Removing required {col} column for .pairs format. Output is not .pairs anymore"
+                )
+            elif col in pairsam_format.COLUMNS_PAIRSAM:
+                warnings.warn(
+                    f"Removing required {col} column for .pairsam format. Output is not .pairsam anymore"
+                )
+        updated_columns = [x for x in input_columns if x not in remove_columns]
+
+        if len(updated_columns) == len(input_columns):
+            warnings.warn(
+                f"Some column(s) {','.join(remove_columns)} not in the file, the operation has no effect"
+            )
+        else:
+            header = headerops.set_columns(header, updated_columns)
+
+    # Update the chromosomes:
     if new_chroms is not None:
         header = headerops.subset_chroms_in_pairsheader(header, new_chroms)
     outstream.writelines((l + "\n" for l in header))
@@ -219,11 +257,22 @@ def select_py(
         else:
             condition = condition.replace(col, "COLS[{}]".format(i))
 
+    # Compile the filtering expression:
     match_func = compile(condition, "<string>", "eval")
+
+    # Columns filtration rule:
+    if remove_columns:
+        column_scheme = [input_columns.index(COL) for COL in updated_columns]
 
     for line in body_stream:
         COLS = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
-        if eval(match_func):
+        # Evaluate filtering expression:
+        filter_passed = eval(match_func)
+        if remove_columns:
+            COLS = [COLS[idx] for idx in column_scheme]  # re-order the columns according to the scheme:
+            line = pairsam_format.PAIRSAM_SEP.join(COLS)+'\n'  # form the line
+
+        if filter_passed:
             outstream.write(line)
         elif outstream_rest:
             outstream_rest.write(line)

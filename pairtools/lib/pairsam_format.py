@@ -31,6 +31,13 @@ COLUMNS = [
     "pair_index",
 ]
 
+# Required columns for formats:
+COLUMNS_PAIRSAM = ['readID', 'chrom1', 'pos1', 'chrom2', 'pos2',
+           'strand1', 'strand2', 'pair_type', 'sam1', 'sam2']
+
+COLUMNS_PAIRS = ['readID', 'chrom1', 'pos1', 'chrom2', 'pos2',
+           'strand1', 'strand2', 'pair_type']
+
 UNMAPPED_CHROM = "!"
 UNMAPPED_POS = 0
 UNMAPPED_STRAND = "-"

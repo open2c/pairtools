@@ -15,9 +15,22 @@ from .fileio import ParseError
 PAIRS_FORMAT_VERSION = "1.0.0"
 SEP_COLS = " "
 SEP_CHROMS = " "
+COMMENT_CHAR = "#"
 
+def get_stream_handlers(instream):
+    # get peekable buffer for the instream
+    readline_f, peek_f = None, None
+    if hasattr(instream, "buffer"):
+        peek_f = instream.buffer.peek
+        readline_f = instream.buffer.readline
+    elif hasattr(instream, "peek"):
+        peek_f = instream.peek
+        readline_f = instream.readline
+    else:
+        raise ValueError("Cannot find the peek() function of the provided stream!")
+    return readline_f, peek_f
 
-def get_header(instream, comment_char="#"):
+def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
     """Returns a header from the stream and an the reaminder of the stream
     with the actual data.
     Parameters
@@ -27,6 +40,8 @@ def get_header(instream, comment_char="#"):
     comment_char : str
         The character prepended to header lines (use '@' when parsing sams,
         '#' when parsing pairsams).
+    ignore_warning : bool
+        If True, then no warning will be generated if header of pairs file is empty.
     Returns
     -------
     header : list
@@ -39,17 +54,8 @@ def get_header(instream, comment_char="#"):
     if not comment_char:
         raise ValueError("Please, provide a comment char!")
     comment_byte = comment_char.encode()
-    # get peekable buffer for the instream
-    read_f, peek_f = None, None
-    if hasattr(instream, "buffer"):
-        peek_f = instream.buffer.peek
-        readline_f = instream.buffer.readline
-    elif hasattr(instream, "peek"):
-        peek_f = instream.peek
-        readline_f = instream.readline
-    else:
-        raise ValueError("Cannot find the peek() function of the provided stream!")
 
+    readline_f, peek_f = get_stream_handlers(instream)
     current_peek = peek_f(1)
     while current_peek.startswith(comment_byte):
         # consuming a line from buffer guarantees
@@ -64,6 +70,10 @@ def get_header(instream, comment_char="#"):
         current_peek = peek_f(1)
     # apparently, next line does not start with the comment
     # return header and the instream, advanced to the beginning of the data
+
+    if len(header)==0 and not ignore_warning:
+        warnings.warn("Headerless input, please, add the header by `pairtools header generate` or `pairtools header transfer`")
+
     return header, instream
 
 
@@ -77,7 +87,7 @@ def extract_fields(header, field_name, save_rest=False):
     fields = []
     rest = []
     for l in header:
-        if l.lstrip("#").startswith(field_name + ":"):
+        if l.lstrip(COMMENT_CHAR).startswith(field_name + ":"):
             fields.append(l.split(":", 1)[1].strip())
         elif save_rest:
             rest.append(l)
@@ -98,6 +108,52 @@ def extract_column_names(header):
         return columns[0].split(SEP_COLS)
     else:
         return []
+
+
+def validate_cols(stream, columns):
+    """
+    Validate that the number of columns coincides between stream and columns.
+    Checks only the first line in the pairs stream!
+
+    Note that it irreversibly removes the header from the stream.
+
+    Parameters
+    ----------
+    stream: input stream, body or full .pairs file
+    columns: columns to validate against
+
+    Returns
+    -------
+    True if the number of columns is identical between file and columns
+    """
+
+    comment_byte = COMMENT_CHAR.encode()
+    readline_f, peek_f = get_stream_handlers(stream)
+
+    current_peek = peek_f(1)
+    while current_peek.startswith(comment_byte):
+        # consuming a line from buffer guarantees
+        # that the remainder of the buffer starts
+        # with the beginning of the line.
+        line = readline_f()
+        # peek into the remainder of the instream
+        current_peek = peek_f(1)
+
+    line = readline_f()
+    if isinstance(line, bytes):
+        line = line.decode()
+
+    ncols_body = len(line.split(pairsam_format.PAIRSAM_SEP))
+    ncols_reference = len(columns) if isinstance(columns, list) else columns.split(SEP_COLS)
+
+    return ncols_body==ncols_reference
+
+
+def validate_header_cols(stream, header):
+    """ Validate that the number of columns corresponds between the stream and header """
+
+    columns = extract_column_names(header)
+    return validate_cols(stream, header)
 
 
 def extract_chromsizes(header):
@@ -129,6 +185,20 @@ def get_chromsizes_from_pysam_header(samheader):
     SQs = samheader.to_dict()["SQ"]
     chromsizes = [(sq["SN"], int(sq["LN"])) for sq in SQs]
     return dict(chromsizes)
+
+
+def get_chromsizes_from_file(chroms_file):
+    """
+    Produce an "enumeration" of chromosomes based on the list
+    of chromosomes
+    """
+    chrom_sizes = dict()
+    with open(chroms_file, "rt") as f:
+        for line in f:
+            chrom, size = line.strip().split("\t")
+            chrom_sizes[chrom] = int(size)
+
+    return chrom_sizes
 
 
 def get_chromsizes_from_pysam_header(samheader):
@@ -263,7 +333,7 @@ def _update_header_entry(header, field, new_value):
     found = False
     newline = "#{}: {}".format(field, new_value)
     for i in range(len(header)):
-        if header[i].startswith("#" + field):
+        if header[i].startswith(COMMENT_CHAR + field):
             header[i] = newline
             found = True
     if not found:
@@ -661,6 +731,24 @@ def append_columns(header, columns):
             header[i] += SEP_COLS + SEP_COLS.join(columns)
     return header
 
+
+def set_columns(header, columns):
+    """
+    Set columns to the header, separated by SEP_COLS
+
+    Parameters
+    ----------
+    header: Previous header
+    columns: List of column names to append
+
+    Returns
+    -------
+    Modified header (appended columns to the field "#columns")
+    """
+    for i in range(len(header)):
+        if header[i].startswith("#columns:"):
+            header[i] = "#columns:"+ SEP_COLS + SEP_COLS.join(columns)
+    return header
 
 # def _guess_genome_assembly(samheader):
 #    PG = [l for l in samheader if l.startswith('@PG') and '\tID:bwa' in l][0]

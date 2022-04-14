@@ -115,5 +115,6 @@ from . import (
     stats,
     sample,
     filterbycov,
+    header,
     scaling
 )

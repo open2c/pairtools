@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 from nose.tools import assert_raises
+from pairtools.lib import pairsam_format
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 mock_pairsam_path = os.path.join(testdir, "data", "mock.pairsam")
@@ -208,3 +209,47 @@ def test_chrom_subset():
     ]
 
     assert set(chroms_from_chrom_sizes) == set(["chr1", "chr2"])
+
+
+def test_remove_columns():
+    """Test removal of columns from the file
+    Example run:
+    pairtools select True --remove-columns sam1,sam2 tests/data/mock.pairsam
+    """
+
+    mock_pairs_path = os.path.join(testdir, "data", "mock.pairsam")
+    try:
+        result = subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "select",
+                "True",
+                "--remove-columns",
+                "sam1,sam2",
+                mock_pairs_path,
+            ],
+        ).decode("ascii")
+
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
+
+    # check if the columns are removed properly:
+    pairsam_header = [l.strip() for l in result.split("\n") if l.startswith("#")]
+    for l in pairsam_header:
+        if l.startswith("#columns:"):
+            line = l.strip()
+            assert (
+                line
+                == "#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type"
+            )
+
+    # check that the pairs got assigned properly
+    for l in result.split("\n"):
+        if l.startswith("#") or not l:
+            continue
+
+        assert len(l.split(pairsam_format.PAIRSAM_SEP)) == 8
