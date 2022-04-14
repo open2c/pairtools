@@ -1,0 +1,26 @@
+# -*- coding: utf-8 -*-
+import os
+import sys
+import subprocess
+from nose.tools import assert_raises
+import pandas as pd
+import io
+
+testdir = os.path.dirname(os.path.realpath(__file__))
+
+
+def test_scaling():
+    mock_pairsam_path = os.path.join(testdir, "data", "mock.pairsam")
+    try:
+        result = subprocess.check_output(
+            ["python", "-m", "pairtools", "scaling", mock_pairsam_path],
+        ).decode("ascii")
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
+
+    output = pd.read_csv(io.StringIO(result), sep='\t', header=0)
+
+    # All the pairs, even "!" are counted as present because we don't provide regions
+    assert output["n_pairs"].sum()==8
