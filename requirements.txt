@@ -6,4 +6,4 @@ scipy>=1.7.0
 pandas>=1.3.4
 pysam>=0.15.0
 bioframe
-yaml
+pyyaml
