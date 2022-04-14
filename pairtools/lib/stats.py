@@ -572,7 +572,7 @@ class PairCounter(Mapping):
                         # store key,value pair:
                     formatted_stat[k] = deepcopy(freqs)
 
-        # return flattened dict
+        # return formatted dict
         return formatted_stat
 
 
