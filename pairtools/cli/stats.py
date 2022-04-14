@@ -44,8 +44,8 @@ def stats_py(input_path, output, merge, **kwargs):
         do_merge(output, input_path, **kwargs)
         return
 
-    if len(paths) == 0:
-        raise ValueError(f"No input paths: {pairs_path}")
+    if len(input_path) == 0:
+        raise ValueError(f"No input paths: {input_path}")
 
     instream = fileio.auto_open(
         input_path[0],

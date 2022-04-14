@@ -103,4 +103,4 @@ def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins, **k
 
 
 if __name__ == "__main__":
-    stats()
+    scaling()
