@@ -25,6 +25,15 @@ UTIL_NAME = "pairtools_stats"
     " all overlapping statistics. Non-overlapping statistics are appended to"
     " the end of the file.",
 )
+@click.option(
+    "--with-chromsizes/--no-chromsizes",
+    is_flag=True,
+    default=True,
+    help="If specified, merge multiple input stats files instead of calculating"
+    " statistics of a .pairs/.pairsam file. Merging is performed via summation of"
+    " all overlapping statistics. Non-overlapping statistics are appended to"
+    " the end of the file.",
+)
 @common_io_options
 def stats(input_path, output, merge, **kwargs):
     """Calculate pairs statistics.
@@ -70,6 +79,10 @@ def stats_py(input_path, output, merge, **kwargs):
 
     for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
         stats.add_pairs_from_dataframe(chunk)
+
+    if kwargs.get("with_chromsizes", True):
+        chromsizes = headerops.extract_chromsizes(header)
+        stats.add_chromsizes(chromsizes)
 
     # save statistics to file ...
     stats.save(outstream)

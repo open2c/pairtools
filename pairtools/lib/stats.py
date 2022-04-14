@@ -417,6 +417,18 @@ class PairCounter(Mapping):
         self._stat["cis_20kb+"] += int(np.sum(dist >= 20000))
         self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
 
+    def add_chromsizes(self, chromsizes):
+        """ Add chromsizes field to the output stats
+
+        Parameters
+        ----------
+        chromsizes: Dataframe with chromsizes, read by headerops.chromsizes
+        """
+
+        chromsizes = chromsizes.to_dict()
+        self._stat["chromsizes"] = chromsizes
+        return
+
     def __add__(self, other):
         # both PairCounter are implied to have a list of common fields:
         #
@@ -496,7 +508,7 @@ class PairCounter(Mapping):
                                 ).format(k, self._dist_bins[i], dirs)
                             # store key,value pair:
                             flat_stat[formatted_key] = freqs[i]
-                elif (k in ["pair_types", "dedup"]) and v:
+                elif (k in ["pair_types", "dedup", "chromsizes"]) and v:
                     # 'pair_types' and 'dedup' are simple dicts inside,
                     # treat them the exact same way:
                     for k_item, freq in v.items():
@@ -523,7 +535,6 @@ class PairCounter(Mapping):
         Parameters
         ----------
         outstream: file handle
-
 
         Note
         ----
