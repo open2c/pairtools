@@ -25,6 +25,21 @@ UTIL_NAME = "pairtools_stats"
     " all overlapping statistics. Non-overlapping statistics are appended to"
     " the end of the file.",
 )
+@click.option(
+    "--with-chromsizes/--no-chromsizes",
+    is_flag=True,
+    default=True,
+    help="If specified, merge multiple input stats files instead of calculating"
+    " statistics of a .pairs/.pairsam file. Merging is performed via summation of"
+    " all overlapping statistics. Non-overlapping statistics are appended to"
+    " the end of the file.",
+)
+@click.option(
+    "--yaml/--no-yaml",
+    is_flag=True,
+    default=False,
+    help="Output stats in yaml format instead of table. ",
+)
 @common_io_options
 def stats(input_path, output, merge, **kwargs):
     """Calculate pairs statistics.
@@ -43,6 +58,9 @@ def stats_py(input_path, output, merge, **kwargs):
     if merge:
         do_merge(output, input_path, **kwargs)
         return
+
+    if len(input_path) == 0:
+        raise ValueError(f"No input paths: {input_path}")
 
     instream = fileio.auto_open(
         input_path[0],
@@ -63,13 +81,16 @@ def stats_py(input_path, output, merge, **kwargs):
     # new stats class stuff would come here ...
     stats = PairCounter()
 
-    # Collecting statistics
-
+    # collecting statistics
     for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
         stats.add_pairs_from_dataframe(chunk)
 
+    if kwargs.get("with_chromsizes", True):
+        chromsizes = headerops.extract_chromsizes(header)
+        stats.add_chromsizes(chromsizes)
+
     # save statistics to file ...
-    stats.save(outstream)
+    stats.save(outstream, yaml=kwargs.get("yaml", False))
 
     if instream != sys.stdin:
         instream.close()

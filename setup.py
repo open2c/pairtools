@@ -62,8 +62,13 @@ def get_ext_modules():
     ext_modules = []
     for src_file in src_files:
         name = "pairtools.lib." + os.path.splitext(os.path.basename(src_file))[0]
-        if not "pysam" in name:
+        if not "pysam" in name and not "regions" in name:
             ext_modules.append(Extension(name, [src_file]))
+        elif "regions" in name:
+            ext_modules.append(Extension(
+                name, [src_file],
+                language="c++",
+            ))
         else:
             import pysam
 

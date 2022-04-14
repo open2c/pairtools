@@ -417,6 +417,18 @@ class PairCounter(Mapping):
         self._stat["cis_20kb+"] += int(np.sum(dist >= 20000))
         self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
 
+    def add_chromsizes(self, chromsizes):
+        """ Add chromsizes field to the output stats
+
+        Parameters
+        ----------
+        chromsizes: Dataframe with chromsizes, read by headerops.chromsizes
+        """
+
+        chromsizes = chromsizes.to_dict()
+        self._stat["chromsizes"] = chromsizes
+        return
+
     def __add__(self, other):
         # both PairCounter are implied to have a list of common fields:
         #
@@ -462,7 +474,7 @@ class PairCounter(Mapping):
         return sum_stat
 
     # we need this to be able to sum(list_of_PairCounters)
-    def __radd__(self, other):
+    def __read__(self, other):
         if other == 0:
             return self
         else:
@@ -496,7 +508,7 @@ class PairCounter(Mapping):
                                 ).format(k, self._dist_bins[i], dirs)
                             # store key,value pair:
                             flat_stat[formatted_key] = freqs[i]
-                elif (k in ["pair_types", "dedup"]) and v:
+                elif (k in ["pair_types", "dedup", "chromsizes"]) and v:
                     # 'pair_types' and 'dedup' are simple dicts inside,
                     # treat them the exact same way:
                     for k_item, freq in v.items():
@@ -516,14 +528,62 @@ class PairCounter(Mapping):
         # return flattened dict
         return flat_stat
 
-    def save(self, outstream):
+    def format(self):
+        """return a formatted dict (for the yaml output)"""
+
+        from copy import deepcopy
+
+        formatted_stat = {}
+
+        # Storing statistics
+        for k, v in self._stat.items():
+            if isinstance(v, int):
+                formatted_stat[k] = v
+            # store nested dicts/arrays in a context dependet manner:
+            # nested categories are stored only if they are non-trivial
+            else:
+                if (k == "dist_freq") and v:
+                    freqs_dct = {}
+
+                    # iterate over distance bins:
+                    for i in range(len(self._dist_bins)):
+                        # iterate over all directions:
+                        for dirs, freqs in v.items():
+                            # last bin is treated differently: "100000+" vs "1200-3000":
+                            if i != len(self._dist_bins) - 1:
+                                dist = "{}-{}".format(self._dist_bins[i], self._dist_bins[i + 1])
+                            else:
+                                dist = "{}+".format(self._dist_bins[i])
+                            if dist not in freqs_dct.keys():
+                                freqs_dct[dist] = {}
+
+                            freqs_dct[dist][dirs] = int(freqs[i])
+
+                    formatted_stat[k] = deepcopy(freqs_dct)
+
+                elif (k in ["pair_types", "dedup", "chromsizes"]) and v:
+                    # 'pair_types' and 'dedup' are simple dicts inside,
+                    # treat them the exact same way:
+                    formatted_stat[k] = deepcopy(v)
+                elif (k == "chrom_freq") and v:
+                    freqs = {}
+                    for (chrom1, chrom2), freq in v.items():
+                        freqs[self._KEY_SEP.join(["{}", "{}"]).format(chrom1, chrom2)] = freq
+                        # store key,value pair:
+                    formatted_stat[k] = deepcopy(freqs)
+
+        # return formatted dict
+        return formatted_stat
+
+
+    def save(self, outstream, yaml=False):
         """save PairCounter to tab-delimited text file.
         Flattened version of PairCounter is stored in the file.
 
         Parameters
         ----------
         outstream: file handle
-
+        yaml: is output in yaml format or table
 
         Note
         ----
@@ -536,5 +596,10 @@ class PairCounter(Mapping):
         """
 
         # write flattened version of the PairCounter to outstream
-        for k, v in self.flatten().items():
-            outstream.write("{}{}{}\n".format(k, self._SEP, v))
+        if yaml:
+            import yaml
+            data = self.format()
+            yaml.dump(data, outstream, default_flow_style=False)
+        else:
+            for k, v in self.flatten().items():
+                outstream.write("{}{}{}\n".format(k, self._SEP, v))
