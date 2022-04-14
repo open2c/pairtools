@@ -2,12 +2,10 @@ import sys
 import click
 import re, fnmatch
 
-from ..lib import fileio, pairsam_format, headerops
-from . import cli, common_io_options
-
-from ..lib.phase import phase_side_XB, phase_side_XA
+from . import _fileio, _pairsam_format, cli, _headerops, common_io_options
 
 UTIL_NAME = "pairtools_phase"
+
 
 @cli.command()
 @click.argument("pairs_path", type=str, required=False)
@@ -80,7 +78,7 @@ if __name__ == "__main__":
 def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_scores, **kwargs):
 
     instream = (
-        fileio.auto_open(
+        _fileio.auto_open(
             pairs_path,
             mode="r",
             nproc=kwargs.get("nproc_in"),
@@ -90,7 +88,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
         else sys.stdin
     )
     outstream = (
-        fileio.auto_open(
+        _fileio.auto_open(
             output,
             mode="w",
             nproc=kwargs.get("nproc_out"),
@@ -100,20 +98,20 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
         else sys.stdout
     )
 
-    header, body_stream = headerops.get_header(instream)
-    header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
-    old_column_names = headerops.extract_column_names(header)
+    header, body_stream = _headerops.get_header(instream)
+    header = _headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    old_column_names = _headerops.extract_column_names(header)
 
     idx_phase1 = len(old_column_names)
     idx_phase2 = len(old_column_names) + 1
     if clean_output:
         new_column_names = [
-            col for col in old_column_names if col in pairsam_format.COLUMNS
+            col for col in old_column_names if col in _pairsam_format.COLUMNS
         ]
         new_column_idxs = [
             i
             for i, col in enumerate(old_column_names)
-            if col in pairsam_format.COLUMNS
+            if col in _pairsam_format.COLUMNS
         ]
         new_column_idxs += [idx_phase1, idx_phase2]
     else:
@@ -141,7 +139,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
             new_column_names.append("M3_2")
             if clean_output:
                 new_column_idxs += [(idx_phase2 + i + 1) for i in range(6)]
-    header = headerops._update_header_entry(
+    header = _headerops._update_header_entry(
         header, "columns", " ".join(new_column_names)
     )
 
@@ -192,18 +190,18 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
     outstream.writelines((l + "\n" for l in header))
 
     for line in body_stream:
-        cols = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
         cols.append("!")
         cols.append("!")
         if report_scores:
             for _ in range(6):
                 cols.append("!")
-        pair_type = cols[pairsam_format.COL_PTYPE]
+        pair_type = cols[_pairsam_format.COL_PTYPE]
 
-        if cols[pairsam_format.COL_C1] != pairsam_format.UNMAPPED_CHROM:
+        if cols[_pairsam_format.COL_C1] != _pairsam_format.UNMAPPED_CHROM:
             if tag_mode == "XB":
                 phase1, chrom_base1, S1_1, S2_1, S3_1 = phase_side_XB(
-                    cols[pairsam_format.COL_C1],
+                    cols[_pairsam_format.COL_C1],
                     cols[COL_XB1],
                     int(cols[COL_AS1]),
                     int(cols[COL_XS1]),
@@ -211,7 +209,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
                 )
             elif tag_mode == "XA":
                 phase1, chrom_base1, S1_1, S2_1, S3_1 = phase_side_XA(
-                    cols[pairsam_format.COL_C1],
+                    cols[_pairsam_format.COL_C1],
                     cols[COL_XA1],
                     int(cols[COL_AS1]),
                     int(cols[COL_XS1]),
@@ -224,19 +222,19 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
             else:
                 cols[idx_phase1], cols[idx_phase1+2], cols[idx_phase1+4], cols[idx_phase1+6] \
                     = phase1, str(S1_1), str(S2_1), str(S3_1)
-            cols[pairsam_format.COL_C1] = chrom_base1
+            cols[_pairsam_format.COL_C1] = chrom_base1
 
             if chrom_base1 == "!":
-                cols[pairsam_format.COL_C1] = pairsam_format.UNMAPPED_CHROM
-                cols[pairsam_format.COL_P1] = str(pairsam_format.UNMAPPED_POS)
-                cols[pairsam_format.COL_S1] = pairsam_format.UNMAPPED_STRAND
+                cols[_pairsam_format.COL_C1] = _pairsam_format.UNMAPPED_CHROM
+                cols[_pairsam_format.COL_P1] = str(_pairsam_format.UNMAPPED_POS)
+                cols[_pairsam_format.COL_S1] = _pairsam_format.UNMAPPED_STRAND
                 pair_type = "M" + pair_type[1]
 
-        if cols[pairsam_format.COL_C2] != pairsam_format.UNMAPPED_CHROM:
+        if cols[_pairsam_format.COL_C2] != _pairsam_format.UNMAPPED_CHROM:
 
             if tag_mode == "XB":
                 phase2, chrom_base2, S1_2, S2_2, S3_2 = phase_side_XB(
-                    cols[pairsam_format.COL_C2],
+                    cols[_pairsam_format.COL_C2],
                     cols[COL_XB2],
                     int(cols[COL_AS2]),
                     int(cols[COL_XS2]),
@@ -244,7 +242,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
                 )
             elif tag_mode == "XA":
                 phase2, chrom_base2, S1_2, S2_2, S3_2 = phase_side_XA(
-                    cols[pairsam_format.COL_C2],
+                    cols[_pairsam_format.COL_C2],
                     cols[COL_XA2],
                     int(cols[COL_AS2]),
                     int(cols[COL_XS2]),
@@ -257,20 +255,20 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
             else:
                 cols[idx_phase2], cols[idx_phase2+2], cols[idx_phase2+4], cols[idx_phase2+6] \
                     = phase2, str(S1_2), str(S2_2), str(S3_2)
-            cols[pairsam_format.COL_C2] = chrom_base2
+            cols[_pairsam_format.COL_C2] = chrom_base2
 
             if chrom_base2 == "!":
-                cols[pairsam_format.COL_C2] = pairsam_format.UNMAPPED_CHROM
-                cols[pairsam_format.COL_P2] = str(pairsam_format.UNMAPPED_POS)
-                cols[pairsam_format.COL_S2] = pairsam_format.UNMAPPED_STRAND
+                cols[_pairsam_format.COL_C2] = _pairsam_format.UNMAPPED_CHROM
+                cols[_pairsam_format.COL_P2] = str(_pairsam_format.UNMAPPED_POS)
+                cols[_pairsam_format.COL_S2] = _pairsam_format.UNMAPPED_STRAND
                 pair_type = pair_type[0] + "M"
 
-        cols[pairsam_format.COL_PTYPE] = pair_type
+        cols[_pairsam_format.COL_PTYPE] = pair_type
 
         if clean_output:
             cols = [cols[i] for i in new_column_idxs]
 
-        outstream.write(pairsam_format.PAIRSAM_SEP.join(cols))
+        outstream.write(_pairsam_format.PAIRSAM_SEP.join(cols))
         outstream.write("\n")
 
     if instream != sys.stdin:
@@ -280,5 +278,83 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
         outstream.close()
 
 
-if __name__ == "__main__":
-    phase()
+def get_chrom_phase(chrom, phase_suffixes):
+    if chrom.endswith(phase_suffixes[0]):
+        return "0", chrom[: -len(phase_suffixes[0])]
+    elif chrom.endswith(phase_suffixes[1]):
+        return "1", chrom[: -len(phase_suffixes[1])]
+    else:
+        return "!", chrom
+
+
+def phase_side_XB(chrom, XB, AS, XS, phase_suffixes):
+
+    phase, chrom_base = get_chrom_phase(chrom, phase_suffixes)
+
+    XBs = [i for i in XB.split(';') if len(i) > 0]
+    S1, S2, S3 = AS, XS, -1 # -1 if the second hit was not reported
+
+    if AS > XS: # Primary hit has higher score than the secondary
+        return phase, chrom_base, S1, S2, S3
+
+    elif len(XBs) >= 1:
+        if len(XBs) >= 2:
+            alt2_chrom, alt2_pos, alt2_CIGAR, alt2_NM, alt2_AS, alt_mapq = XBs[1].split(',')
+            S3 = int(alt2_AS)
+            if int(alt2_AS) == XS == AS:
+                return '!', '!', S1, S2, S3
+
+        alt_chrom, alt_pos, alt_CIGAR, alt_NM, alt_AS, alt_mapq = XBs[0].split(',')
+        alt_phase, alt_chrom_base = get_chrom_phase(alt_chrom, phase_suffixes)
+
+        alt_is_homologue = (
+                (chrom_base == alt_chrom_base)
+                and
+                (
+                        ((phase == '0') and (alt_phase == '1'))
+                        or
+                        ((phase == '1') and (alt_phase == '0'))
+                )
+        )
+
+        if alt_is_homologue:
+            return '.', chrom_base, S1, S2, S3
+
+    return '!', '!', S1, S2, S3
+
+
+def phase_side_XA(chrom, XA, AS, XS, NM, phase_suffixes):
+
+    phase, chrom_base = get_chrom_phase(chrom, phase_suffixes)
+
+    XAs = [i for i in XA.split(";") if len(i.strip()) > 0]
+    if len(XAs) >= 1:
+        alt_chrom, alt_pos, alt_CIGAR, alt_NM = XAs[0].split(",")
+        M1, M2, M3 = NM, int(alt_NM), -1
+    else:
+        M1, M2, M3 = NM, -1, -1 # -1 if the second hit was not reported
+
+    if (AS > XS):  # Primary hit has higher score than the secondary
+        return phase, chrom_base, M1, M2, M3
+
+    elif len(XAs) >= 1:
+
+        if len(XAs) >= 2:
+            alt2_chrom, alt2_pos, alt2_CIGAR, alt2_NM = XAs[1].split(",")
+            M3 = int(alt2_NM)
+            if int(alt2_NM) == int(alt_NM) == NM:
+                return "!", "!", M1, M2, M3
+
+        alt_chrom, alt_pos, alt_CIGAR, alt_NM = XAs[0].split(",")
+
+        alt_phase, alt_chrom_base = get_chrom_phase(alt_chrom, phase_suffixes)
+
+        alt_is_homologue = (chrom_base == alt_chrom_base) and (
+            ((phase == "0") and (alt_phase == "1"))
+            or ((phase == "1") and (alt_phase == "0"))
+        )
+
+        if alt_is_homologue:
+            return ".", chrom_base, M1, M2, M3
+
+    return "!", "!", M1, M2, M3
