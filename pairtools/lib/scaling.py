@@ -333,7 +333,6 @@ def compute_scaling(
             pairs_body,
             header=None,
             names=cols,
-            # nrows=1e6,
             chunksize=chunksize,
             sep="\t",
             dtype={"chrom1": str, "chrom2": str},

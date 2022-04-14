@@ -115,4 +115,5 @@ from . import (
     stats,
     sample,
     filterbycov,
+    scaling
 )
