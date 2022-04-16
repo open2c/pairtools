@@ -74,7 +74,12 @@ def streaming_classify(
             range(len(chromosomes) + 1),
         )
     )
-    add_columns = kwargs.get("add_columns", "").split(",")
+    add_columns = kwargs.get("add_columns", "")
+    if isinstance(add_columns, str):
+        add_columns = add_columns.split(",")
+    elif not isinstance(add_columns, list):
+        raise ValueError(f"Unknown type of add_columns: {type(add_columns)}")
+
     sam_tags = [col for col in add_columns if len(col) == 2 and col.isupper()]
     store_seq = "seq" in add_columns
 
@@ -162,7 +167,7 @@ def streaming_classify(
                     drop_seq=kwargs["drop_seq"],
                     drop_sam=kwargs["drop_sam"],
                     add_pair_index=kwargs["add_pair_index"],
-                    add_columns=kwargs["add_columns"],
+                    add_columns=add_columns,
                 )
 
                 # add a pair to PairCounter for stats output:
@@ -341,7 +346,7 @@ def flip_alignment(hic_algn):
     """
     hic_algn = dict(hic_algn)  # overwrite the variable with the copy of dictionary
     hic_algn["pos5"], hic_algn["pos3"] = hic_algn["pos3"], hic_algn["pos5"]
-    hic_algn["strand"] = "+" if hic_algn["strand"] == "-" else "-"
+    hic_algn["strand"] = "+" if (hic_algn["strand"] == "-") else "-"
     return hic_algn
 
 
@@ -352,7 +357,7 @@ def flip_orientation(hic_algn):
     :return:
     """
     hic_algn = dict(hic_algn)  # overwrite the variable with the copy of dictionary
-    hic_algn["strand"] = "+" if hic_algn["strand"] == "-" else "-"
+    hic_algn["strand"] = "+" if (hic_algn["strand"] == "-") else "-"
     return hic_algn
 
 
