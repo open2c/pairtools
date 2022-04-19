@@ -28,7 +28,8 @@ COLUMNS = [
     "pair_type",
     "sam1",
     "sam2",
-    "pair_index",
+    "walk_pair_index",
+    "walk_pair_type"
 ]
 
 # Required columns for formats:

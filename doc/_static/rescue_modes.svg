@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="80px" height="56px" viewBox="0 0 80 56" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <title>Slice 1</title>
+<svg width="108px" height="56px" viewBox="0 0 108 56" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Group 2</title>
     <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="Group" transform="translate(0.805945, 0.953422)">
+        <g id="Group-2" transform="translate(0.805945, 0.953422)">
             <line x1="45.1446958" y1="0.995599573" x2="37.3554527" y2="0.995599573" id="path4191-9-2-29-3" stroke="#000000" stroke-width="0.5" stroke-dasharray="1.693333333331004,0.5644444444436679"></line>
             <line x1="22.1452627" y1="1.96846191" x2="25.6940547" y2="13.5465783" id="path5953-8-5-9-9" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
             <line x1="30.0240295" y1="1.96846191" x2="28.6940547" y2="13.5465783" id="path5955-8-8-6-1" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
@@ -10,39 +10,47 @@
             <line x1="51.6940547" y1="1.54657833" x2="43.6940547" y2="7.54657833" id="path5974-4-0-2-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
             <line x1="51.3941463" y1="2.01835315" x2="46.6940547" y2="19.5465783" id="path5972-8-5-0-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
             <line x1="60.6940547" y1="1.54657833" x2="50.6940547" y2="19.5465783" id="path5974-4-0-2-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
-            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#C44E52" fill-rule="nonzero" transform="translate(27.634686, 26.404352) scale(-1, 1) translate(-27.634686, -26.404352) " points="27.0347793 26.4066561 27.8941008 27.7732805 28.2345935 27.7752561 28.2345935 25.0334474 27.7898367 25.0359874"></polygon>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#C44E52" fill-rule="nonzero" transform="translate(27.634686, 26.404352) scale(-1, 1) translate(-27.634686, -26.404352) " points="27.0347785 26.4066561 27.8941 27.7732805 28.2345927 27.7752561 28.2345927 25.0334474 27.7898359 25.0359874"></polygon>
             <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" points="33.0347793 26.4066561 33.8941008 27.7732805 34.2345935 27.7752561 34.2345935 25.0334474 33.7898367 25.0359874"></polygon>
-            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" transform="translate(42.648540, 36.404352) scale(-1, 1) translate(-42.648540, -36.404352) " points="42.0486327 36.4066559 42.9079513 37.7732803 43.2484468 37.7752559 43.2484468 35.0334472 42.8036872 35.0359872"></polygon>
+            <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" transform="translate(42.648540, 36.404352) scale(-1, 1) translate(-42.648540, -36.404352) " points="42.0486332 36.4066559 42.9079518 37.7732803 43.2484473 37.7752559 43.2484473 35.0334472 42.8036877 35.0359872"></polygon>
             <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" points="53.0486313 36.4066559 53.7648411 37.7732803 54.0486313 37.7752559 54.0486313 35.0334472 53.6779408 35.0359872"></polygon>
             <g id="3r" transform="translate(69.329562, 34.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <text>
-                    <tspan x="0" y="3">3r</tspan>
-                </text>
+                <g id="Group">
+                    <text id="3">
+                        <tspan x="0" y="3">3</tspan>
+                    </text>
+                </g>
             </g>
             <g id="UU" transform="translate(56.976318, 34.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <text>
-                    <tspan x="0" y="3">UU</tspan>
-                </text>
+                <g id="Group">
+                    <text id="UU">
+                        <tspan x="0" y="3">UU</tspan>
+                    </text>
+                </g>
             </g>
-            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" transform="translate(33.634687, 31.404352) scale(-1, 1) translate(-33.634687, -31.404352) " points="33.0347795 31.4066559 33.894101 32.7732803 34.2345937 32.7752559 34.2345937 30.0334472 33.7898369 30.0359872"></polygon>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" transform="translate(33.634687, 31.404352) scale(-1, 1) translate(-33.634687, -31.404352) " points="33.0347803 31.4066559 33.8941018 32.7732803 34.2345945 32.7752559 34.2345945 30.0334472 33.7898377 30.0359872"></polygon>
             <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" points="42.0486328 31.4066559 42.9079514 32.7732803 43.2484469 32.7752559 43.2484469 30.0334472 42.8036873 30.0359872"></polygon>
             <g id="2u" transform="translate(69.095296, 29.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <text>
-                    <tspan x="0" y="3">2u</tspan>
-                </text>
+                <g id="Group" transform="translate(0.000000, 0.000000)">
+                    <text id="2">
+                        <tspan x="0" y="3">2</tspan>
+                    </text>
+                </g>
             </g>
             <g id="UU" transform="translate(57.007785, 29.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <text>
-                    <tspan x="0" y="3">UU</tspan>
-                </text>
+                <g id="Group">
+                    <text id="UU">
+                        <tspan x="0" y="3">UU</tspan>
+                    </text>
+                </g>
             </g>
-            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" transform="translate(33.634686, 52.404352) scale(-1, 1) translate(-33.634686, -52.404352) " points="33.0347793 52.4066561 33.8941008 53.7732805 34.2345935 53.7752561 34.2345935 51.0334474 33.7898367 51.0359874"></polygon>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#009900" fill-rule="nonzero" transform="translate(33.634686, 52.404352) scale(-1, 1) translate(-33.634686, -52.404352) " points="33.0347785 52.4066561 33.8941 53.7732805 34.2345927 53.7752561 34.2345927 51.0334474 33.7898359 51.0359874"></polygon>
             <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" points="43.048633 52.4066561 43.9079516 53.7732805 44.2484471 53.7752561 44.2484471 51.0334474 43.8036875 51.0359874"></polygon>
-            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#C44E52" fill-rule="nonzero" transform="translate(27.634686, 47.404352) scale(-1, 1) translate(-27.634686, -47.404352) " points="27.0347793 47.4066561 27.8941008 48.7732805 28.2345935 48.7752561 28.2345935 46.0334474 27.7898367 46.0359874"></polygon>
+            <polygon id="path6063-4-20-3-7-7" stroke="#000000" stroke-width="0.5" fill="#C44E52" fill-rule="nonzero" transform="translate(27.634686, 47.404352) scale(-1, 1) translate(-27.634686, -47.404352) " points="27.0347785 47.4066561 27.8941 48.7732805 28.2345927 48.7752561 28.2345927 46.0334474 27.7898359 46.0359874"></polygon>
             <polygon id="path6063-4-6-2-0-6-0" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" points="48.048633 47.4066561 48.7648428 48.7732805 49.048633 48.7752561 49.048633 46.0334474 48.6779425 46.0359874"></polygon>
             <g id="g7455-1-7-1-5" transform="translate(22.094459, 0.000000)" stroke="#000000" stroke-width="0.5">
                 <rect id="rect4138-6-7-7-3-2" fill="#C44E52" fill-rule="nonzero" stroke-linecap="round" x="1.52655666e-16" y="0.0612360911" width="8.00856412" height="1.86873176"></rect>
-                <g id="g6125-3-5-76-2-7" transform="translate(1.737020, -0.000000)">
+                <g id="g6125-3-5-76-2-7" transform="translate(1.737020, 0.000000)">
                     <polyline id="path6063-8-1-9-1-9" points="0.1264411 0 0.88246596 0.952153593 0.11753404 1.91552505"></polyline>
                     <polyline id="path6063-9-3-74-1-5-1" points="3.09012371 0 3.84614858 0.952153593 3.08121666 1.91552505"></polyline>
                 </g>
@@ -54,16 +62,16 @@
             </g>
             <rect id="rect4138-7-1-8-1-4" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" stroke-linecap="round" x="45.2192758" y="0.0612360231" width="6" height="1.86873123"></rect>
             <rect id="rect4138-7-1-8-1-4" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" stroke-linecap="round" x="51.2192758" y="0.0612360231" width="10" height="1.86873123"></rect>
-            <g id="g6125-3-4-7-8-07-6" transform="translate(53.173824, 0.997449) scale(-1, 1) translate(-53.173824, -0.997449) translate(46.746461, 0.039686)" stroke="#000000" stroke-width="0.5">
+            <g id="g6125-3-4-7-8-07-6" transform="translate(53.173824, 0.997449) scale(-1, 1) translate(-53.173824, -0.997449) translate(46.746460, 0.039686)" stroke="#000000" stroke-width="0.5">
                 <polyline id="path6063-8-7-0-0-5-6" points="0.1264411 0 0.88246596 0.952153593 0.11753404 1.91552505"></polyline>
                 <polyline id="path6063-9-3-6-4-3-8-7" points="3.09012371 0 3.84614858 0.952153593 3.08121666 1.91552505"></polyline>
                 <polyline id="path6063-9-9-3-8-0-70-7-2" points="6.05380235 0 6.80982721 0.952153593 6.04489529 1.91552505"></polyline>
                 <polyline id="path6063-9-9-1-3-9-8-6-0-7" points="9.01748382 0 9.77351121 0.952153593 9.00857904 1.91552505"></polyline>
                 <polyline id="path6063-9-9-1-4-80-0-5-9-48-4" points="11.9811684 0 12.737193 0.952153593 11.9722608 1.91552505"></polyline>
             </g>
-            <path d="M22.3402106,7.5426322 C22.0036831,7.51963109 21.4216139,7.93230489 21.4254152,8.99591013 C21.4293383,10.0595153 22.0114019,10.4716501 22.3479265,10.4486377 L53.2170867,10.4486377 L53.5682106,9.82631793 L56.4102759,9.82631793 L57.0474829,10.4486377 L61.2168731,10.4486377 C61.5820969,10.3551064 62.0252733,9.75410013 62.0183459,8.99239364 C62.0109251,8.23068715 61.572126,7.63558491 61.2091572,7.5426322 L57.0397641,7.5426322 L56.40256,8.16550511 L53.5604947,8.16550511 L53.2093707,7.5426322 L22.3402106,7.5426322 Z" id="path5671-5-9-0-1" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
-            <path d="M22.4048479,13.4150484 C22.0683205,13.3920473 21.4862513,13.8047211 21.4900526,14.8683264 C21.4939757,15.9319316 22.0760393,16.3440664 22.4125639,16.321054 L53.281724,16.321054 L53.632848,15.6987342 L56.4749133,15.6987342 L57.1121202,16.321054 L61.2815105,16.321054 C61.6467343,16.2275227 62.0899106,15.6265164 62.0829832,14.8648099 C62.0755625,14.1031034 61.6367634,13.5080011 61.2737945,13.4150484 L57.1044015,13.4150484 L56.4671973,14.0379213 L53.625132,14.0379213 L53.2740081,13.4150484 L22.4048479,13.4150484 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
-            <path d="M22.4048479,19.4150484 C22.0683205,19.3920473 21.4862513,19.8047211 21.4900526,20.8683264 C21.4939757,21.9319316 22.0760393,22.3440664 22.4125639,22.321054 L53.281724,22.321054 L53.632848,21.6987342 L56.4749133,21.6987342 L57.1121202,22.321054 L61.2815105,22.321054 C61.6467343,22.2275227 62.0899106,21.6265164 62.0829832,20.8648099 C62.0755625,20.1031034 61.6367634,19.5080011 61.2737945,19.4150484 L57.1044015,19.4150484 L56.4671973,20.0379213 L53.625132,20.0379213 L53.2740081,19.4150484 L22.4048479,19.4150484 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <path d="M22.3402106,7.5426322 C22.0036831,7.51963109 21.4216139,7.93230489 21.4253967,8.99591013 C21.4293383,10.0595153 22.0114019,10.4716501 22.3479265,10.4486377 L53.2170867,10.4486377 L53.5682106,9.82631793 L56.4102759,9.82631793 L57.0474829,10.4486377 L61.2168731,10.4486377 C61.5820969,10.3551064 62.0252733,9.75410013 62.0184261,8.99239364 C62.0109251,8.23068715 61.572126,7.63558491 61.2091572,7.5426322 L57.0397641,7.5426322 L56.40256,8.16550511 L53.5604947,8.16550511 L53.2093707,7.5426322 L22.3402106,7.5426322 Z" id="path5671-5-9-0-1" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <path d="M22.4048479,13.4150484 C22.0683205,13.3920473 21.4862513,13.8047211 21.4900341,14.8683264 C21.4939757,15.9319316 22.0760393,16.3440664 22.4125639,16.321054 L53.281724,16.321054 L53.632848,15.6987342 L56.4749133,15.6987342 L57.1121202,16.321054 L61.2815105,16.321054 C61.6467343,16.2275227 62.0899106,15.6265164 62.0830634,14.8648099 C62.0755625,14.1031034 61.6367634,13.5080011 61.2737945,13.4150484 L57.1044015,13.4150484 L56.4671973,14.0379213 L53.625132,14.0379213 L53.2740081,13.4150484 L22.4048479,13.4150484 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <path d="M22.4048479,19.4150484 C22.0683205,19.3920473 21.4862513,19.8047211 21.4900341,20.8683264 C21.4939757,21.9319316 22.0760393,22.3440664 22.4125639,22.321054 L53.281724,22.321054 L53.632848,21.6987342 L56.4749133,21.6987342 L57.1121202,22.321054 L61.2815105,22.321054 C61.6467343,22.2275227 62.0899106,21.6265164 62.0830634,20.8648099 C62.0755625,20.1031034 61.6367634,19.5080011 61.2737945,19.4150484 L57.1044015,19.4150484 L56.4671973,20.0379213 L53.625132,20.0379213 L53.2740081,19.4150484 L22.4048479,19.4150484 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
             <g id="g7464-3-6-2-0" transform="translate(42.267685, 8.980006) scale(-1, 1) translate(-42.267685, -8.980006) translate(40.767685, 7.609101)" stroke="#000000" stroke-width="0.5">
                 <rect id="rect4138-6-1-7-0-9-6" fill="#3E9ADE" fill-rule="nonzero" stroke-linecap="round" x="1.11022302e-16" y="2.77555756e-17" width="3" height="2.74181073"></rect>
                 <g id="g6125-1-83-6-4" transform="translate(0.229949, 0.073755)">
@@ -99,48 +107,100 @@
             </g>
             <line x1="30.0583325" y1="1.98471509" x2="31.6940547" y2="7.54657833" id="path5953-8-5-8-56-2-1" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
             <line x1="37.341452" y1="1.94705817" x2="34.6940547" y2="7.54657833" id="path5953-8-5-8-56-2-1-6" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
-            <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="56.9763183" y="27.1210455">UU</tspan>
-            </text>
-            <text id="all" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="12.1341037" y="31.1210455">all</tspan>
-            </text>
-            <text id="mask" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="9.17453342" y="43.1210455">mask</tspan>
-            </text>
-            <text id="5any,-5unique" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="3.783648" y="48.1210455">5any, 5unique</tspan>
-            </text>
-            <text id="--walks-policy" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="0" y="22.1210455">--walks-policy</tspan>
-            </text>
-            <text id="pair_index:" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="64.5840657" y="22.1210455">pair_index:</tspan>
-            </text>
-            <text id="1l" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="69.3295627" y="27.1210455">1l</tspan>
-            </text>
-            <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="57.0077854" y="48.1210455">UU</tspan>
-            </text>
-            <text id="3any,-3unique" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="3.783648" y="53.1210455">3any, 3unique</tspan>
-            </text>
-            <text id="UU" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="57.0077854" y="53.1210455">UU</tspan>
-            </text>
-            <text id="WW" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="56.382156" y="43.1210455">WW</tspan>
-            </text>
-            <text id="!" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="31.653852" y="43.1210455">!</tspan>
-            </text>
-            <text id="!" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
-                <tspan x="47.653852" y="43.1210455">!</tspan>
-            </text>
-            <text id="{" fill="#000000" fill-rule="nonzero" font-family="Helvetica-Light, Helvetica" font-size="15" font-weight="300">
-                <tspan x="20.1965547" y="35.0465783">{</tspan>
-            </text>
+            <g id="UU" transform="translate(56.976318, 24.121046)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">UU</tspan>
+                </text>
+            </g>
+            <g id="all" transform="translate(12.134104, 28.121046)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">all</tspan>
+                </text>
+            </g>
+            <g id="mask" transform="translate(9.174533, 40.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">mask</tspan>
+                </text>
+            </g>
+            <g id="5any,-5unique" transform="translate(3.783648, 45.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="4.4408921e-16" y="3">5any, 5unique</tspan>
+                </text>
+            </g>
+            <g id="--walks-policy" transform="translate(0.000000, 19.121046)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">--walks-policy</tspan>
+                </text>
+            </g>
+            <g id="pair_index:" transform="translate(63.584066, 19.121046)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text id="walk_pair_index">
+                    <tspan x="0" y="3">walk_pair_index</tspan>
+                </text>
+            </g>
+            <g id="1l" transform="translate(69.329563, 24.121046)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text id="1">
+                    <tspan x="0" y="3">1</tspan>
+                </text>
+            </g>
+            <g id="3r" transform="translate(88.329562, 34.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <g id="Group">
+                    <text id="R2">
+                        <tspan x="0" y="3">R2</tspan>
+                    </text>
+                </g>
+            </g>
+            <g id="2u" transform="translate(88.095296, 29.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <g id="Group" transform="translate(0.000000, 0.000000)">
+                    <text id="R1/2">
+                        <tspan x="0" y="3">R1/2</tspan>
+                    </text>
+                </g>
+            </g>
+            <g id="pair_index:" transform="translate(87.584066, 19.121046)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text id="walk_pair_type">
+                    <tspan x="0" y="3">walk_pair_type</tspan>
+                </text>
+            </g>
+            <g id="1l" transform="translate(88.329563, 24.121046)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text id="R1">
+                    <tspan x="0" y="3">R1</tspan>
+                </text>
+            </g>
+            <g id="UU" transform="translate(57.007785, 45.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">UU</tspan>
+                </text>
+            </g>
+            <g id="3any,-3unique" transform="translate(3.783648, 50.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="4.4408921e-16" y="3">3any, 3unique</tspan>
+                </text>
+            </g>
+            <g id="UU" transform="translate(57.007785, 50.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">UU</tspan>
+                </text>
+            </g>
+            <g id="WW" transform="translate(56.382156, 40.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">WW</tspan>
+                </text>
+            </g>
+            <g id="!" transform="translate(31.653852, 40.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">!</tspan>
+                </text>
+            </g>
+            <g id="!" transform="translate(47.653852, 40.121045)" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <text>
+                    <tspan x="0" y="3">!</tspan>
+                </text>
+            </g>
+            <g id="{" transform="translate(20.196555, 20.046578)" fill="#000000" fill-rule="nonzero" font-family="Helvetica-Light, Helvetica" font-size="15" font-weight="300">
+                <text>
+                    <tspan x="0" y="15">{</tspan>
+                </text>
+            </g>
         </g>
     </g>
 </svg>

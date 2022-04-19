@@ -262,7 +262,8 @@ def parse2_py(
         columns.pop(columns.index("sam2"))
 
     if not kwargs.get("add_pair_index", False):
-        columns.pop(columns.index("pair_index"))
+        columns.pop(columns.index("walk_pair_index"))
+        columns.pop(columns.index("walk_pair_type"))
 
     ### Parse header
     samheader = input_sam.header

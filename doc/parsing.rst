@@ -250,13 +250,15 @@ all pairs in the walk to be reported as if they appeared in the sequencing data 
 By default, ``parse2`` reports ligation junctions instead of outer ends of the alignmentns.
 It may report also the position or orientation of the walk or of individual read.
 
-The complete guide through the reporting options of ``parse2``:
+The complete guide through the reporting options of ``parse2``, orientation reporting:
 
 .. figure:: _static/report-orientation.svg
    :width: 60 %
    :alt: parse2 --report-orientation
    :align: center
 
+
+position reporting: 
 
 .. figure:: _static/report-positions.svg
    :width: 60 %

@@ -411,7 +411,7 @@ def parse_read(
         algns2 = [empty_alignment()]
         algns1[0]["type"] = "X"
         algns2[0]["type"] = "X"
-        pair_index = "1u"
+        pair_index = (1, "R1/2")
         return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
 
     # Generate a sorted, gap-filled list of all alignments
@@ -428,7 +428,7 @@ def parse_read(
     # By default, assume each molecule is a single pair with single unconfirmed pair:
     hic_algn1 = algns1[0]
     hic_algn2 = algns2[0]
-    pair_index = "1u"
+    pair_index = (1, "R1/2")
 
     # Define the type of alignment on each side:
     is_chimeric_1 = len(algns1) > 1
@@ -458,7 +458,7 @@ def parse_read(
 
             # Walk was rescued as a simple walk:
             if rescued_linear_side is not None:
-                pair_index = f'1{"l" if rescued_linear_side==1 else "r"}'
+                pair_index = (1, "R1" if rescued_linear_side==1 else "R2")
             # Walk is unrescuable:
             else:
                 if walks_policy == "mask":
@@ -539,7 +539,7 @@ def parse2_read(
         algn1, algn2: dict
             Two alignments selected for reporting as a Hi-C pair.
         pair_index
-            pair index of a pair in the molecule.
+            pair index of a pair in the molecule, a tuple: (1, "R1/2")
     algns1, algns2: lists
         All alignments, sorted according to their order in on a read.
     """
@@ -578,7 +578,8 @@ def parse2_read(
                 algn2 = flip_orientation(algn2)
             if report_position == "walk":
                 algn2 = flip_position(algn2)
-            return iter([(algns1[0], algn2, "1u")]), algns1, algns2
+            pair_index = (1, "R1/2")
+            return iter([(algns1[0], algn2, pair_index)]), algns1, algns2
 
     # Paired-end mode:
     else:
@@ -588,7 +589,8 @@ def parse2_read(
             algns2 = [empty_alignment()]
             algns1[0]["type"] = "X"
             algns2[0]["type"] = "X"
-            return iter([(algns1[0], algns2[0], "1u")]), algns1, algns2
+            pair_index = (1, "R1/2")
+            return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
 
         # Generate a sorted, gap-filled list of all alignments
         algns1 = [
@@ -629,7 +631,8 @@ def parse2_read(
                 algn2 = flip_orientation(algn2)
             if report_position == "walk":
                 algn2 = flip_position(algn2)
-            return iter([(algns1[0], algn2, "1u")]), algns1, algns2
+            pair_index = (1, "R1/2")
+            return iter([(algns1[0], algn2, pair_index)]), algns1, algns2
 
 
 ####################
@@ -912,11 +915,12 @@ def parse_complex_walk(
             if (
                 n_algns1 >= 2
             ):  # single alignment on right read and multiple alignments on left
+                pair_index = (len(algns1)-1, "R1")
                 output_pairs.append(
                     format_pair(
                         algns1[-2],
                         algns1[-1],
-                        pair_index=f"{len(algns1)-1}l",
+                        pair_index=pair_index,
                         algn2_pos3=algns2[-1]["pos5"],
                         report_position=report_position,
                         report_orientation=report_orientation,
@@ -927,11 +931,12 @@ def parse_complex_walk(
             if (
                 n_algns2 >= 2
             ):  # single alignment on left read and multiple alignments on right
+                pair_index = (len(algns1), "R2")
                 output_pairs.append(
                     format_pair(
                         algns2[-1],
                         algns2[-2],
-                        pair_index=f"{len(algns1)}r",
+                        pair_index=pair_index,
                         algn1_pos3=algns1[-1]["pos5"],
                         report_position=report_position,
                         report_orientation=report_orientation,
@@ -943,11 +948,12 @@ def parse_complex_walk(
             # it's a non-ligated DNA fragment that we don't report.
 
         else:  # end alignments do not overlap, report regular pair:
+            pair_index = (len(algns1), "R1/2")
             output_pairs.append(
                 format_pair(
                     algns1[-1],
                     algns2[-1],
-                    pair_index=f"{len(algns1)}u",
+                    pair_index=pair_index,
                     report_position=report_position,
                     report_orientation=report_orientation,
                 )
@@ -961,11 +967,12 @@ def parse_complex_walk(
     # III. Report all remaining alignments.
     # Report all unique alignments on left read (sequential):
     for i in range(0, n_algns1 - last_reported_alignment_left):
+        pair_index = (i + 1, "R1")
         output_pairs.append(
             format_pair(
                 algns1[i],
                 algns1[i + 1],
-                pair_index=f"{i + 1}l",
+                pair_index=pair_index,
                 report_position=report_position,
                 report_orientation=report_orientation,
             )
@@ -975,11 +982,12 @@ def parse_complex_walk(
     for i_overlapping in range(current_right_pair - 1):
         idx_left = n_algns1 - current_right_pair + i_overlapping
         idx_right = n_algns2 - 1 - i_overlapping
+        pair_index = (idx_left + 1, "R1&2")
         output_pairs.append(
             format_pair(
                 algns1[idx_left],
                 algns1[idx_left + 1],
-                pair_index=f"{idx_left + 1}b",
+                pair_index=pair_index,
                 algn2_pos3=algns2[idx_right - 1]["pos5"],
                 report_position=report_position,
                 report_orientation=report_orientation,
@@ -993,28 +1001,24 @@ def parse_complex_walk(
     for i in reporting_order:
         # Determine the pair index depending on what is the overlap:
         shift = -1 if current_right_pair > 1 else 0
-        pair_index = (
+        pair_index = ((
             n_algns1
             + min(current_right_pair, n_algns2 - last_reported_alignment_right)
             - i
             + shift
-        )
+        ), "R2")
         output_pairs.append(
             format_pair(
                 algns2[i + 1],
                 algns2[i],
-                pair_index=f"{pair_index}r",
+                pair_index=pair_index,
                 report_position=report_position,
                 report_orientation=report_orientation,
             )
         )
 
     # Sort the pairs according by the pair index:
-    walk_length = max([int(x[-1][:-1]) for x in output_pairs])
-    # if report_position=="walk":
-    output_pairs.sort(key=lambda x: int(x[-1][:-1]))
-    # else: # oder by position to the 5'-end of the read (left or right independently)
-    #     output_pairs.sort(key=lambda x: int(x[-1][:-1]) if x[-1][-1]!='r' else walk_length-int(x[-1][:-1]))
+    output_pairs.sort(key=lambda x: int(x[-1][0]))
     return iter(output_pairs)
 
 
@@ -1184,25 +1188,25 @@ def format_pair(
     # Change orientation and positioning of pair for reporting:
     # AVAILABLE_REPORT_POSITION    = ["outer", "pair", "read", "walk"]
     # AVAILABLE_REPORT_ORIENTATION = ["pair", "pair", "read", "walk"]
-    pair_type = pair_index[-1]
+    pair_type = pair_index[1]
 
     if report_orientation == "read":
         pass
     elif report_orientation == "walk":
-        if pair_type == "r":
+        if pair_type == "R2":
             hic_algn1 = flip_orientation(hic_algn1)
             hic_algn2 = flip_orientation(hic_algn2)
-        elif pair_type == "u":
+        elif pair_type == "R1/2":
             hic_algn2 = flip_orientation(hic_algn2)
     elif report_orientation == "pair":
-        if pair_type == "l":
+        if pair_type == "R1" or pair_type == "R1&R2":
             hic_algn2 = flip_orientation(hic_algn2)
-        elif pair_type == "r":
+        elif pair_type == "R2":
             hic_algn1 = flip_orientation(hic_algn1)
     elif report_orientation == "junction":
-        if pair_type == "l":
+        if pair_type == "R1" or pair_type == "R1&R2":
             hic_algn1 = flip_orientation(hic_algn1)
-        elif pair_type == "r":
+        elif pair_type == "R2":
             hic_algn2 = flip_orientation(hic_algn2)
         else:
             hic_algn1 = flip_orientation(hic_algn1)
@@ -1211,20 +1215,20 @@ def format_pair(
     if report_position == "read":
         pass
     elif report_position == "walk":
-        if pair_type == "r":
+        if pair_type == "R2":
             hic_algn1 = flip_position(hic_algn1)
             hic_algn2 = flip_position(hic_algn2)
-        elif pair_type == "u":
+        elif pair_type == "R1/2":
             hic_algn2 = flip_position(hic_algn2)
     elif report_position == "outer":
-        if pair_type == "l":
+        if pair_type == "R1" or pair_type == "R1&R2":
             hic_algn2 = flip_position(hic_algn2)
-        elif pair_type == "r":
+        elif pair_type == "R2":
             hic_algn1 = flip_position(hic_algn1)
     elif report_position == "junction":
-        if pair_type == "l":
+        if pair_type == "R1" or pair_type == "R1&R2":
             hic_algn1 = flip_position(hic_algn1)
-        elif pair_type == "r":
+        elif pair_type == "R2":
             hic_algn2 = flip_position(hic_algn2)
         else:
             hic_algn1 = flip_position(hic_algn1)
@@ -1349,7 +1353,8 @@ def write_pairsam(
             )
 
     if add_pair_index:
-        cols.append(pair_index)
+        cols.append(str(pair_index[0]))
+        cols.append(pair_index[1])
 
     for col in add_columns:
         # use get b/c empty alignments would not have sam tags (NM, AS, etc)

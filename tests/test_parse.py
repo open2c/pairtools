@@ -100,7 +100,7 @@ def test_mock_pysam_parse_all():
             id_counter = 0
         prev_id = l.split("\t")[0]
 
-        assigned_pair = l.split("\t")[1:8] + [l.split("\t")[-1]]
+        assigned_pair = l.split("\t")[1:8] + l.split("\t")[-2:]
         simulated_pair = (
             l.split("CT:Z:SIMULATED:", 1)[1]
             .split("\031", 1)[0]
