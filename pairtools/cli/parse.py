@@ -160,8 +160,9 @@ EXTRA_COLUMNS = [
     show_default=True,
 )
 @click.option(
-    "--no-flip",
+    "--flip/--no-flip",
     is_flag=True,
+    default=True,
     help="If specified, do not flip pairs in genomic order and instead preserve "
     "the order in which they were sequenced.",
 )
@@ -258,7 +259,7 @@ def parse_py(
         assembly=kwargs.get("assembly", ""),
         chromsizes=[(chrom, sam_chromsizes[chrom]) for chrom in chromosomes],
         columns=columns,
-        shape="whole matrix" if kwargs["no_flip"] else "upper triangle",
+        shape="whole matrix" if not kwargs["flip"] else "upper triangle",
     )
 
     header = headerops.insert_samheader_pysam(header, samheader)

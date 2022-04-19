@@ -75,8 +75,10 @@ def streaming_classify(
         )
     )
     add_columns = kwargs.get("add_columns", "")
-    if isinstance(add_columns, str):
+    if isinstance(add_columns, str) and len(add_columns)>0:
         add_columns = add_columns.split(",")
+    elif len(add_columns)==0:
+        add_columns = []
     elif not isinstance(add_columns, list):
         raise ValueError(f"Unknown type of add_columns: {type(add_columns)}")
 
@@ -149,7 +151,7 @@ def streaming_classify(
                     algn1["pos"] = algn1["pos3"]
                     algn2["pos"] = algn2["pos3"]
 
-                if not kwargs["no_flip"]:
+                if kwargs["flip"]:
                     flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
                     if flip_pair:
                         algn1, algn2 = algn2, algn1
