@@ -98,3 +98,6 @@ _*.c
 
 # VS code settings
 .vscode/*
+
+# Files generated as the examples
+examples/*

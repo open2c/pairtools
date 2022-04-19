@@ -266,16 +266,16 @@ position reporting:
    :align: center
 
 
-To restore the sequence of ligation events, there is a special field ``pair_index`` that you have as
-a separate column of .pair file when setting ``--add-pair-index`` option. This field contains information on:
+To restore the sequence of ligation events, there are special fields ``walk_pair_index`` and ``walk_pair_type`` that you have as
+a separate column of .pair file when setting ``--add-pair-index`` option.
 
-- the order of the pair in the recovered walk, starting from 5'-end of left read
-- type of the pair:
+- ``walk_pair_index`` contains information on the order of the pair in the recovered walk, starting from 5'-end of left read
+- ``walk_pair_type`` describes the type of the pair relative to R1 and R2 reads of paired-end sequencing:
 
-  - "u" - unconfirmed pair, right and left alignments in the pair originate from different reads (left or right). This might be indirect ligation (mediated by other DNA fragments).
-  - "l" - pair originates from the left read. This is direct ligation.
-  - "r" - pair originated from the right read. Direct ligation.
-  - "b" - pair was sequenced at both left and right read. Direct ligation.
+  - "R1/2" - unconfirmed pair, right and left alignments in the pair originate from different reads (left or right). This might be indirect ligation (mediated by other DNA fragments).
+  - "R1" - pair originates from the left read. This is direct ligation.
+  - "R2" - pair originated from the right read. Direct ligation.
+  - "R1&2" - pair was sequenced at both left and right read. Direct ligation.
 With this information, the whole sequence of ligation events can be restored from the .pair file.
 
 
