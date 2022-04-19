@@ -10,7 +10,8 @@ from . import dedup_cython, pairsam_format
 from .markasdup import mark_split_pair_as_dup
 from .stats import PairCounter
 
-
+from .._logging import get_logger
+logger = get_logger()
 import time
 
 # Setting for cython deduplication:
@@ -97,8 +98,8 @@ def streaming_dedup(
 
     t1 = time.time()
     t = t1 - t0
-    print(f"total time: {t}")
-    print(f"time per mln pairs: {t/N*1e6}")
+    logger.debug(f"total time: {t}")
+    logger.debug(f"time per mln pairs: {t/N*1e6}")
 
 
 def _dedup_stream(
