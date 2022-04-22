@@ -3,6 +3,7 @@
 import io
 import sys
 import click
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -26,8 +27,15 @@ UTIL_NAME = "pairtools_stats"
     " all overlapping statistics. Non-overlapping statistics are appended to"
     " the end of the file.",
 )
+@click.option(
+    "--by-tile-dups",
+    is_flag=True,
+    help="If specified, will analyse by-tile duplication statistics to estimate"
+    " library complexity more accurately. Requires parent_readID column to be saved"
+    " by dedup (will ignore this option otherwise)",
+)
 @common_io_options
-def stats(input_path, output, merge, **kwargs):
+def stats(input_path, output, merge, analyse_by_tile_duplication, **kwargs):
     """Calculate pairs statistics.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
@@ -37,10 +45,10 @@ def stats(input_path, output, merge, **kwargs):
 
     The files with paths ending with .gz/.lz4 are decompressed by bgzip/lz4c.
     """
-    stats_py(input_path, output, merge, **kwargs)
+    stats_py(input_path, output, merge, analyse_by_tile_duplication, **kwargs)
 
 
-def stats_py(input_path, output, merge, **kwargs):
+def stats_py(input_path, output, merge, analyse_by_tile_duplication, **kwargs):
     if merge:
         do_merge(output, input_path, **kwargs)
         return
@@ -69,25 +77,24 @@ def stats_py(input_path, output, merge, **kwargs):
     header, body_stream = _headerops.get_header(instream)
     cols = _headerops.extract_column_names(header)
 
+    if analyse_by_tile_duplication and "parent_readID" not in cols:
+        warnings.warn(
+            "No 'parent_readID' column in the file, not generating duplicate" " stats."
+        )
+        analyse_by_tile_duplication = False
+    elif analyse_by_tile_duplication:
+        bytile_dups = pd.DataFrame([])
     # new stats class stuff would come here ...
     stats = PairCounter()
 
     # Collecting statistics
-    for line in body_stream:
-        cols = line.rstrip().split(_pairsam_format.PAIRSAM_SEP)
-
-        # algn1:
-        chrom1 = cols[_pairsam_format.COL_C1]
-        pos1 = int(cols[_pairsam_format.COL_P1])
-        strand1 = cols[_pairsam_format.COL_S1]
-        # algn2:
-        chrom2 = cols[_pairsam_format.COL_C2]
-        pos2 = int(cols[_pairsam_format.COL_P2])
-        strand2 = cols[_pairsam_format.COL_S2]
-        # pair type:
-        pair_type = cols[_pairsam_format.COL_PTYPE]
-
-        stats.add_pair(chrom1, pos1, strand1, chrom2, pos2, strand2, pair_type)
+    for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
+        stats.add_pairs_from_dataframe(chunk)
+        if analyse_by_tile_duplication:
+            dups = chunk.iloc[chunk["duplicate"]]
+            bytile_dups.add(analyse_duplicate_stats(dups), fill_value=0).astype(int)
+    dups_by_tile_median = bytile_dups["dup_count"].median() * bytile_dups.shape[0]
+    stats._stat["total_dups_by_tile_median"] = dups_by_tile_median
     stats.calculate_summaries()
 
     # save statistics to file ...
@@ -383,9 +390,17 @@ class PairCounter(Mapping):
             self._stat["summary"][f"frac_{cis_count}"] = (
                 self._stat[cis_count] / self._stat["total_nodups"]
             )
-        self._stat["summary"]["naive_complexity"] = estimate_library_complexity(
-            self._stat["total_mapped"], self._stat["total_dups"]
+        self._stat["summary"]["complexity_naive"] = estimate_library_complexity(
+            self._stat["total_mapped"], self._stat["total_dups"], 0
         )
+        if "dups_by_tile_median" in self._stat:
+            self._stat["summary"][
+                "complexity_dups_by_tile_median"
+            ] = estimate_library_complexity(
+                self._stat["total_mapped"],
+                self._stat["total_dups"],
+                self._stat["dups_by_tile_median"],
+            )
 
     @classmethod
     def from_file(cls, file_handle):
@@ -675,6 +690,14 @@ class PairCounter(Mapping):
             self._stat["summary"]["naive_complexity"]
             + other._stat["summary"]["naive_complexity"]
         )
+        if (
+            "complexity_dups_by_tile_median" in self._stat
+            and "complexity_dups_by_tile_median" in other._stat
+        ):
+            sum_stat["summary"]["complexity_dups_by_tile_median"] = (
+                self._stat["summary"]["complexity_dups_by_tile_median"]
+                + other._stat["summary"]["complexity_dups_by_tile_median"]
+            )
         return sum_stat
 
     # we need this to be able to sum(list_of_PairCounters)
