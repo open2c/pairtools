@@ -6,6 +6,7 @@ import click
 
 import numpy as np
 import pandas as pd
+from scipy import special
 
 from collections.abc import Mapping
 
@@ -131,11 +132,87 @@ def do_merge(output, files_to_merge, **kwargs):
         outstream.close()
 
 
-def complexity_estimate(total_mapped, total_dups):
-    try:
-        return total_mapped ** 2 / total_dups / 2
-    except ZeroDivisionError:
-        return 0
+def estimate_library_complexity(nseq, ndup, nopticaldup=0):
+    """Estimate library complexity accounting for optical/clustering duplicates
+
+    Parameters
+    ----------
+    nseq : int
+        Total number of sequences
+    ndup : int
+        Total number of duplicates
+    nopticaldup : int, optional
+        Number of non-PCR duplicates, by default 0
+
+    Returns
+    -------
+    float
+        Estimated complexity
+    """
+    nseq = nseq - nopticaldup
+    ndup = ndup - nopticaldup
+    u = (nseq - ndup) / nseq
+    seq_to_complexity = special.lambertw(-np.exp(-1 / u) / u).real + 1 / u
+    complexity = nseq / seq_to_complexity
+    return complexity
+
+
+def extract_tile_info(series, regex=False):
+    """Extract the name of the tile for each read name in the series
+
+    Parameters
+    ----------
+    series : pd.Series
+        Series containing read IDs
+    regex : bool, optional
+        Regex to extract fields from the read IDs that correspond to tile IDs.
+        By default False, uses a faster predefined approach for typical Illumina
+        read names
+        Example: r"(?:\w+):(?:\w+):(\w+):(\w+):(\w+):(?:\w+):(?:\w+)"
+
+    Returns
+    -------
+    Series
+        Series containing tile IDs as strings
+    """
+    if regex:
+        split = series.str.extractall(regex).unstack().droplevel(1, axis=1)
+        return split[0] + ":" + split[1] + ":" + split[2]
+    else:
+        split = series.str.split(":", expand=True)
+        return split[2] + ":" + split[3] + ":" + split[4]
+
+
+def analyse_duplicate_stats(dups, tile_dup_regex=False):
+    """_summary_
+
+    Parameters
+    ----------
+    dups : pd.DataFrame
+        Dataframe with duplicates that contains pared read IDs
+    tile_dup_regex : bool, optional
+        See extract_tile_info for details, by default False
+
+    Returns
+    -------
+    pd.DataFrame
+        Grouped multi-indexed dataframe of pairwise by-tile duplication counts
+    """
+    dups = dups.copy()
+    dups["tile"] = extract_tile_info(dups["readID"])
+    dups["parent_tile"] = extract_tile_info(dups["parent_readID"])
+    dups["same_tile"] = dups["tile"] == dups["parent_tile"]
+    bytile_dups = (
+        dups.groupby(["tile", "parent_tile"])
+        .size()
+        .reset_index(name="dup_count")
+        .sort_values(["tile", "parent_tile"])
+    )
+    bytile_dups[["tile", "parent_tile"]] = np.sort(
+        bytile_dups[["tile", "parent_tile"]].values, axis=1
+    )
+    bytile_dups = bytile_dups.groupby(["tile", "parent_tile"]).sum()
+    return bytile_dups
 
 
 class PairCounter(Mapping):
@@ -210,7 +287,7 @@ class PairCounter(Mapping):
                 ("frac_cis_10kb+", 0),
                 ("frac_cis_20kb+", 0),
                 ("frac_cis_40kb+", 0),
-                ("complexity", 0),
+                ("naive_complexity", 0),
             ]
         )
 
@@ -306,7 +383,7 @@ class PairCounter(Mapping):
             self._stat["summary"][f"frac_{cis_count}"] = (
                 self._stat[cis_count] / self._stat["total_nodups"]
             )
-        self._stat["summary"]["complexity"] = complexity_estimate(
+        self._stat["summary"]["naive_complexity"] = estimate_library_complexity(
             self._stat["total_mapped"], self._stat["total_dups"]
         )
 
@@ -594,6 +671,10 @@ class PairCounter(Mapping):
                     for dirs in sum_stat[k]:
                         sum_stat[k][dirs] = self._stat[k][dirs] + other._stat[k][dirs]
         sum_stat.calculate_summaries()
+        sum_stat["summary"]["naive_complexity"] = (
+            self._stat["summary"]["naive_complexity"]
+            + other._stat["summary"]["naive_complexity"]
+        )
         return sum_stat
 
     # we need this to be able to sum(list_of_PairCounters)
