@@ -11,6 +11,8 @@ from .. import __version__
 from . import pairsam_format
 from .fileio import ParseError
 
+from .._logging import get_logger
+logger = get_logger()
 
 PAIRS_FORMAT_VERSION = "1.0.0"
 SEP_COLS = " "
@@ -72,14 +74,14 @@ def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
     # return header and the instream, advanced to the beginning of the data
 
     if len(header)==0 and not ignore_warning:
-        warnings.warn("Headerless input, please, add the header by `pairtools header generate` or `pairtools header transfer`")
+        logger.warning("Headerless input, please, add the header by `pairtools header generate` or `pairtools header transfer`")
 
     return header, instream
 
 
 def extract_fields(header, field_name, save_rest=False):
     """
-    Extract the specified fields from the pairs header and returns
+    Extract the specified fields from the pairs header and return
     a list of corresponding values, even if a single field was found.
     Additionally, can return the list of intact non-matching entries.
     """
@@ -154,6 +156,15 @@ def validate_header_cols(stream, header):
 
     columns = extract_column_names(header)
     return validate_cols(stream, header)
+
+
+def is_empty_header(header):
+    if len(header)==0:
+        return True
+    if not header[0].startswith("##"):
+        return True
+    else:
+        return False
 
 
 def extract_chromsizes(header):
@@ -308,6 +319,8 @@ def insert_samheader_pysam(header, samheader):
 
 def mark_header_as_sorted(header):
     header = copy.deepcopy(header)
+    if is_empty_header(header):
+        raise Exception("Input file is not valid .pairs, has no header or is empty.")
     if not any([l.startswith("#sorted") for l in header]):
         if header[0].startswith("##"):
             header.insert(1, "#sorted: chr1-chr2-pos1-pos2")
@@ -322,6 +335,8 @@ def mark_header_as_sorted(header):
 
 def append_new_pg(header, ID="", PN="", VN=None, CL=None, force=False):
     header = copy.deepcopy(header)
+    if is_empty_header(header):
+        raise Exception("Input file is not valid .pairs, has no header or is empty.")
     samheader, other_header = extract_fields(header, "samheader", save_rest=True)
     new_samheader = _add_pg_to_samheader(samheader, ID, PN, VN, CL, force)
     new_header = insert_samheader(other_header, new_samheader)

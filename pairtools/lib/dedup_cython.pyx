@@ -90,6 +90,7 @@ cdef class OnlineDuplicateDetector(object):
             pastidx = self.parent_idxs[:self.low]
             self.low = 0
             return pastrm, pastidx
+        self.low = 0
         return pastrm
 
     def _run(self, finish=False):

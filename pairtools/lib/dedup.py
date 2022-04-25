@@ -99,7 +99,10 @@ def streaming_dedup(
     t1 = time.time()
     t = t1 - t0
     logger.debug(f"total time: {t}")
-    logger.debug(f"time per mln pairs: {t/N*1e6}")
+    if N>0:
+        logger.debug(f"time per mln pairs: {t/N*1e6}")
+    else:
+        logger.debug(f"Processed {N} pairs")
 
 
 def _dedup_stream(
@@ -527,8 +530,11 @@ def streaming_dedup_cython(
     # streaming_dedup is over.
     t1 = time.time()
     t = t1 - t0
-    print(f"total time: {t}")
-    print(f"time per mln pairs: {t/N*1e6}")
+    logger.debug(f"total time: {t}")
+    if N>0:
+        logger.debug(f"time per mln pairs: {t/N*1e6}")
+    else:
+        logger.debug(f"Processed {N} pairs")
 
 
 def fetchadd(key, mydict):
