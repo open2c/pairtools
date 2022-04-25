@@ -28,7 +28,7 @@ UTIL_NAME = "pairtools_stats"
     " the end of the file.",
 )
 @click.option(
-    "--by-tile-dups",
+    "--analyse-by-tile-duplication",
     is_flag=True,
     help="If specified, will analyse by-tile duplication statistics to estimate"
     " library complexity more accurately. Requires parent_readID column to be saved"
@@ -93,8 +93,9 @@ def stats_py(input_path, output, merge, analyse_by_tile_duplication, **kwargs):
         if analyse_by_tile_duplication:
             dups = chunk.iloc[chunk["duplicate"]]
             bytile_dups.add(analyse_duplicate_stats(dups), fill_value=0).astype(int)
-    dups_by_tile_median = bytile_dups["dup_count"].median() * bytile_dups.shape[0]
-    stats._stat["total_dups_by_tile_median"] = dups_by_tile_median
+    if analyse_by_tile_duplication:
+        dups_by_tile_median = bytile_dups["dup_count"].median() * bytile_dups.shape[0]
+        stats._stat["total_dups_by_tile_median"] = dups_by_tile_median
     stats.calculate_summaries()
 
     # save statistics to file ...
@@ -191,7 +192,7 @@ def extract_tile_info(series, regex=False):
 
 
 def analyse_duplicate_stats(dups, tile_dup_regex=False):
-    """_summary_
+    """Count by-tile duplicates
 
     Parameters
     ----------
@@ -294,7 +295,8 @@ class PairCounter(Mapping):
                 ("frac_cis_10kb+", 0),
                 ("frac_cis_20kb+", 0),
                 ("frac_cis_40kb+", 0),
-                ("naive_complexity", 0),
+                ("frac_dups", 0),
+                ("complexity_naive", 0),
             ]
         )
 
@@ -390,6 +392,9 @@ class PairCounter(Mapping):
             self._stat["summary"][f"frac_{cis_count}"] = (
                 self._stat[cis_count] / self._stat["total_nodups"]
             )
+        self._stat["summary"]["frac_dups"] = (
+            self._stat["total_dups"] / self._stat["total_mapped"]
+        )
         self._stat["summary"]["complexity_naive"] = estimate_library_complexity(
             self._stat["total_mapped"], self._stat["total_dups"], 0
         )
@@ -615,18 +620,20 @@ class PairCounter(Mapping):
         self._stat["total_dups"] += int(dups_count)
         self._stat["total_nodups"] += int(mapped_count - dups_count)
 
+        df_nodups = df_mapped.loc[~mask_dups, :]
+        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
+        df_cis = df_nodups.loc[mask_cis, :].copy()
+
         # Count pairs per chromosome:
         for (chrom1, chrom2), chrom_count in (
-            df_mapped[["chrom1", "chrom2"]].value_counts().items()
+            df_nodups[["chrom1", "chrom2"]].value_counts().items()
         ):
             self._stat["chrom_freq"][(chrom1, chrom2)] = (
                 self._stat["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
             )
 
         # Count cis-trans by pairs:
-        df_nodups = df_mapped.loc[~mask_dups, :]
-        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
-        df_cis = df_nodups.loc[mask_cis, :].copy()
+
         self._stat["cis"] += df_cis.shape[0]
         self._stat["trans"] += df_nodups.shape[0] - df_cis.shape[0]
         dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
@@ -686,9 +693,9 @@ class PairCounter(Mapping):
                     for dirs in sum_stat[k]:
                         sum_stat[k][dirs] = self._stat[k][dirs] + other._stat[k][dirs]
         sum_stat.calculate_summaries()
-        sum_stat["summary"]["naive_complexity"] = (
-            self._stat["summary"]["naive_complexity"]
-            + other._stat["summary"]["naive_complexity"]
+        sum_stat["summary"]["complexity_naive"] = (
+            self._stat["summary"]["complexity_naive"]
+            + other._stat["summary"]["complexity_naive"]
         )
         if (
             "complexity_dups_by_tile_median" in self._stat
