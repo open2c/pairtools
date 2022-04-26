@@ -251,9 +251,8 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
                     int(cols[COL_NM2]),
                     phase_suffixes,
                 )
-
             if not report_scores:
-                cols[idx_phase1] = phase2
+                cols[idx_phase2] = phase2
             else:
                 cols[idx_phase2], cols[idx_phase2+2], cols[idx_phase2+4], cols[idx_phase2+6] \
                     = phase2, str(S1_2), str(S2_2), str(S3_2)
