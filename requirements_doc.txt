@@ -7,3 +7,4 @@ pandas>=1.3.4
 pysam>=0.15.0
 git+https://github.com/golobor/sphinx-click
 sphinx_rtd_theme
+bioframe>=0.3.3
