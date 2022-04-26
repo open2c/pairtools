@@ -70,7 +70,15 @@ MAX_LEN = 10000
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
     " By default, statistics are not printed.",
 )
-
+@click.option(
+    "--output-bytile-dups-stats",
+    type=str,
+    default="",
+    help="output file for duplicate statistics."
+    " If file exists, it will be open in the append mode."
+    " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
+    " By default, by-tile duplicate statistics are not printed.",
+)
 ### Set the dedup method:
 @click.option(
     "--max-mismatch",
@@ -233,6 +241,7 @@ def dedup(
     output_dups,
     output_unmapped,
     output_stats,
+    output_bytile_dups_stats,
     chunksize,
     carryover,
     max_mismatch,
@@ -270,6 +279,7 @@ def dedup(
         output_dups,
         output_unmapped,
         output_stats,
+        output_bytile_dups_stats,
         chunksize,
         carryover,
         max_mismatch,
@@ -303,6 +313,7 @@ def dedup_py(
     output_dups,
     output_unmapped,
     output_stats,
+    output_bytile_dups_stats,
     chunksize,
     carryover,
     max_mismatch,
@@ -360,6 +371,17 @@ def dedup_py(
         else None
     )
 
+    out_bytile_dups_stats_stream = (
+        _fileio.auto_open(
+            output_bytile_dups_stats,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output_bytile_dups_stats
+        else None
+    )
+
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
 
@@ -401,8 +423,8 @@ def dedup_py(
         outstream.writelines((l + "\n" for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
         dups_header = header
-        if keep_parent_id and len(dups_header)>0:
-            dups_header= _headerops.append_columns(dups_header, ["parent_readID"])
+        if keep_parent_id and len(dups_header) > 0:
+            dups_header = _headerops.append_columns(dups_header, ["parent_readID"])
         outstream_dups.writelines((l + "\n" for l in dups_header))
     if (
         outstream_unmapped
@@ -475,6 +497,9 @@ def dedup_py(
     if out_stat:
         out_stat.save(out_stats_stream)
 
+    if output_bytile_dups_stats:
+        out_stat.save_bytile_dups(out_bytile_dups_stats_stream)
+
     if instream != sys.stdin:
         instream.close()
 
@@ -495,7 +520,7 @@ def dedup_py(
         out_stats_stream.close()
 
 
-### Cython deduplication ####
+### Chunked dedup ###
 def streaming_dedup(
     in_stream,
     colnames,
@@ -531,15 +556,14 @@ def streaming_dedup(
         n_proc=n_proc,
     )
 
-    t0 = time.time()
-    N = 0
-
     for df_chunk in deduped_chunks:
-        N += df_chunk.shape[0]
-
         # Write the stats if requested:
         if out_stat is not None:
-            out_stat.add_pairs_from_dataframe(df_chunk, unmapped_chrom=unmapped_chrom)
+            out_stat.add_pairs_from_dataframe(
+                df_chunk,
+                unmapped_chrom=unmapped_chrom,
+                analyse_bytile_dups=keep_parent_id,
+            )
 
         # Define masks of unmapped and duplicated reads:
         mask_mapped = np.logical_and(
@@ -571,11 +595,6 @@ def streaming_dedup(
         df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
             outstream, index=False, header=False, sep="\t"
         )
-
-    t1 = time.time()
-    t = t1 - t0
-    print(f"total time: {t}")
-    print(f"time per mln pairs: {t/N*1e6}")
 
 
 def _dedup_stream(
@@ -838,9 +857,6 @@ def streaming_dedup_cython(
     strandDict = {}
     curMaxLen = max(MAX_LEN, dd.getLen())
 
-    t0 = time.time()
-    N = 0
-
     instream = iter(instream)
     read_idx = 0  # read index to mark the parent readID
     while True:
@@ -900,7 +916,6 @@ def streaming_dedup_cython(
                 else:
                     s1.append(fetchadd(cols[s1ind], strandDict))
                     s2.append(fetchadd(cols[s2ind], strandDict))
-            N += 1
         if (not stripline) or (len(c1) == curMaxLen):
             if keep_parent_id:
                 res, parents = dd.push(
@@ -997,10 +1012,6 @@ def streaming_dedup_cython(
 
     # all lines have been processed at this point.
     # streaming_dedup is over.
-    t1 = time.time()
-    t = t1 - t0
-    print(f"total time: {t}")
-    print(f"time per mln pairs: {t/N*1e6}")
 
 
 def fetchadd(key, mydict):

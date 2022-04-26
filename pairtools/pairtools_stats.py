@@ -28,14 +28,25 @@ UTIL_NAME = "pairtools_stats"
     " the end of the file.",
 )
 @click.option(
-    "--analyse-by-tile-duplication",
-    is_flag=True,
+    "--analyse-bytile-dups",
+    type=str,
+    default="",
     help="If specified, will analyse by-tile duplication statistics to estimate"
-    " library complexity more accurately. Requires parent_readID column to be saved"
-    " by dedup (will ignore this option otherwise)",
+    " library complexity more accurately."
+    " Requires parent_readID column to be saved by dedup (will be ignored otherwise)",
+)
+@click.option(
+    "--output-bytile-dups-stats",
+    type=str,
+    default="",
+    help="If specified, will analyse by-tile duplication statistics to estimate"
+    " library complexity more accurately and will save details to this path."
+    " Requires parent_readID column to be saved by dedup (will be ignored otherwise)",
 )
 @common_io_options
-def stats(input_path, output, merge, analyse_by_tile_duplication, **kwargs):
+def stats(
+    input_path, output, merge, analyse_bytile_dups, output_bytile_dups_stats, **kwargs
+):
     """Calculate pairs statistics.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
@@ -45,10 +56,19 @@ def stats(input_path, output, merge, analyse_by_tile_duplication, **kwargs):
 
     The files with paths ending with .gz/.lz4 are decompressed by bgzip/lz4c.
     """
-    stats_py(input_path, output, merge, analyse_by_tile_duplication, **kwargs)
+    stats_py(
+        input_path,
+        output,
+        merge,
+        analyse_bytile_dups,
+        output_bytile_dups_stats,
+        **kwargs,
+    )
 
 
-def stats_py(input_path, output, merge, analyse_by_tile_duplication, **kwargs):
+def stats_py(
+    input_path, output, merge, analyse_bytile_dups, output_bytile_dups_stats, **kwargs
+):
     if merge:
         do_merge(output, input_path, **kwargs)
         return
@@ -77,25 +97,23 @@ def stats_py(input_path, output, merge, analyse_by_tile_duplication, **kwargs):
     header, body_stream = _headerops.get_header(instream)
     cols = _headerops.extract_column_names(header)
 
-    if analyse_by_tile_duplication and "parent_readID" not in cols:
+    if (
+        analyse_bytile_dups or output_bytile_dups_stats
+    ) and "parent_readID" not in cols:
         warnings.warn(
-            "No 'parent_readID' column in the file, not generating duplicate" " stats."
+            "No 'parent_readID' column in the file, not generating duplicate stats."
         )
-        analyse_by_tile_duplication = False
-    elif analyse_by_tile_duplication:
-        bytile_dups = pd.DataFrame([])
+        analyse_bytile_dups = False
+        output_bytile_dups_stats = False
     # new stats class stuff would come here ...
     stats = PairCounter()
 
     # Collecting statistics
     for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
         stats.add_pairs_from_dataframe(chunk)
-        if analyse_by_tile_duplication:
-            dups = chunk.iloc[chunk["duplicate"]]
-            bytile_dups.add(analyse_duplicate_stats(dups), fill_value=0).astype(int)
-    if analyse_by_tile_duplication:
-        dups_by_tile_median = bytile_dups["dup_count"].median() * bytile_dups.shape[0]
-        stats._stat["total_dups_by_tile_median"] = dups_by_tile_median
+
+    if output_bytile_dups_stats:
+        stats.save_bytile_dups()
     stats.calculate_summaries()
 
     # save statistics to file ...
@@ -299,6 +317,11 @@ class PairCounter(Mapping):
                 ("complexity_naive", 0),
             ]
         )
+        self.bytile_dups = pd.DataFrame(
+            index=pd.MultiIndex(
+                levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
+            )
+        )
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -398,6 +421,10 @@ class PairCounter(Mapping):
         self._stat["summary"]["complexity_naive"] = estimate_library_complexity(
             self._stat["total_mapped"], self._stat["total_dups"], 0
         )
+        if self.bytile_dups.shape[0] > 0:
+            self._stat["dups_by_tile_median"] = (
+                self.bytile_dups["dup_count"].median() * self.bytile_dups.shape[0]
+            )
         if "dups_by_tile_median" in self._stat:
             self._stat["summary"][
                 "complexity_dups_by_tile_median"
@@ -575,7 +602,9 @@ class PairCounter(Mapping):
         else:
             self._stat["total_single_sided_mapped"] += 1
 
-    def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
+    def add_pairs_from_dataframe(
+        self, df, unmapped_chrom="!", analyse_bytile_dups=False
+    ):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
     
         Parameters
@@ -616,7 +645,8 @@ class PairCounter(Mapping):
             mask_dups = df_mapped["duplicate"]
         else:
             mask_dups = df_mapped["pair_type"] == "DD"
-        dups_count = mask_dups.sum()
+        dups = df_mapped[mask_dups]
+        dups_count = dups.shape[0]
         self._stat["total_dups"] += int(dups_count)
         self._stat["total_nodups"] += int(mapped_count - dups_count)
 
@@ -649,6 +679,12 @@ class PairCounter(Mapping):
         self._stat["cis_10kb+"] += int(np.sum(dist >= 10000))
         self._stat["cis_20kb+"] += int(np.sum(dist >= 20000))
         self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
+
+        ### Add by-tile dups
+        if analyse_bytile_dups and dups.shape[0] > 0:
+            self.bytile_dups = self.bytile_dups.add(
+                analyse_duplicate_stats(dups), fill_value=0
+            ).astype(int)
 
     def __add__(self, other):
         # both PairCounter are implied to have a list of common fields:
@@ -705,6 +741,7 @@ class PairCounter(Mapping):
                 self._stat["summary"]["complexity_dups_by_tile_median"]
                 + other._stat["summary"]["complexity_dups_by_tile_median"]
             )
+        # self.bytile_dups.add(other.bytile_dups, fill_value=0).astype(int)
         return sum_stat
 
     # we need this to be able to sum(list_of_PairCounters)
@@ -788,6 +825,15 @@ class PairCounter(Mapping):
         # write flattened version of the PairCounter to outstream
         for k, v in self.flatten().items():
             outstream.write("{}{}{}\n".format(k, self._SEP, v))
+
+    def save_bytile_dups(self, outstream):
+        """save bytile duplication counts to a tab-delimited text file.
+
+        Parameters
+        ----------
+        outstream: file handle
+        """
+        self.bytile_dups.reset_index().to_csv(outstream, sep="\t", index=False)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ testdir = os.path.dirname(os.path.realpath(__file__))
 
 
 def test_mock_pairsam():
-    mock_pairsam_path = os.path.join(testdir, "data", "mock.stats.pairs")
+    mock_pairsam_path = os.path.join(testdir, "data", "mock.4stats.pairs")
     try:
         result = subprocess.check_output(
             ["python", "-m", "pairtools", "stats", mock_pairsam_path],
