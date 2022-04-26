@@ -747,6 +747,25 @@ def append_columns(header, columns):
     return header
 
 
+def get_colnames(header):
+    """
+    Get column names of the header, separated by SEP_COLS
+
+    Parameters
+    ----------
+    header: Previous header
+
+    Returns
+    -------
+    List of column names
+    """
+    for i in range(len(header)):
+        if header[i].startswith("#columns: "):
+            columns = header[i].split(SEP_COLS)[1:]
+            return columns
+    return []
+
+
 def set_columns(header, columns):
     """
     Set columns to the header, separated by SEP_COLS

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from .regions import assign_regs_c
-
+import bioframe
 
 def geomprog(factor, start=1):
     yield start
@@ -154,7 +154,18 @@ def bins_pairs_by_distance(
             )
             regions = regions[["chrom", "start", "end"]]
 
+        assert bioframe.is_viewframe(regions), "Invalid viewframe created from pairs file"
+
     else:
+
+        if not bioframe.is_viewframe(regions):
+            try:
+                regions = bioframe.make_viewframe(regions)
+            except Exception as e:
+                raise ValueError(f"Provided regions cannot be converted to viewframe, {e}")
+
+        regions = regions[['chrom', 'start', 'end']]
+
         _, region_starts1, region_ends1 = assign_regs(
             pairs_df.chrom1.values, pairs_df.pos1.values, regions
         ).T
