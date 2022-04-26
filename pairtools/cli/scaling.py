@@ -20,7 +20,7 @@ UTIL_NAME = "pairtools_scaling"
 @click.option(
     "--view",
     "--regions",
-    help="Path to a BED file which defines which regions of the chromosomes to use. "
+    help="Path to a BED file which defines which regions (viewframe) of the chromosomes to use. "
          "By default, this is parsed from .pairs header. ",
     type=str,
     required=False,

@@ -154,13 +154,16 @@ def bins_pairs_by_distance(
             )
             regions = regions[["chrom", "start", "end"]]
 
-        assert bioframe.is_viewframe(regions), "Invalid viewframe created from pairs file"
+        try:
+            regions = bioframe.from_any(regions)
+        except Exception as e:
+            raise ValueError(f"Invalid viewframe created from pairs file, {e}")
 
     else:
 
         if not bioframe.is_viewframe(regions):
             try:
-                regions = bioframe.make_viewframe(regions)
+                regions = bioframe.from_any(regions)
             except Exception as e:
                 raise ValueError(f"Provided regions cannot be converted to viewframe, {e}")
 
@@ -315,6 +318,26 @@ def compute_scaling(
     nproc_in=1,
     cmd_in=None,
 ):
+    """
+    Main function for computing scaling.
+
+    Parameters
+    ----------
+    pairs: pd.DataFrame, stream of fiel paht with pairs.
+    regions: bioframe viewframe, anything that can serve as input to bioframe.from_any, or None
+    chromsizes: additional dataframe with chromosome sizes, if different from regions
+    dist_range: (int, int) tuple with distance ranges that will be split into windows
+    n_dist_bins: number of logarithmic bins
+    chunksize: size of chunks for calculations
+    ignore_trans: bool, ignore trans or not
+    filter_f: filter function that can be applied to each chunk
+    nproc_in
+    cmd_in
+
+    Returns
+    -------
+
+    """
 
     dist_bins = geomspace(dist_range[0], dist_range[1], n_dist_bins)
 
