@@ -272,7 +272,7 @@ a separate column of .pair file when setting ``--add-pair-index`` option.
 - ``walk_pair_index`` contains information on the order of the pair in the recovered walk, starting from 5'-end of left read
 - ``walk_pair_type`` describes the type of the pair relative to R1 and R2 reads of paired-end sequencing:
 
-  - "R1/2" - unconfirmed pair, right and left alignments in the pair originate from different reads (left or right). This might be indirect ligation (mediated by other DNA fragments).
+  - "R1-2" - unconfirmed pair, right and left alignments in the pair originate from different reads (left or right). This might be indirect ligation (mediated by other DNA fragments).
   - "R1" - pair originates from the left read. This is direct ligation.
   - "R2" - pair originated from the right read. Direct ligation.
   - "R1&2" - pair was sequenced at both left and right read. Direct ligation.

@@ -411,7 +411,7 @@ def parse_read(
         algns2 = [empty_alignment()]
         algns1[0]["type"] = "X"
         algns2[0]["type"] = "X"
-        pair_index = (1, "R1/2")
+        pair_index = (1, "R1-2")
         return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
 
     # Generate a sorted, gap-filled list of all alignments
@@ -428,7 +428,7 @@ def parse_read(
     # By default, assume each molecule is a single pair with single unconfirmed pair:
     hic_algn1 = algns1[0]
     hic_algn2 = algns2[0]
-    pair_index = (1, "R1/2")
+    pair_index = (1, "R1-2")
 
     # Define the type of alignment on each side:
     is_chimeric_1 = len(algns1) > 1
@@ -539,7 +539,7 @@ def parse2_read(
         algn1, algn2: dict
             Two alignments selected for reporting as a Hi-C pair.
         pair_index
-            pair index of a pair in the molecule, a tuple: (1, "R1/2")
+            pair index of a pair in the molecule, a tuple: (1, "R1-2")
     algns1, algns2: lists
         All alignments, sorted according to their order in on a read.
     """
@@ -578,7 +578,7 @@ def parse2_read(
                 algn2 = flip_orientation(algn2)
             if report_position == "walk":
                 algn2 = flip_position(algn2)
-            pair_index = (1, "R1/2")
+            pair_index = (1, "R1-2")
             return iter([(algns1[0], algn2, pair_index)]), algns1, algns2
 
     # Paired-end mode:
@@ -589,7 +589,7 @@ def parse2_read(
             algns2 = [empty_alignment()]
             algns1[0]["type"] = "X"
             algns2[0]["type"] = "X"
-            pair_index = (1, "R1/2")
+            pair_index = (1, "R1-2")
             return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
 
         # Generate a sorted, gap-filled list of all alignments
@@ -631,7 +631,7 @@ def parse2_read(
                 algn2 = flip_orientation(algn2)
             if report_position == "walk":
                 algn2 = flip_position(algn2)
-            pair_index = (1, "R1/2")
+            pair_index = (1, "R1-2")
             return iter([(algns1[0], algn2, pair_index)]), algns1, algns2
 
 
@@ -948,7 +948,7 @@ def parse_complex_walk(
             # it's a non-ligated DNA fragment that we don't report.
 
         else:  # end alignments do not overlap, report regular pair:
-            pair_index = (len(algns1), "R1/2")
+            pair_index = (len(algns1), "R1-2")
             output_pairs.append(
                 format_pair(
                     algns1[-1],
@@ -1196,7 +1196,7 @@ def format_pair(
         if pair_type == "R2":
             hic_algn1 = flip_orientation(hic_algn1)
             hic_algn2 = flip_orientation(hic_algn2)
-        elif pair_type == "R1/2":
+        elif pair_type == "R1-2":
             hic_algn2 = flip_orientation(hic_algn2)
     elif report_orientation == "pair":
         if pair_type == "R1" or pair_type == "R1&R2":
@@ -1218,7 +1218,7 @@ def format_pair(
         if pair_type == "R2":
             hic_algn1 = flip_position(hic_algn1)
             hic_algn2 = flip_position(hic_algn2)
-        elif pair_type == "R1/2":
+        elif pair_type == "R1-2":
             hic_algn2 = flip_position(hic_algn2)
     elif report_position == "outer":
         if pair_type == "R1" or pair_type == "R1&R2":
