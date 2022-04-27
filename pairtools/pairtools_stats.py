@@ -28,10 +28,9 @@ UTIL_NAME = "pairtools_stats"
     " the end of the file.",
 )
 @click.option(
-    "--analyse-bytile-dups",
-    type=str,
-    default="",
-    help="If specified, will analyse by-tile duplication statistics to estimate"
+    "--bytile-dups/--no-bytile-dups",
+    default=False,
+    help="If enabled, will analyse by-tile duplication statistics to estimate"
     " library complexity more accurately."
     " Requires parent_readID column to be saved by dedup (will be ignored otherwise)",
 )
@@ -176,6 +175,9 @@ def estimate_library_complexity(nseq, ndup, nopticaldup=0):
         Estimated complexity
     """
     nseq = nseq - nopticaldup
+    if nseq == 0:
+        warnings.warn("Empty of fully duplicated library, can't estimate complexity")
+        return 0
     ndup = ndup - nopticaldup
     u = (nseq - ndup) / nseq
     seq_to_complexity = special.lambertw(-np.exp(-1 / u) / u).real + 1 / u
@@ -413,10 +415,14 @@ class PairCounter(Mapping):
             "cis_40kb+",
         ):
             self._stat["summary"][f"frac_{cis_count}"] = (
-                self._stat[cis_count] / self._stat["total_nodups"]
+                (self._stat[cis_count] / self._stat["total_nodups"])
+                if self._stat["total_nodups"] > 0
+                else 0
             )
         self._stat["summary"]["frac_dups"] = (
-            self._stat["total_dups"] / self._stat["total_mapped"]
+            (self._stat["total_dups"] / self._stat["total_mapped"])
+            if self._stat["total_mapped"] > 0
+            else 0
         )
         self._stat["summary"]["complexity_naive"] = estimate_library_complexity(
             self._stat["total_mapped"], self._stat["total_dups"], 0
