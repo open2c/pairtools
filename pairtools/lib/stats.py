@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from collections.abc import Mapping
 import sys
 from . import fileio
@@ -179,6 +180,26 @@ class PairCounter(Mapping):
             "--": np.zeros(len(self._dist_bins), dtype=np.int),
             "++": np.zeros(len(self._dist_bins), dtype=np.int),
         }
+
+        # Summaries are derived from other stats and are recalculated on merge
+        self._stat["summary"] = dict(
+            [
+                ("frac_cis", 0),
+                ("frac_cis_1kb+", 0),
+                ("frac_cis_2kb+", 0),
+                ("frac_cis_4kb+", 0),
+                ("frac_cis_10kb+", 0),
+                ("frac_cis_20kb+", 0),
+                ("frac_cis_40kb+", 0),
+                ("frac_dups", 0),
+                ("complexity_naive", 0),
+            ]
+        )
+        self.bytile_dups = pd.DataFrame(
+            index=pd.MultiIndex(
+                levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
+            )
+        )
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -465,9 +486,9 @@ class PairCounter(Mapping):
         else:
             self._stat["total_single_sided_mapped"] += 1
 
-    def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
+    def add_pairs_from_dataframe(self, df, unmapped_chrom="!", bytile_dups=False):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
-
+    
         Parameters
         ----------
         df: pd.DataFrame
@@ -506,22 +527,25 @@ class PairCounter(Mapping):
             mask_dups = df_mapped["duplicate"]
         else:
             mask_dups = df_mapped["pair_type"] == "DD"
-        dups_count = mask_dups.sum()
+        dups = df_mapped[mask_dups]
+        dups_count = dups.shape[0]
         self._stat["total_dups"] += int(dups_count)
         self._stat["total_nodups"] += int(mapped_count - dups_count)
 
+        df_nodups = df_mapped.loc[~mask_dups, :]
+        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
+        df_cis = df_nodups.loc[mask_cis, :].copy()
+
         # Count pairs per chromosome:
         for (chrom1, chrom2), chrom_count in (
-            df_mapped[["chrom1", "chrom2"]].value_counts().items()
+            df_nodups[["chrom1", "chrom2"]].value_counts().items()
         ):
             self._stat["chrom_freq"][(chrom1, chrom2)] = (
                 self._stat["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
             )
 
         # Count cis-trans by pairs:
-        df_nodups = df_mapped.loc[~mask_dups, :]
-        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
-        df_cis = df_nodups.loc[mask_cis, :].copy()
+
         self._stat["cis"] += df_cis.shape[0]
         self._stat["trans"] += df_nodups.shape[0] - df_cis.shape[0]
         dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
@@ -537,6 +561,12 @@ class PairCounter(Mapping):
         self._stat["cis_10kb+"] += int(np.sum(dist >= 10000))
         self._stat["cis_20kb+"] += int(np.sum(dist >= 20000))
         self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
+
+        ### Add by-tile dups
+        if bytile_dups and dups.shape[0] > 0:
+            self.bytile_dups = self.bytile_dups.add(
+                analyse_duplicate_stats(dups), fill_value=0
+            ).astype(int)
 
     def add_chromsizes(self, chromsizes):
         """ Add chromsizes field to the output stats
@@ -728,3 +758,11 @@ class PairCounter(Mapping):
         else:
             for k, v in self.flatten().items():
                 outstream.write("{}{}{}\n".format(k, self._SEP, v))
+
+    def save_bytile_dups(self, outstream):
+        """save bytile duplication counts to a tab-delimited text file.
+        Parameters
+        ----------
+        outstream: file handle
+        """
+        self.bytile_dups.reset_index().to_csv(outstream, sep="\t", index=False)
