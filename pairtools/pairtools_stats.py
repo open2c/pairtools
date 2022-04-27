@@ -43,9 +43,7 @@ UTIL_NAME = "pairtools_stats"
     " Requires parent_readID column to be saved by dedup (will be ignored otherwise)",
 )
 @common_io_options
-def stats(
-    input_path, output, merge, analyse_bytile_dups, output_bytile_dups_stats, **kwargs
-):
+def stats(input_path, output, merge, bytile_dups, output_bytile_dups_stats, **kwargs):
     """Calculate pairs statistics.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
@@ -56,17 +54,12 @@ def stats(
     The files with paths ending with .gz/.lz4 are decompressed by bgzip/lz4c.
     """
     stats_py(
-        input_path,
-        output,
-        merge,
-        analyse_bytile_dups,
-        output_bytile_dups_stats,
-        **kwargs,
+        input_path, output, merge, bytile_dups, output_bytile_dups_stats, **kwargs,
     )
 
 
 def stats_py(
-    input_path, output, merge, analyse_bytile_dups, output_bytile_dups_stats, **kwargs
+    input_path, output, merge, bytile_dups, output_bytile_dups_stats, **kwargs
 ):
     if merge:
         do_merge(output, input_path, **kwargs)
@@ -96,13 +89,11 @@ def stats_py(
     header, body_stream = _headerops.get_header(instream)
     cols = _headerops.extract_column_names(header)
 
-    if (
-        analyse_bytile_dups or output_bytile_dups_stats
-    ) and "parent_readID" not in cols:
+    if (bytile_dups or output_bytile_dups_stats) and "parent_readID" not in cols:
         warnings.warn(
             "No 'parent_readID' column in the file, not generating duplicate stats."
         )
-        analyse_bytile_dups = False
+        bytile_dups = False
         output_bytile_dups_stats = False
     # new stats class stuff would come here ...
     stats = PairCounter()
@@ -608,9 +599,7 @@ class PairCounter(Mapping):
         else:
             self._stat["total_single_sided_mapped"] += 1
 
-    def add_pairs_from_dataframe(
-        self, df, unmapped_chrom="!", analyse_bytile_dups=False
-    ):
+    def add_pairs_from_dataframe(self, df, unmapped_chrom="!", bytile_dups=False):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
     
         Parameters
@@ -687,7 +676,7 @@ class PairCounter(Mapping):
         self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
 
         ### Add by-tile dups
-        if analyse_bytile_dups and dups.shape[0] > 0:
+        if bytile_dups and dups.shape[0] > 0:
             self.bytile_dups = self.bytile_dups.add(
                 analyse_duplicate_stats(dups), fill_value=0
             ).astype(int)
