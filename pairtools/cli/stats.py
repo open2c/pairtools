@@ -107,7 +107,7 @@ def stats_py(
     header, body_stream = headerops.get_header(instream)
     cols = headerops.extract_column_names(header)
 
-    # Check necessary columns for reporting bytile stats:
+    # Check necessary columns for reporting by-tile stats:
     if bytile_dups and "parent_readID" not in cols:
         logger.warning(
             "No 'parent_readID' column in the file, not generating duplicate stats."
@@ -127,8 +127,6 @@ def stats_py(
 
     if bytile_dups:
         stats.save_bytile_dups(output_bytile_stats)
-
-    stats.calculate_summaries()
 
     # save statistics to file ...
     stats.save(outstream, yaml=kwargs.get("yaml", False))

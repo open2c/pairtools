@@ -93,6 +93,7 @@ class PairCounter(Mapping):
                     levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
                 )
             )
+        self._summaries_calculated = False
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -211,7 +212,7 @@ class PairCounter(Mapping):
                 self._stat["dups_by_tile_median"] = (
                     self._bytile_dups["dup_count"].median() * self._bytile_dups.shape[0]
                 )
-            if "dups_by_tile_median" in self._stat:
+            if "dups_by_tile_median" in self._stat.keys():
                 self._stat["summary"][
                     "complexity_dups_by_tile_median"
                 ] = estimate_library_complexity(
@@ -219,6 +220,8 @@ class PairCounter(Mapping):
                     self._stat["total_dups"],
                     self._stat["dups_by_tile_median"],
                 )
+
+        self._summaries_calculated = True
 
     @classmethod
     def from_file(cls, file_handle):
@@ -660,6 +663,9 @@ class PairCounter(Mapping):
         Theys shou5ld match exactly, however, when soprted:
         sort(merge(A,merge(B,C))) == sort(merge(merge(A,B),C))
         """
+
+        if not self._summaries_calculated:
+            self.calculate_summaries()
 
         # write flattened version of the PairCounter to outstream
         if yaml:
