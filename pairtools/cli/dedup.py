@@ -60,7 +60,15 @@ UTIL_NAME = "pairtools_dedup"
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
     " By default, statistics are not printed.",
 )
-
+@click.option(
+    "--output-bytile-dups-stats",
+    type=str,
+    default="",
+    help="output file for duplicate statistics."
+    " If file exists, it will be open in the append mode."
+    " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
+    " By default, by-tile duplicate statistics are not printed.",
+)
 ### Set the dedup method:
 @click.option(
     "--max-mismatch",
@@ -223,6 +231,7 @@ def dedup(
     output_dups,
     output_unmapped,
     output_stats,
+    output_bytile_dups_stats,
     chunksize,
     carryover,
     max_mismatch,
@@ -260,6 +269,7 @@ def dedup(
         output_dups,
         output_unmapped,
         output_stats,
+        output_bytile_dups_stats,
         chunksize,
         carryover,
         max_mismatch,
@@ -293,6 +303,7 @@ def dedup_py(
     output_dups,
     output_unmapped,
     output_stats,
+    output_bytile_dups_stats,
     chunksize,
     carryover,
     max_mismatch,
@@ -350,6 +361,16 @@ def dedup_py(
         else None
     )
 
+    out_bytile_dups_stats_stream = (
+        fileio.auto_open(
+            output_bytile_dups_stats,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
+        )
+        if output_bytile_dups_stats
+        else None
+    )
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
 
@@ -464,6 +485,9 @@ def dedup_py(
     # save statistics to a file if it was requested:
     if out_stat:
         out_stat.save(out_stats_stream)
+
+    if output_bytile_dups_stats:
+        out_stat.save_bytile_dups(out_bytile_dups_stats_stream)
 
     if instream != sys.stdin:
         instream.close()

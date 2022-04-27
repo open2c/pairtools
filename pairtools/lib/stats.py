@@ -3,6 +3,7 @@ from collections.abc import Mapping
 import sys
 from . import fileio
 
+
 def do_merge(output, files_to_merge, **kwargs):
     # Parse all stats files.
     stats = []
@@ -551,7 +552,9 @@ class PairCounter(Mapping):
                         for dirs, freqs in v.items():
                             # last bin is treated differently: "100000+" vs "1200-3000":
                             if i != len(self._dist_bins) - 1:
-                                dist = "{}-{}".format(self._dist_bins[i], self._dist_bins[i + 1])
+                                dist = "{}-{}".format(
+                                    self._dist_bins[i], self._dist_bins[i + 1]
+                                )
                             else:
                                 dist = "{}+".format(self._dist_bins[i])
                             if dist not in freqs_dct.keys():
@@ -568,13 +571,14 @@ class PairCounter(Mapping):
                 elif (k == "chrom_freq") and v:
                     freqs = {}
                     for (chrom1, chrom2), freq in v.items():
-                        freqs[self._KEY_SEP.join(["{}", "{}"]).format(chrom1, chrom2)] = freq
+                        freqs[
+                            self._KEY_SEP.join(["{}", "{}"]).format(chrom1, chrom2)
+                        ] = freq
                         # store key,value pair:
                     formatted_stat[k] = deepcopy(freqs)
 
         # return formatted dict
         return formatted_stat
-
 
     def save(self, outstream, yaml=False):
         """save PairCounter to tab-delimited text file.
@@ -598,6 +602,7 @@ class PairCounter(Mapping):
         # write flattened version of the PairCounter to outstream
         if yaml:
             import yaml
+
             data = self.format()
             yaml.dump(data, outstream, default_flow_style=False)
         else:
