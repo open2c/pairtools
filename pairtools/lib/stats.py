@@ -226,11 +226,9 @@ class PairCounter(Mapping):
     @classmethod
     def from_file(cls, file_handle):
         """create instance of PairCounter from file
-
         Parameters
         ----------
         file_handle: file handle
-
         Returns
         -------
         PairCounter
@@ -245,7 +243,7 @@ class PairCounter(Mapping):
                 continue
             if len(fields) != 2:
                 # expect two _SEP separated values per line:
-                raise fileio.ParseError(
+                raise _fileio.ParseError(
                     "{} is not a valid stats file".format(file_handle.name)
                 )
             # extract key and value, then split the key:
@@ -257,22 +255,25 @@ class PairCounter(Mapping):
                 if key in stat_from_file._stat:
                     stat_from_file._stat[key] = int(fields[1])
                 else:
-                    raise fileio.ParseError(
+                    raise _fileio.ParseError(
                         "{} is not a valid stats file: unknown field {} detected".format(
                             file_handle.name, key
                         )
                     )
             else:
-                # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup']
+                # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup', 'summary']
                 # get the first 'key' and keep the remainders in 'key_fields'
                 key = key_fields.pop(0)
-                if key in ["pair_types", "dedup"]:
+                if key in ["pair_types", "dedup", "summary"]:
                     # assert there is only one element in key_fields left:
                     # 'pair_types' and 'dedup' treated the same
                     if len(key_fields) == 1:
-                        stat_from_file._stat[key][key_fields[0]] = int(fields[1])
+                        try:
+                            stat_from_file._stat[key][key_fields[0]] = int(fields[1])
+                        except ValueError:
+                            stat_from_file._stat[key][key_fields[0]] = float(fields[1])
                     else:
-                        raise fileio.ParseError(
+                        raise _fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 1 identifier".format(
                                 file_handle.name, key
                             )
@@ -283,7 +284,7 @@ class PairCounter(Mapping):
                     if len(key_fields) == 2:
                         stat_from_file._stat[key][tuple(key_fields)] = int(fields[1])
                     else:
-                        raise fileio.ParseError(
+                        raise _fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 2 identifiers".format(
                                 file_handle.name, key
                             )
@@ -312,13 +313,13 @@ class PairCounter(Mapping):
                         # store corresponding value:
                         stat_from_file._stat[key][dirs][bin_idx] = int(fields[1])
                     else:
-                        raise fileio.ParseError(
+                        raise _fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 2 identifiers".format(
                                 file_handle.name, key
                             )
                         )
                 else:
-                    raise fileio.ParseError(
+                    raise _fileio.ParseError(
                         "{} is not a valid stats file: unknown field {} detected".format(
                             file_handle.name, key
                         )
@@ -499,7 +500,7 @@ class PairCounter(Mapping):
                 sum_stat._stat[k] = self._stat[k] + other._stat[k]
             # sum nested dicts/arrays in a context dependet manner:
             else:
-                if k in ["pair_types", "dedup"]:
+                if k in ["pair_types", "dedup", "summary"]:
                     # handy function for summation of a pair of dicts:
                     # https://stackoverflow.com/questions/10461531/merge-and-sum-of-two-dictionaries
                     sum_dicts = lambda dict_x, dict_y: {
@@ -528,7 +529,7 @@ class PairCounter(Mapping):
         return sum_stat
 
     # we need this to be able to sum(list_of_PairCounters)
-    def __read__(self, other):
+    def __radd__(self, other):
         if other == 0:
             return self
         else:
@@ -723,7 +724,6 @@ def do_merge(output, files_to_merge, **kwargs):
 
     if outstream != sys.stdout:
         outstream.close()
-
 
 def estimate_library_complexity(nseq, ndup, nopticaldup=0):
     """Estimate library complexity accounting for optical/clustering duplicates
