@@ -243,7 +243,7 @@ class PairCounter(Mapping):
                 continue
             if len(fields) != 2:
                 # expect two _SEP separated values per line:
-                raise _fileio.ParseError(
+                raise fileio.ParseError(
                     "{} is not a valid stats file".format(file_handle.name)
                 )
             # extract key and value, then split the key:
@@ -255,7 +255,7 @@ class PairCounter(Mapping):
                 if key in stat_from_file._stat:
                     stat_from_file._stat[key] = int(fields[1])
                 else:
-                    raise _fileio.ParseError(
+                    raise fileio.ParseError(
                         "{} is not a valid stats file: unknown field {} detected".format(
                             file_handle.name, key
                         )
@@ -273,7 +273,7 @@ class PairCounter(Mapping):
                         except ValueError:
                             stat_from_file._stat[key][key_fields[0]] = float(fields[1])
                     else:
-                        raise _fileio.ParseError(
+                        raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 1 identifier".format(
                                 file_handle.name, key
                             )
@@ -284,7 +284,7 @@ class PairCounter(Mapping):
                     if len(key_fields) == 2:
                         stat_from_file._stat[key][tuple(key_fields)] = int(fields[1])
                     else:
-                        raise _fileio.ParseError(
+                        raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 2 identifiers".format(
                                 file_handle.name, key
                             )
@@ -313,13 +313,13 @@ class PairCounter(Mapping):
                         # store corresponding value:
                         stat_from_file._stat[key][dirs][bin_idx] = int(fields[1])
                     else:
-                        raise _fileio.ParseError(
+                        raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 2 identifiers".format(
                                 file_handle.name, key
                             )
                         )
                 else:
-                    raise _fileio.ParseError(
+                    raise fileio.ParseError(
                         "{} is not a valid stats file: unknown field {} detected".format(
                             file_handle.name, key
                         )
