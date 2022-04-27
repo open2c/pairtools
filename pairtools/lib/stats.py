@@ -289,6 +289,13 @@ class PairCounter(Mapping):
         complexity estimate) based on accumulated counts. Results are saved into
         self._stat['summary']
         """
+
+        self._stat["summary"]["frac_dups"] = (
+            (self._stat["total_dups"] / self._stat["total_mapped"])
+            if self._stat["total_mapped"] > 0
+            else 0
+        )
+
         for cis_count in (
             "cis",
             "cis_1kb+",
@@ -303,11 +310,7 @@ class PairCounter(Mapping):
                 if self._stat["total_nodups"] > 0
                 else 0
             )
-        self._stat["summary"]["frac_dups"] = (
-            (self._stat["total_dups"] / self._stat["total_mapped"])
-            if self._stat["total_mapped"] > 0
-            else 0
-        )
+
         self._stat["summary"]["complexity_naive"] = estimate_library_complexity(
             self._stat["total_mapped"], self._stat["total_dups"], 0
         )
