@@ -47,6 +47,7 @@ def test_mock_pysam():
         if l.startswith("#") or not l:
             continue
 
+        print(l)
         assigned_pair = l.split("\t")[1:8]
         simulated_pair = l.split("CT:Z:SIMULATED:", 1)[1].split("\031", 1)[0].split(",")
         print(assigned_pair)
@@ -71,7 +72,7 @@ def test_mock_pysam_parse_all():
                 "all",
                 "-c",
                 mock_chroms_path,
-                "--add-junction-index",
+                "--add-pair-index",
                 mock_sam_path,
             ],
         ).decode("ascii")
@@ -99,7 +100,7 @@ def test_mock_pysam_parse_all():
             id_counter = 0
         prev_id = l.split("\t")[0]
 
-        assigned_pair = l.split("\t")[1:8] + [l.split("\t")[-1]]
+        assigned_pair = l.split("\t")[1:8] + l.split("\t")[-2:]
         simulated_pair = (
             l.split("CT:Z:SIMULATED:", 1)[1]
             .split("\031", 1)[0]

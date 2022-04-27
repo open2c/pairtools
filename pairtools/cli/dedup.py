@@ -371,7 +371,6 @@ def dedup_py(
         if output_bytile_dups_stats
         else None
     )
-
     # generate empty PairCounter if stats output is requested:
     out_stat = PairCounter() if output_stats else None
 
@@ -508,4 +507,3 @@ def dedup_py(
 
     if out_stats_stream:
         out_stats_stream.close()
-

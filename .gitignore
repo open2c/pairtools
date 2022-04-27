@@ -8,6 +8,8 @@ __pycache__/
 
 # C extensions
 *.so
+*.c
+*.cpp
 
 # Distribution / packaging
 .Python
@@ -18,7 +20,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -97,3 +98,6 @@ _*.c
 
 # VS code settings
 .vscode/*
+
+# Files generated as the examples
+examples/*

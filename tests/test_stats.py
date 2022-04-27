@@ -53,7 +53,6 @@ def test_mock_pairsam():
         if k.startswith("dist_freq")
         and k not in ["dist_freq/1-2/++", "dist_freq/2-3/++", "dist_freq/32-56/++"]
     )
-
     assert stats["dist_freq/1-2/++"] == 1
     assert stats["dist_freq/2-3/++"] == 1
     assert stats["dist_freq/32-56/++"] == 1
@@ -65,4 +64,6 @@ def test_mock_pairsam():
     assert stats["summary/frac_cis_20kb+"] == 0
     assert stats["summary/frac_cis_40kb+"] == 0
     assert np.isclose(stats["summary/frac_dups"], 1 / 6)
-
+    assert stats["dist_freq/1-2/++"] == 1
+    assert stats["dist_freq/2-3/++"] == 1
+    assert stats["dist_freq/32-56/++"] == 1
