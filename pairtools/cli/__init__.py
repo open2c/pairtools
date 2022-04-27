@@ -142,6 +142,7 @@ def cli(post_mortem, output_profile, verbose, debug):
 
         sys.excepthook = _excepthook
 
+
 def common_io_options(func):
     @click.option(
         "--nproc-in",
@@ -200,5 +201,5 @@ from . import (
     sample,
     filterbycov,
     header,
-    scaling
+    scaling,
 )

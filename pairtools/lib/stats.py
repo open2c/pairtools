@@ -1,39 +1,12 @@
 import numpy as np
+import pandas as pd
+from scipy import special
 from collections.abc import Mapping
 import sys
 from . import fileio
 
-def do_merge(output, files_to_merge, **kwargs):
-    # Parse all stats files.
-    stats = []
-    for stat_file in files_to_merge:
-        f = fileio.auto_open(
-            stat_file,
-            mode="r",
-            nproc=kwargs.get("nproc_in"),
-            command=kwargs.get("cmd_in", None),
-        )
-        # use a factory method to instanciate PairCounter
-        stat = PairCounter.from_file(f)
-        stats.append(stat)
-        f.close()
-
-    # combine stats from several files (files_to_merge):
-    out_stat = sum(stats)
-
-    # Save merged stats.
-    outstream = fileio.auto_open(
-        output,
-        mode="w",
-        nproc=kwargs.get("nproc_out"),
-        command=kwargs.get("cmd_out", None),
-    )
-
-    # save statistics to file ...
-    out_stat.save(outstream)
-
-    if outstream != sys.stdout:
-        outstream.close()
+from .._logging import get_logger
+logger = get_logger()
 
 
 class PairCounter(Mapping):
@@ -52,7 +25,7 @@ class PairCounter(Mapping):
     _SEP = "\t"
     _KEY_SEP = "/"
 
-    def __init__(self, min_log10_dist=0, max_log10_dist=9, log10_dist_bin_step=0.25):
+    def __init__(self, min_log10_dist=0, max_log10_dist=9, log10_dist_bin_step=0.25, bytile_dups=False):
         self._stat = {}
         # some variables used for initialization:
         # genomic distance bining for the ++/--/-+/+- distribution
@@ -98,6 +71,29 @@ class PairCounter(Mapping):
             "--": np.zeros(len(self._dist_bins), dtype=np.int),
             "++": np.zeros(len(self._dist_bins), dtype=np.int),
         }
+
+        # Summaries are derived from other stats and are recalculated on merge
+        self._stat["summary"] = dict(
+            [
+                ("frac_cis", 0),
+                ("frac_cis_1kb+", 0),
+                ("frac_cis_2kb+", 0),
+                ("frac_cis_4kb+", 0),
+                ("frac_cis_10kb+", 0),
+                ("frac_cis_20kb+", 0),
+                ("frac_cis_40kb+", 0),
+                ("frac_dups", 0),
+                ("complexity_naive", 0),
+            ]
+        )
+        self._save_bytile_dups = bytile_dups
+        if self._save_bytile_dups:
+            self._bytile_dups = pd.DataFrame(
+                index=pd.MultiIndex(
+                    levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
+                )
+            )
+        self._summaries_calculated = False
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -178,6 +174,54 @@ class PairCounter(Mapping):
 
     def __len__(self):
         return len(self._stat)
+
+    def calculate_summaries(self):
+        """calculate summary statistics (fraction of cis pairs at different cutoffs,
+        complexity estimate) based on accumulated counts. Results are saved into
+        self._stat['summary']
+        """
+
+        self._stat["summary"]["frac_dups"] = (
+            (self._stat["total_dups"] / self._stat["total_mapped"])
+            if self._stat["total_mapped"] > 0
+            else 0
+        )
+
+        for cis_count in (
+            "cis",
+            "cis_1kb+",
+            "cis_2kb+",
+            "cis_4kb+",
+            "cis_10kb+",
+            "cis_20kb+",
+            "cis_40kb+",
+        ):
+            self._stat["summary"][f"frac_{cis_count}"] = (
+                (self._stat[cis_count] / self._stat["total_nodups"])
+                if self._stat["total_nodups"] > 0
+                else 0
+            )
+
+        self._stat["summary"]["complexity_naive"] = estimate_library_complexity(
+            self._stat["total_mapped"], self._stat["total_dups"], 0
+        )
+
+        if self._save_bytile_dups:
+            # Estimate library complexity with information by tile, if provided:
+            if self._bytile_dups.shape[0] > 0:
+                self._stat["dups_by_tile_median"] = (
+                    self._bytile_dups["dup_count"].median() * self._bytile_dups.shape[0]
+                )
+            if "dups_by_tile_median" in self._stat.keys():
+                self._stat["summary"][
+                    "complexity_dups_by_tile_median"
+                ] = estimate_library_complexity(
+                    self._stat["total_mapped"],
+                    self._stat["total_dups"],
+                    self._stat["dups_by_tile_median"],
+                )
+
+        self._summaries_calculated = True
 
     @classmethod
     def from_file(cls, file_handle):
@@ -346,7 +390,7 @@ class PairCounter(Mapping):
 
     def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
-
+    
         Parameters
         ----------
         df: pd.DataFrame
@@ -385,22 +429,25 @@ class PairCounter(Mapping):
             mask_dups = df_mapped["duplicate"]
         else:
             mask_dups = df_mapped["pair_type"] == "DD"
-        dups_count = mask_dups.sum()
+        df_dups = df_mapped[mask_dups]
+        dups_count = df_dups.shape[0]
         self._stat["total_dups"] += int(dups_count)
         self._stat["total_nodups"] += int(mapped_count - dups_count)
 
+        df_nodups = df_mapped.loc[~mask_dups, :]
+        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
+        df_cis = df_nodups.loc[mask_cis, :].copy()
+
         # Count pairs per chromosome:
         for (chrom1, chrom2), chrom_count in (
-            df_mapped[["chrom1", "chrom2"]].value_counts().items()
+            df_nodups[["chrom1", "chrom2"]].value_counts().items()
         ):
             self._stat["chrom_freq"][(chrom1, chrom2)] = (
                 self._stat["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
             )
 
         # Count cis-trans by pairs:
-        df_nodups = df_mapped.loc[~mask_dups, :]
-        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
-        df_cis = df_nodups.loc[mask_cis, :].copy()
+
         self._stat["cis"] += df_cis.shape[0]
         self._stat["trans"] += df_nodups.shape[0] - df_cis.shape[0]
         dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
@@ -416,6 +463,13 @@ class PairCounter(Mapping):
         self._stat["cis_10kb+"] += int(np.sum(dist >= 10000))
         self._stat["cis_20kb+"] += int(np.sum(dist >= 20000))
         self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
+
+        ### Add by-tile dups
+        if self._save_bytile_dups and (df_dups.shape[0] > 0):
+            bytile_dups = analyse_bytile_duplicate_stats(df_dups)
+            self._bytile_dups = self._bytile_dups.add(
+                bytile_dups, fill_value=0
+            ).astype(int)
 
     def add_chromsizes(self, chromsizes):
         """ Add chromsizes field to the output stats
@@ -524,6 +578,13 @@ class PairCounter(Mapping):
                         )
                         # store key,value pair:
                         flat_stat[formatted_key] = freq
+                elif (k == "summary") and v:
+                    for key, frac in v.items():
+                        formatted_key = self._KEY_SEP.join(["{}", "{}"]).format(
+                            k, key
+                        )
+                        # store key,value pair:
+                        flat_stat[formatted_key] = frac
 
         # return flattened dict
         return flat_stat
@@ -551,7 +612,9 @@ class PairCounter(Mapping):
                         for dirs, freqs in v.items():
                             # last bin is treated differently: "100000+" vs "1200-3000":
                             if i != len(self._dist_bins) - 1:
-                                dist = "{}-{}".format(self._dist_bins[i], self._dist_bins[i + 1])
+                                dist = "{}-{}".format(
+                                    self._dist_bins[i], self._dist_bins[i + 1]
+                                )
                             else:
                                 dist = "{}+".format(self._dist_bins[i])
                             if dist not in freqs_dct.keys():
@@ -568,13 +631,19 @@ class PairCounter(Mapping):
                 elif (k == "chrom_freq") and v:
                     freqs = {}
                     for (chrom1, chrom2), freq in v.items():
-                        freqs[self._KEY_SEP.join(["{}", "{}"]).format(chrom1, chrom2)] = freq
+                        freqs[
+                            self._KEY_SEP.join(["{}", "{}"]).format(chrom1, chrom2)
+                        ] = freq
                         # store key,value pair:
                     formatted_stat[k] = deepcopy(freqs)
+                elif (k == "summary") and v:
+                    summary_stats = {}
+                    for key, frac in v.items():
+                        summary_stats[key] = frac
+                    formatted_stat[k] = deepcopy(summary_stats)
 
         # return formatted dict
         return formatted_stat
-
 
     def save(self, outstream, yaml=False):
         """save PairCounter to tab-delimited text file.
@@ -595,11 +664,152 @@ class PairCounter(Mapping):
         sort(merge(A,merge(B,C))) == sort(merge(merge(A,B),C))
         """
 
+        if not self._summaries_calculated:
+            self.calculate_summaries()
+
         # write flattened version of the PairCounter to outstream
         if yaml:
             import yaml
+
             data = self.format()
             yaml.dump(data, outstream, default_flow_style=False)
         else:
             for k, v in self.flatten().items():
                 outstream.write("{}{}{}\n".format(k, self._SEP, v))
+
+    def save_bytile_dups(self, outstream):
+        """save bytile duplication counts to a tab-delimited text file.
+        Parameters
+        ----------
+        outstream: file handle
+        """
+        if self._save_bytile_dups:
+            self._bytile_dups.reset_index().to_csv(outstream, sep="\t", index=False)
+        else:
+            logger.error("Bytile dups are not calculated, cannot save.")
+
+
+##################
+# Other functions:
+
+def do_merge(output, files_to_merge, **kwargs):
+    # Parse all stats files.
+    stats = []
+    for stat_file in files_to_merge:
+        f = fileio.auto_open(
+            stat_file,
+            mode="r",
+            nproc=kwargs.get("nproc_in"),
+            command=kwargs.get("cmd_in", None),
+        )
+        # use a factory method to instanciate PairCounter
+        stat = PairCounter.from_file(f)
+        stats.append(stat)
+        f.close()
+
+    # combine stats from several files (files_to_merge):
+    out_stat = sum(stats)
+
+    # Save merged stats.
+    outstream = fileio.auto_open(
+        output,
+        mode="w",
+        nproc=kwargs.get("nproc_out"),
+        command=kwargs.get("cmd_out", None),
+    )
+
+    # save statistics to file ...
+    out_stat.save(outstream)
+
+    if outstream != sys.stdout:
+        outstream.close()
+
+
+def estimate_library_complexity(nseq, ndup, nopticaldup=0):
+    """Estimate library complexity accounting for optical/clustering duplicates
+    Parameters
+    ----------
+    nseq : int
+        Total number of sequences
+    ndup : int
+        Total number of duplicates
+    nopticaldup : int, optional
+        Number of non-PCR duplicates, by default 0
+    Returns
+    -------
+    float
+        Estimated complexity
+    """
+    nseq = nseq - nopticaldup
+    if nseq == 0:
+        logger.warning("Empty of fully duplicated library, can't estimate complexity")
+        return 0
+    ndup = ndup - nopticaldup
+    u = (nseq - ndup) / nseq
+    if u==0:
+        logger.warning("All the sequences are duplicates. Do you run complexity estimation on duplicates file?")
+        return 0
+    seq_to_complexity = special.lambertw(-np.exp(-1 / u) / u).real + 1 / u
+    complexity = float(nseq / seq_to_complexity) # clean np.int64 data type
+    return complexity
+
+
+def analyse_bytile_duplicate_stats(df_dups, tile_dup_regex=False):
+    """Count by-tile duplicates
+    Parameters
+    ----------
+    dups : pd.DataFrame
+        Dataframe with duplicates that contains pared read IDs
+    tile_dup_regex : bool, optional
+        See extract_tile_info for details, by default False
+    Returns
+    -------
+    pd.DataFrame
+        Grouped multi-indexed dataframe of pairwise by-tile duplication counts
+    """
+
+    df_dups = df_dups.copy()
+
+    df_dups["tile"] = extract_tile_info(df_dups["readID"], regex=tile_dup_regex)
+    df_dups["parent_tile"] = extract_tile_info(df_dups["parent_readID"], regex=tile_dup_regex)
+
+    df_dups["same_tile"] = (df_dups["tile"] == df_dups["parent_tile"])
+    bytile_dups = (
+        df_dups.groupby(["tile", "parent_tile"])
+        .size()
+        .reset_index(name="dup_count")
+        .sort_values(["tile", "parent_tile"])
+    )
+    bytile_dups[["tile", "parent_tile"]] = np.sort(
+        bytile_dups[["tile", "parent_tile"]].values, axis=1
+    )
+    bytile_dups = bytile_dups.groupby(["tile", "parent_tile"]).sum()
+    return bytile_dups
+
+
+def extract_tile_info(series, regex=False):
+    """Extract the name of the tile for each read name in the series
+    Parameters
+    ----------
+    series : pd.Series
+        Series containing read IDs
+    regex : bool, optional
+        Regex to extract fields from the read IDs that correspond to tile IDs.
+        By default False, uses a faster predefined approach for typical Illumina
+        read names
+        Example: r"(?:\w+):(?:\w+):(\w+):(\w+):(\w+):(?:\w+):(?:\w+)"
+    Returns
+    -------
+    Series
+        Series containing tile IDs as strings
+    """
+    if regex:
+        split = series.str.extractall(regex).unstack().droplevel(1, axis=1)
+        if split.shape[1]<4:
+            raise ValueError(f"Unable to convert tile names, does your readID have the tile information?\nHint: SRA removes tile information from readID.\nSample of your readIDs:\n{series.head()}")
+        return split[0] + ":" + split[1] + ":" + split[2]
+    else:
+        split = series.str.split(":", expand=True)
+        if split.shape[1]<5:
+            raise ValueError(f"Unable to convert tile names, does your readID have the tile information?\nHint: SRA removes tile information from readID.\nSample of your readIDs:\n{series.head()}")
+        return split[2] + ":" + split[3] + ":" + split[4]

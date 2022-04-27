@@ -5,8 +5,8 @@ import sys
 import ast
 import pathlib
 
-# from distutils.log import warn
-# import warnings
+from .._logging import get_logger
+logger = get_logger()
 
 from ..lib import fileio, pairsam_format, headerops
 from . import cli, common_io_options
@@ -60,7 +60,16 @@ UTIL_NAME = "pairtools_dedup"
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
     " By default, statistics are not printed.",
 )
-
+@click.option(
+    "--output-bytile-stats",
+    type=str,
+    default="",
+    help="output file for duplicate statistics."
+    " If file exists, it will be open in the append mode."
+    " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
+    " By default, by-tile duplicate statistics are not printed."
+    " Note that the readID should be provided and contain tile information for this option. ",
+)
 ### Set the dedup method:
 @click.option(
     "--max-mismatch",
@@ -223,6 +232,7 @@ def dedup(
     output_dups,
     output_unmapped,
     output_stats,
+    output_bytile_stats,
     chunksize,
     carryover,
     max_mismatch,
@@ -260,6 +270,7 @@ def dedup(
         output_dups,
         output_unmapped,
         output_stats,
+        output_bytile_stats,
         chunksize,
         carryover,
         max_mismatch,
@@ -293,6 +304,7 @@ def dedup_py(
     output_dups,
     output_unmapped,
     output_stats,
+    output_bytile_stats,
     chunksize,
     carryover,
     max_mismatch,
@@ -350,8 +362,21 @@ def dedup_py(
         else None
     )
 
+    bytile_dups = False
+    if output_bytile_stats:
+        out_bytile_stats_stream = fileio.auto_open(
+                output_bytile_stats,
+                mode="w",
+                nproc=kwargs.get("nproc_out"),
+                command=kwargs.get("cmd_out", None),
+        )
+        bytile_dups = True
+        if not keep_parent_id:
+            logger.warning("Force output --parent-readID because --output-bytile-stats provided.")
+            keep_parent_id = True
+
     # generate empty PairCounter if stats output is requested:
-    out_stat = PairCounter() if output_stats else None
+    out_stat = PairCounter(bytile_dups=bytile_dups) if output_stats else None
 
     if not output_dups:
         outstream_dups = None
@@ -464,6 +489,9 @@ def dedup_py(
     # save statistics to a file if it was requested:
     if out_stat:
         out_stat.save(out_stats_stream)
+
+    if bytile_dups:
+        out_stat.save_bytile_dups(out_bytile_stats_stream)
 
     if instream != sys.stdin:
         instream.close()

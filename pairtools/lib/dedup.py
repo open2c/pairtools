@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import warnings
 
 import scipy.spatial
 from scipy.sparse import coo_matrix
@@ -380,7 +379,7 @@ def streaming_dedup_cython(
 
         # take care of empty lines not at the end of the file separately
         if rawline and (not stripline):
-            warnings.warn("Empty line detected not at the end of the file")
+            logger.warning("Empty line detected not at the end of the file")
             continue
 
         if stripline:
