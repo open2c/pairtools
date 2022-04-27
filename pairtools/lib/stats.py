@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pandas as pd
 from scipy import special
@@ -7,118 +5,8 @@ from collections.abc import Mapping
 import sys
 from . import fileio
 
-
-def do_merge(output, files_to_merge, **kwargs):
-    # Parse all stats files.
-    stats = []
-    for stat_file in files_to_merge:
-        f = fileio.auto_open(
-            stat_file,
-            mode="r",
-            nproc=kwargs.get("nproc_in"),
-            command=kwargs.get("cmd_in", None),
-        )
-        # use a factory method to instanciate PairCounter
-        stat = PairCounter.from_file(f)
-        stats.append(stat)
-        f.close()
-
-    # combine stats from several files (files_to_merge):
-    out_stat = sum(stats)
-
-    # Save merged stats.
-    outstream = fileio.auto_open(
-        output,
-        mode="w",
-        nproc=kwargs.get("nproc_out"),
-        command=kwargs.get("cmd_out", None),
-    )
-
-    # save statistics to file ...
-    out_stat.save(outstream)
-
-    if outstream != sys.stdout:
-        outstream.close()
-
-
-def estimate_library_complexity(nseq, ndup, nopticaldup=0):
-    """Estimate library complexity accounting for optical/clustering duplicates
-    Parameters
-    ----------
-    nseq : int
-        Total number of sequences
-    ndup : int
-        Total number of duplicates
-    nopticaldup : int, optional
-        Number of non-PCR duplicates, by default 0
-    Returns
-    -------
-    float
-        Estimated complexity
-    """
-    nseq = nseq - nopticaldup
-    if nseq == 0:
-        warnings.warn("Empty of fully duplicated library, can't estimate complexity")
-        return 0
-    ndup = ndup - nopticaldup
-    u = (nseq - ndup) / nseq
-    seq_to_complexity = special.lambertw(-np.exp(-1 / u) / u).real + 1 / u
-    complexity = nseq / seq_to_complexity
-    return complexity
-
-
-def extract_tile_info(series, regex=False):
-    """Extract the name of the tile for each read name in the series
-    Parameters
-    ----------
-    series : pd.Series
-        Series containing read IDs
-    regex : bool, optional
-        Regex to extract fields from the read IDs that correspond to tile IDs.
-        By default False, uses a faster predefined approach for typical Illumina
-        read names
-        Example: r"(?:\w+):(?:\w+):(\w+):(\w+):(\w+):(?:\w+):(?:\w+)"
-    Returns
-    -------
-    Series
-        Series containing tile IDs as strings
-    """
-    if regex:
-        split = series.str.extractall(regex).unstack().droplevel(1, axis=1)
-        return split[0] + ":" + split[1] + ":" + split[2]
-    else:
-        split = series.str.split(":", expand=True)
-        return split[2] + ":" + split[3] + ":" + split[4]
-
-
-def analyse_duplicate_stats(dups, tile_dup_regex=False):
-    """Count by-tile duplicates
-    Parameters
-    ----------
-    dups : pd.DataFrame
-        Dataframe with duplicates that contains pared read IDs
-    tile_dup_regex : bool, optional
-        See extract_tile_info for details, by default False
-    Returns
-    -------
-    pd.DataFrame
-        Grouped multi-indexed dataframe of pairwise by-tile duplication counts
-    """
-    dups = dups.copy()
-    dups["tile"] = extract_tile_info(dups["readID"])
-    dups["parent_tile"] = extract_tile_info(dups["parent_readID"])
-    dups["same_tile"] = dups["tile"] == dups["parent_tile"]
-    bytile_dups = (
-        dups.groupby(["tile", "parent_tile"])
-        .size()
-        .reset_index(name="dup_count")
-        .sort_values(["tile", "parent_tile"])
-    )
-    bytile_dups[["tile", "parent_tile"]] = np.sort(
-        bytile_dups[["tile", "parent_tile"]].values, axis=1
-    )
-    bytile_dups = bytile_dups.groupby(["tile", "parent_tile"]).sum()
-    return bytile_dups
+from .._logging import get_logger
+logger = get_logger()
 
 
 class PairCounter(Mapping):
@@ -137,7 +25,7 @@ class PairCounter(Mapping):
     _SEP = "\t"
     _KEY_SEP = "/"
 
-    def __init__(self, min_log10_dist=0, max_log10_dist=9, log10_dist_bin_step=0.25):
+    def __init__(self, min_log10_dist=0, max_log10_dist=9, log10_dist_bin_step=0.25, bytile_dups=False):
         self._stat = {}
         # some variables used for initialization:
         # genomic distance bining for the ++/--/-+/+- distribution
@@ -198,11 +86,13 @@ class PairCounter(Mapping):
                 ("complexity_naive", 0),
             ]
         )
-        self.bytile_dups = pd.DataFrame(
-            index=pd.MultiIndex(
-                levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
+        self._save_bytile_dups = bytile_dups
+        if self._save_bytile_dups:
+            self._bytile_dups = pd.DataFrame(
+                index=pd.MultiIndex(
+                    levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
+                )
             )
-        )
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -314,18 +204,21 @@ class PairCounter(Mapping):
         self._stat["summary"]["complexity_naive"] = estimate_library_complexity(
             self._stat["total_mapped"], self._stat["total_dups"], 0
         )
-        if self.bytile_dups.shape[0] > 0:
-            self._stat["dups_by_tile_median"] = (
-                self.bytile_dups["dup_count"].median() * self.bytile_dups.shape[0]
-            )
-        if "dups_by_tile_median" in self._stat:
-            self._stat["summary"][
-                "complexity_dups_by_tile_median"
-            ] = estimate_library_complexity(
-                self._stat["total_mapped"],
-                self._stat["total_dups"],
-                self._stat["dups_by_tile_median"],
-            )
+
+        if self._save_bytile_dups:
+            # Estimate library complexity with information by tile, if provided:
+            if self._bytile_dups.shape[0] > 0:
+                self._stat["dups_by_tile_median"] = (
+                    self._bytile_dups["dup_count"].median() * self._bytile_dups.shape[0]
+                )
+            if "dups_by_tile_median" in self._stat:
+                self._stat["summary"][
+                    "complexity_dups_by_tile_median"
+                ] = estimate_library_complexity(
+                    self._stat["total_mapped"],
+                    self._stat["total_dups"],
+                    self._stat["dups_by_tile_median"],
+                )
 
     @classmethod
     def from_file(cls, file_handle):
@@ -492,7 +385,7 @@ class PairCounter(Mapping):
         else:
             self._stat["total_single_sided_mapped"] += 1
 
-    def add_pairs_from_dataframe(self, df, unmapped_chrom="!", bytile_dups=False):
+    def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
     
         Parameters
@@ -533,8 +426,8 @@ class PairCounter(Mapping):
             mask_dups = df_mapped["duplicate"]
         else:
             mask_dups = df_mapped["pair_type"] == "DD"
-        dups = df_mapped[mask_dups]
-        dups_count = dups.shape[0]
+        df_dups = df_mapped[mask_dups]
+        dups_count = df_dups.shape[0]
         self._stat["total_dups"] += int(dups_count)
         self._stat["total_nodups"] += int(mapped_count - dups_count)
 
@@ -569,9 +462,10 @@ class PairCounter(Mapping):
         self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
 
         ### Add by-tile dups
-        if bytile_dups and dups.shape[0] > 0:
-            self.bytile_dups = self.bytile_dups.add(
-                analyse_duplicate_stats(dups), fill_value=0
+        if self._save_bytile_dups and (df_dups.shape[0] > 0):
+            bytile_dups = analyse_bytile_duplicate_stats(df_dups)
+            self._bytile_dups = self._bytile_dups.add(
+                bytile_dups, fill_value=0
             ).astype(int)
 
     def add_chromsizes(self, chromsizes):
@@ -681,6 +575,13 @@ class PairCounter(Mapping):
                         )
                         # store key,value pair:
                         flat_stat[formatted_key] = freq
+                elif (k == "summary") and v:
+                    for key, frac in v.items():
+                        formatted_key = self._KEY_SEP.join(["{}", "{}"]).format(
+                            k, key
+                        )
+                        # store key,value pair:
+                        flat_stat[formatted_key] = frac
 
         # return flattened dict
         return flat_stat
@@ -732,6 +633,11 @@ class PairCounter(Mapping):
                         ] = freq
                         # store key,value pair:
                     formatted_stat[k] = deepcopy(freqs)
+                elif (k == "summary") and v:
+                    summary_stats = {}
+                    for key, frac in v.items():
+                        summary_stats[key] = frac
+                    formatted_stat[k] = deepcopy(summary_stats)
 
         # return formatted dict
         return formatted_stat
@@ -771,4 +677,133 @@ class PairCounter(Mapping):
         ----------
         outstream: file handle
         """
-        self.bytile_dups.reset_index().to_csv(outstream, sep="\t", index=False)
+        if self._save_bytile_dups:
+            self._bytile_dups.reset_index().to_csv(outstream, sep="\t", index=False)
+        else:
+            logger.error("Bytile dups are not calculated, cannot save.")
+
+
+##################
+# Other functions:
+
+def do_merge(output, files_to_merge, **kwargs):
+    # Parse all stats files.
+    stats = []
+    for stat_file in files_to_merge:
+        f = fileio.auto_open(
+            stat_file,
+            mode="r",
+            nproc=kwargs.get("nproc_in"),
+            command=kwargs.get("cmd_in", None),
+        )
+        # use a factory method to instanciate PairCounter
+        stat = PairCounter.from_file(f)
+        stats.append(stat)
+        f.close()
+
+    # combine stats from several files (files_to_merge):
+    out_stat = sum(stats)
+
+    # Save merged stats.
+    outstream = fileio.auto_open(
+        output,
+        mode="w",
+        nproc=kwargs.get("nproc_out"),
+        command=kwargs.get("cmd_out", None),
+    )
+
+    # save statistics to file ...
+    out_stat.save(outstream)
+
+    if outstream != sys.stdout:
+        outstream.close()
+
+
+def estimate_library_complexity(nseq, ndup, nopticaldup=0):
+    """Estimate library complexity accounting for optical/clustering duplicates
+    Parameters
+    ----------
+    nseq : int
+        Total number of sequences
+    ndup : int
+        Total number of duplicates
+    nopticaldup : int, optional
+        Number of non-PCR duplicates, by default 0
+    Returns
+    -------
+    float
+        Estimated complexity
+    """
+    nseq = nseq - nopticaldup
+    if nseq == 0:
+        logger.warning("Empty of fully duplicated library, can't estimate complexity")
+        return 0
+    ndup = ndup - nopticaldup
+    u = (nseq - ndup) / nseq
+    if u==0:
+        logger.warning("All the sequences are duplicates. Do you run complexity estimation on duplicates file?")
+        return 0
+    seq_to_complexity = special.lambertw(-np.exp(-1 / u) / u).real + 1 / u
+    complexity = float(nseq / seq_to_complexity) # clean np.int64 data type
+    return complexity
+
+
+def analyse_bytile_duplicate_stats(df_dups, tile_dup_regex=False):
+    """Count by-tile duplicates
+    Parameters
+    ----------
+    dups : pd.DataFrame
+        Dataframe with duplicates that contains pared read IDs
+    tile_dup_regex : bool, optional
+        See extract_tile_info for details, by default False
+    Returns
+    -------
+    pd.DataFrame
+        Grouped multi-indexed dataframe of pairwise by-tile duplication counts
+    """
+
+    df_dups = df_dups.copy()
+
+    df_dups["tile"] = extract_tile_info(df_dups["readID"], regex=tile_dup_regex)
+    df_dups["parent_tile"] = extract_tile_info(df_dups["parent_readID"], regex=tile_dup_regex)
+
+    df_dups["same_tile"] = (df_dups["tile"] == df_dups["parent_tile"])
+    bytile_dups = (
+        df_dups.groupby(["tile", "parent_tile"])
+        .size()
+        .reset_index(name="dup_count")
+        .sort_values(["tile", "parent_tile"])
+    )
+    bytile_dups[["tile", "parent_tile"]] = np.sort(
+        bytile_dups[["tile", "parent_tile"]].values, axis=1
+    )
+    bytile_dups = bytile_dups.groupby(["tile", "parent_tile"]).sum()
+    return bytile_dups
+
+
+def extract_tile_info(series, regex=False):
+    """Extract the name of the tile for each read name in the series
+    Parameters
+    ----------
+    series : pd.Series
+        Series containing read IDs
+    regex : bool, optional
+        Regex to extract fields from the read IDs that correspond to tile IDs.
+        By default False, uses a faster predefined approach for typical Illumina
+        read names
+        Example: r"(?:\w+):(?:\w+):(\w+):(\w+):(\w+):(?:\w+):(?:\w+)"
+    Returns
+    -------
+    Series
+        Series containing tile IDs as strings
+    """
+    if regex:
+        split = series.str.extractall(regex).unstack().droplevel(1, axis=1)
+        if split.shape[1]<4:
+            raise ValueError(f"Unable to convert tile names, does your readID have the tile information?\nHint: SRA removes tile information from readID.\nSample of your readIDs:\n{series.head()}")
+        return split[0] + ":" + split[1] + ":" + split[2]
+    else:
+        split = series.str.split(":", expand=True)
+        if split.shape[1]<5:
+            raise ValueError(f"Unable to convert tile names, does your readID have the tile information?\nHint: SRA removes tile information from readID.\nSample of your readIDs:\n{series.head()}")
+        return split[2] + ":" + split[3] + ":" + split[4]
