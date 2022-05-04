@@ -32,8 +32,14 @@ class PairCounter(Mapping):
         max_log10_dist=9,
         log10_dist_bin_step=0.25,
         bytile_dups=False,
+        filters=None,
     ):
-        self._stat = {}
+        if filters is not None:
+            self.filters = filters
+            keys = list(filters.keys())
+            if "no_filter" not in keys:
+                keys += ["no_filter"]
+        self._stat = {key: {} for key in keys}
         # some variables used for initialization:
         # genomic distance bining for the ++/--/-+/+- distribution
         self._dist_bins = np.r_[
@@ -47,59 +53,63 @@ class PairCounter(Mapping):
         ]
 
         # establish structure of an empty _stat:
-        self._stat["total"] = 0
-        self._stat["total_unmapped"] = 0
-        self._stat["total_single_sided_mapped"] = 0
-        # total_mapped = total_dups + total_nodups
-        self._stat["total_mapped"] = 0
-        self._stat["total_dups"] = 0
-        self._stat["total_nodups"] = 0
-        ########################################
-        # the rest of stats are based on nodups:
-        ########################################
-        self._stat["cis"] = 0
-        self._stat["trans"] = 0
-        self._stat["pair_types"] = {}
-        # to be removed:
-        self._stat["dedup"] = {}
+        for key in keys:
+            self._stat[key]["total"] = 0
+            self._stat[key]["total_unmapped"] = 0
+            self._stat[key]["total_single_sided_mapped"] = 0
+            # total_mapped = total_dups + total_nodups
+            self._stat[key]["total_mapped"] = 0
+            self._stat[key]["total_dups"] = 0
+            self._stat[key]["total_nodups"] = 0
+            ########################################
+            # the rest of stats are based on nodups:
+            ########################################
+            self._stat[key]["cis"] = 0
+            self._stat[key]["trans"] = 0
+            self._stat[key]["pair_types"] = {}
+            # to be removed:
+            self._stat[key]["dedup"] = {}
 
-        self._stat["cis_1kb+"] = 0
-        self._stat["cis_2kb+"] = 0
-        self._stat["cis_4kb+"] = 0
-        self._stat["cis_10kb+"] = 0
-        self._stat["cis_20kb+"] = 0
-        self._stat["cis_40kb+"] = 0
+            self._stat[key]["cis_1kb+"] = 0
+            self._stat[key]["cis_2kb+"] = 0
+            self._stat[key]["cis_4kb+"] = 0
+            self._stat[key]["cis_10kb+"] = 0
+            self._stat[key]["cis_20kb+"] = 0
+            self._stat[key]["cis_40kb+"] = 0
 
-        self._stat["chrom_freq"] = {}
+            self._stat[key]["chrom_freq"] = {}
 
-        self._stat["dist_freq"] = {
-            "+-": np.zeros(len(self._dist_bins), dtype=np.int),
-            "-+": np.zeros(len(self._dist_bins), dtype=np.int),
-            "--": np.zeros(len(self._dist_bins), dtype=np.int),
-            "++": np.zeros(len(self._dist_bins), dtype=np.int),
-        }
+            self._stat[key]["dist_freq"] = {
+                "+-": np.zeros(len(self._dist_bins), dtype=np.int),
+                "-+": np.zeros(len(self._dist_bins), dtype=np.int),
+                "--": np.zeros(len(self._dist_bins), dtype=np.int),
+                "++": np.zeros(len(self._dist_bins), dtype=np.int),
+            }
 
-        # Summaries are derived from other stats and are recalculated on merge
-        self._stat["summary"] = dict(
-            [
-                ("frac_cis", 0),
-                ("frac_cis_1kb+", 0),
-                ("frac_cis_2kb+", 0),
-                ("frac_cis_4kb+", 0),
-                ("frac_cis_10kb+", 0),
-                ("frac_cis_20kb+", 0),
-                ("frac_cis_40kb+", 0),
-                ("frac_dups", 0),
-                ("complexity_naive", 0),
-            ]
-        )
+            # Summaries are derived from other stats and are recalculated on merge
+            self._stat[key]["summary"] = dict(
+                [
+                    ("frac_cis", 0),
+                    ("frac_cis_1kb+", 0),
+                    ("frac_cis_2kb+", 0),
+                    ("frac_cis_4kb+", 0),
+                    ("frac_cis_10kb+", 0),
+                    ("frac_cis_20kb+", 0),
+                    ("frac_cis_40kb+", 0),
+                    ("frac_dups", 0),
+                    ("complexity_naive", 0),
+                ]
+            )
         self._save_bytile_dups = bytile_dups
         if self._save_bytile_dups:
-            self._bytile_dups = pd.DataFrame(
-                index=pd.MultiIndex(
-                    levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
+            self._bytile_dups = {
+                key: pd.DataFrame(
+                    index=pd.MultiIndex(
+                        levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
+                    )
                 )
-            )
+                for key in keys
+            }
         self._summaries_calculated = False
 
     def __getitem__(self, key):
@@ -358,46 +368,48 @@ class PairCounter(Mapping):
             type of the mapped pair of reads
         """
 
-        self._stat["total"] += 1
+        self._stat["no_filter"]["total"] += 1
         # collect pair type stats including DD:
-        self._stat["pair_types"][pair_type] = (
-            self._stat["pair_types"].get(pair_type, 0) + 1
+        self._stat["no_filter"]["pair_types"][pair_type] = (
+            self._stat["no_filter"]["pair_types"].get(pair_type, 0) + 1
         )
         if chrom1 == "!" and chrom2 == "!":
-            self._stat["total_unmapped"] += 1
+            self._stat["no_filter"]["total_unmapped"] += 1
         elif chrom1 != "!" and chrom2 != "!":
-            self._stat["total_mapped"] += 1
+            self._stat["no_filter"]["total_mapped"] += 1
             # only mapped ones can be duplicates:
             if pair_type == "DD":
-                self._stat["total_dups"] += 1
+                self._stat["no_filter"]["total_dups"] += 1
             else:
-                self._stat["total_nodups"] += 1
-                self._stat["chrom_freq"][(chrom1, chrom2)] = (
-                    self._stat["chrom_freq"].get((chrom1, chrom2), 0) + 1
+                self._stat["no_filter"]["total_nodups"] += 1
+                self._stat["no_filter"]["chrom_freq"][(chrom1, chrom2)] = (
+                    self._stat["no_filter"]["chrom_freq"].get((chrom1, chrom2), 0) + 1
                 )
 
                 if chrom1 == chrom2:
-                    self._stat["cis"] += 1
+                    self._stat["no_filter"]["cis"] += 1
                     dist = np.abs(pos2 - pos1)
                     bin_idx = np.searchsorted(self._dist_bins, dist, "right") - 1
-                    self._stat["dist_freq"][strand1 + strand2][bin_idx] += 1
+                    self._stat["no_filter"]["dist_freq"][strand1 + strand2][
+                        bin_idx
+                    ] += 1
                     if dist >= 1000:
-                        self._stat["cis_1kb+"] += 1
+                        self._stat["no_filter"]["cis_1kb+"] += 1
                     if dist >= 2000:
-                        self._stat["cis_2kb+"] += 1
+                        self._stat["no_filter"]["cis_2kb+"] += 1
                     if dist >= 4000:
-                        self._stat["cis_4kb+"] += 1
+                        self._stat["no_filter"]["cis_4kb+"] += 1
                     if dist >= 10000:
-                        self._stat["cis_10kb+"] += 1
+                        self._stat["no_filter"]["cis_10kb+"] += 1
                     if dist >= 20000:
-                        self._stat["cis_20kb+"] += 1
+                        self._stat["no_filter"]["cis_20kb+"] += 1
                     if dist >= 40000:
-                        self._stat["cis_40kb+"] += 1
+                        self._stat["no_filter"]["cis_40kb+"] += 1
 
                 else:
-                    self._stat["trans"] += 1
+                    self._stat["no_filter"]["trans"] += 1
         else:
-            self._stat["total_single_sided_mapped"] += 1
+            self._stat["no_filter"]["total_single_sided_mapped"] += 1
 
     def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
@@ -408,79 +420,89 @@ class PairCounter(Mapping):
             DataFrame with pairs. Needs to have columns:
                 'chrom1', 'pos1', 'chrom2', 'pos2', 'strand1', 'strand2', 'pair_type'
         """
+        for key in self.filters.keys():
+            if key == "no_filter":
+                pass
+            else:
+                expr = self.filters[key]
+                df = df.query(expr).reset_index(drop=True)
+            total_count = df.shape[0]
+            self._stat[key]["total"] += total_count
 
-        total_count = df.shape[0]
-        self._stat["total"] += total_count
+            # collect pair type stats including DD:
+            for pair_type, type_count in df["pair_type"].value_counts().items():
+                self._stat[key]["pair_types"][pair_type] = (
+                    self._stat[key]["pair_types"].get(pair_type, 0) + type_count
+                )
 
-        # collect pair type stats including DD:
-        for pair_type, type_count in df["pair_type"].value_counts().items():
-            self._stat["pair_types"][pair_type] = (
-                self._stat["pair_types"].get(pair_type, 0) + type_count
+            # Count the unmapped by the "unmapped" chromosomes (debatable, as WW are also marked as ! and they might be mapped):
+            unmapped_count = np.logical_and(
+                df["chrom1"] == unmapped_chrom, df["chrom2"] == unmapped_chrom
+            ).sum()
+            self._stat[key]["total_unmapped"] += int(unmapped_count)
+
+            # Count the mapped:
+            df_mapped = df.loc[
+                (df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :
+            ]
+            mapped_count = df_mapped.shape[0]
+
+            self._stat[key]["total_mapped"] += mapped_count
+            self._stat[key]["total_single_sided_mapped"] += int(
+                total_count - (mapped_count + unmapped_count)
             )
 
-        # Count the unmapped by the "unmapped" chromosomes (debatable, as WW are also marked as ! and they might be mapped):
-        unmapped_count = np.logical_and(
-            df["chrom1"] == unmapped_chrom, df["chrom2"] == unmapped_chrom
-        ).sum()
-        self._stat["total_unmapped"] += int(unmapped_count)
+            # Count the duplicates:
+            if "duplicate" in df_mapped.columns:
+                mask_dups = df_mapped["duplicate"]
+            else:
+                mask_dups = df_mapped["pair_type"] == "DD"
+            df_dups = df_mapped[mask_dups]
+            dups_count = df_dups.shape[0]
+            self._stat[key]["total_dups"] += int(dups_count)
+            self._stat[key]["total_nodups"] += int(mapped_count - dups_count)
 
-        # Count the mapped:
-        df_mapped = df.loc[
-            (df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :
-        ]
-        mapped_count = df_mapped.shape[0]
+            df_nodups = df_mapped.loc[~mask_dups, :]
+            mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
+            df_cis = df_nodups.loc[mask_cis, :].copy()
 
-        self._stat["total_mapped"] += mapped_count
-        self._stat["total_single_sided_mapped"] += int(
-            total_count - (mapped_count + unmapped_count)
-        )
+            # Count pairs per chromosome:
+            for (chrom1, chrom2), chrom_count in (
+                df_nodups[["chrom1", "chrom2"]].value_counts().items()
+            ):
+                self._stat[key]["chrom_freq"][(chrom1, chrom2)] = (
+                    self._stat[key]["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
+                )
 
-        # Count the duplicates:
-        if "duplicate" in df_mapped.columns:
-            mask_dups = df_mapped["duplicate"]
-        else:
-            mask_dups = df_mapped["pair_type"] == "DD"
-        df_dups = df_mapped[mask_dups]
-        dups_count = df_dups.shape[0]
-        self._stat["total_dups"] += int(dups_count)
-        self._stat["total_nodups"] += int(mapped_count - dups_count)
+            # Count cis-trans by pairs:
 
-        df_nodups = df_mapped.loc[~mask_dups, :]
-        mask_cis = df_nodups["chrom1"] == df_nodups["chrom2"]
-        df_cis = df_nodups.loc[mask_cis, :].copy()
+            self._stat[key]["cis"] += df_cis.shape[0]
+            self._stat[key]["trans"] += df_nodups.shape[0] - df_cis.shape[0]
+            dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
 
-        # Count pairs per chromosome:
-        for (chrom1, chrom2), chrom_count in (
-            df_nodups[["chrom1", "chrom2"]].value_counts().items()
-        ):
-            self._stat["chrom_freq"][(chrom1, chrom2)] = (
-                self._stat["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
+            df_cis.loc[:, "bin_idx"] = (
+                np.searchsorted(self._dist_bins, dist, "right") - 1
             )
 
-        # Count cis-trans by pairs:
+            for (strand1, strand2, bin_id), strand_bin_count in (
+                df_cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
+            ):
+                self._stat[key]["dist_freq"][strand1 + strand2][
+                    bin_id
+                ] += strand_bin_count
+            self._stat[key]["cis_1kb+"] += int(np.sum(dist >= 1000))
+            self._stat[key]["cis_2kb+"] += int(np.sum(dist >= 2000))
+            self._stat[key]["cis_4kb+"] += int(np.sum(dist >= 4000))
+            self._stat[key]["cis_10kb+"] += int(np.sum(dist >= 10000))
+            self._stat[key]["cis_20kb+"] += int(np.sum(dist >= 20000))
+            self._stat[key]["cis_40kb+"] += int(np.sum(dist >= 40000))
 
-        self._stat["cis"] += df_cis.shape[0]
-        self._stat["trans"] += df_nodups.shape[0] - df_cis.shape[0]
-        dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
-
-        df_cis.loc[:, "bin_idx"] = np.searchsorted(self._dist_bins, dist, "right") - 1
-        for (strand1, strand2, bin_id), strand_bin_count in (
-            df_cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
-        ):
-            self._stat["dist_freq"][strand1 + strand2][bin_id] += strand_bin_count
-        self._stat["cis_1kb+"] += int(np.sum(dist >= 1000))
-        self._stat["cis_2kb+"] += int(np.sum(dist >= 2000))
-        self._stat["cis_4kb+"] += int(np.sum(dist >= 4000))
-        self._stat["cis_10kb+"] += int(np.sum(dist >= 10000))
-        self._stat["cis_20kb+"] += int(np.sum(dist >= 20000))
-        self._stat["cis_40kb+"] += int(np.sum(dist >= 40000))
-
-        ### Add by-tile dups
-        if self._save_bytile_dups and (df_dups.shape[0] > 0):
-            bytile_dups = analyse_bytile_duplicate_stats(df_dups)
-            self._bytile_dups = self._bytile_dups.add(bytile_dups, fill_value=0).astype(
-                int
-            )
+            ### Add by-tile dups
+            if self._save_bytile_dups and (df_dups.shape[0] > 0):
+                bytile_dups = analyse_bytile_duplicate_stats(df_dups)
+                self._bytile_dups[key] = (
+                    self._bytile_dups[key].add(bytile_dups, fill_value=0).astype(int)
+                )
 
     def add_chromsizes(self, chromsizes):
         """ Add chromsizes field to the output stats
