@@ -809,7 +809,8 @@ def extract_tile_info(series, regex=False):
             raise ValueError(f"Unable to convert tile names, does your readID have the tile information?\nHint: SRA removes tile information from readID.\nSample of your readIDs:\n{series.head()}")
         return split[0] + ":" + split[1] + ":" + split[2]
     else:
-        split = series.str.split(":", expand=True)
-        if split.shape[1]<5:
+        try:
+            split = [":".join(name.split(':')[2:5]) for name in series]
+        except:
             raise ValueError(f"Unable to convert tile names, does your readID have the tile information?\nHint: SRA removes tile information from readID.\nSample of your readIDs:\n{series.head()}")
-        return split[2] + ":" + split[3] + ":" + split[4]
+        return split
