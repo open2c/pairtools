@@ -3,6 +3,7 @@ import pandas as pd
 from scipy import special
 from collections.abc import Mapping
 import sys
+import yaml
 from . import fileio
 
 from .._logging import get_logger
@@ -36,9 +37,11 @@ class PairCounter(Mapping):
     ):
         if filters is not None:
             self.filters = filters
-            keys = list(filters.keys())
-            if "no_filter" not in keys:
-                keys += ["no_filter"]
+        else:
+            self.filters = {"no_filter": ""}
+        keys = list(self.filters.keys())
+        if "no_filter" not in keys:
+            keys += ["no_filter"]
         self._stat = {key: {} for key in keys}
         # some variables used for initialization:
         # genomic distance bining for the ++/--/-+/+- distribution
@@ -80,10 +83,10 @@ class PairCounter(Mapping):
             self._stat[key]["chrom_freq"] = {}
 
             self._stat[key]["dist_freq"] = {
-                "+-": np.zeros(len(self._dist_bins), dtype=np.int),
-                "-+": np.zeros(len(self._dist_bins), dtype=np.int),
-                "--": np.zeros(len(self._dist_bins), dtype=np.int),
-                "++": np.zeros(len(self._dist_bins), dtype=np.int),
+                "+-": {bin.item(): 0 for bin in self._dist_bins},
+                "-+": {bin.item(): 0 for bin in self._dist_bins},
+                "--": {bin.item(): 0 for bin in self._dist_bins},
+                "++": {bin.item(): 0 for bin in self._dist_bins},
             }
 
             # Summaries are derived from other stats and are recalculated on merge
@@ -347,6 +350,31 @@ class PairCounter(Mapping):
         # return PairCounter from a non-empty dict:
         return stat_from_file
 
+    @classmethod
+    def from_yaml(cls, file_handle):
+        """create instance of PairCounter from file
+        Parameters
+        ----------
+        file_handle: file handle
+        Returns
+        -------
+        PairCounter
+            new PairCounter filled with the contents of the input file
+        """
+        # fill in from file - file_handle:
+        stat_from_file = cls()
+
+        stat = yaml.safe_load(file_handle)
+        for key, filter in stat.items():
+            chromdict = {}
+            for chroms in stat[key]["chrom_freq"].keys():
+                chromdict[tuple(chroms.split(cls._KEY_SEP))] = stat[key]["chrom_freq"][
+                    chroms
+                ]
+            stat[key]["chrom_freq"] = chromdict
+        stat_from_file._stat = stat
+        return stat_from_file
+
     def add_pair(self, chrom1, pos1, strand1, chrom2, pos2, strand2, pair_type):
         """Gather statistics for a Hi-C pair and add to the PairCounter.
 
@@ -389,10 +417,10 @@ class PairCounter(Mapping):
                 if chrom1 == chrom2:
                     self._stat["no_filter"]["cis"] += 1
                     dist = np.abs(pos2 - pos1)
-                    bin_idx = np.searchsorted(self._dist_bins, dist, "right") - 1
-                    self._stat["no_filter"]["dist_freq"][strand1 + strand2][
-                        bin_idx
-                    ] += 1
+                    bin = self._dist_bins[
+                        np.searchsorted(self._dist_bins, dist, "right") - 1
+                    ]
+                    self._stat["no_filter"]["dist_freq"][strand1 + strand2][bin] += 1
                     if dist >= 1000:
                         self._stat["no_filter"]["cis_1kb+"] += 1
                     if dist >= 2000:
@@ -488,7 +516,7 @@ class PairCounter(Mapping):
                 df_cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
             ):
                 self._stat[key]["dist_freq"][strand1 + strand2][
-                    bin_id
+                    self._dist_bins[bin_id].item()
                 ] += strand_bin_count
             self._stat[key]["cis_1kb+"] += int(np.sum(dist >= 1000))
             self._stat[key]["cis_2kb+"] += int(np.sum(dist >= 2000))
@@ -625,55 +653,30 @@ class PairCounter(Mapping):
 
         from copy import deepcopy
 
-        formatted_stat = {}
+        formatted_stat = {key: {} for key in self.filters.keys()}
 
-        # Storing statistics
-        for k, v in self._stat.items():
-            if isinstance(v, int):
-                formatted_stat[k] = v
-            # store nested dicts/arrays in a context dependet manner:
-            # nested categories are stored only if they are non-trivial
-            else:
-                if (k == "dist_freq") and v:
-                    freqs_dct = {}
-
-                    # iterate over distance bins:
-                    for i in range(len(self._dist_bins)):
-                        # iterate over all directions:
-                        for dirs, freqs in v.items():
-                            # last bin is treated differently: "100000+" vs "1200-3000":
-                            if i != len(self._dist_bins) - 1:
-                                dist = "{}-{}".format(
-                                    self._dist_bins[i], self._dist_bins[i + 1]
-                                )
-                            else:
-                                dist = "{}+".format(self._dist_bins[i])
-                            if dist not in freqs_dct.keys():
-                                freqs_dct[dist] = {}
-
-                            freqs_dct[dist][dirs] = int(freqs[i])
-
-                    formatted_stat[k] = deepcopy(freqs_dct)
-
-                elif (k in ["pair_types", "dedup", "chromsizes"]) and v:
-                    # 'pair_types' and 'dedup' are simple dicts inside,
-                    # treat them the exact same way:
-                    formatted_stat[k] = deepcopy(v)
-                elif (k == "chrom_freq") and v:
-                    freqs = {}
-                    for (chrom1, chrom2), freq in v.items():
-                        freqs[
-                            self._KEY_SEP.join(["{}", "{}"]).format(chrom1, chrom2)
-                        ] = freq
-                        # store key,value pair:
-                    formatted_stat[k] = deepcopy(freqs)
-                elif (k == "summary") and v:
-                    summary_stats = {}
-                    for key, frac in v.items():
-                        summary_stats[key] = frac
-                    formatted_stat[k] = deepcopy(summary_stats)
-
-        # return formatted dict
+        # Storing statistics for each filter
+        for key in self.filters.keys():
+            for k, v in self._stat[key].items():
+                if isinstance(v, int):
+                    formatted_stat[key][k] = v
+                # store nested dicts/arrays in a context dependet manner:
+                # nested categories are stored only if they are non-trivial
+                else:
+                    if (k in ["pair_types", "dedup", "chromsizes", "dist_freq"]) and v:
+                        # simple dicts inside
+                        # treat them the exact same way:
+                        formatted_stat[key][k] = deepcopy(v)
+                    elif (k == "chrom_freq") and v:
+                        # need to convert tuples of chromosome names to str
+                        freqs = {}
+                        for (chrom1, chrom2), freq in sorted(v.items()):
+                            freqs[
+                                self._KEY_SEP.join(["{}", "{}"]).format(chrom1, chrom2)
+                            ] = freq
+                            # store key,value pair:
+                        formatted_stat[key][k] = deepcopy(freqs)
+            # return formatted dict
         return formatted_stat
 
     def save(self, outstream, yaml=False):
