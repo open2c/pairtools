@@ -39,10 +39,9 @@ class PairCounter(Mapping):
             self.filters = filters
         else:
             self.filters = {"no_filter": ""}
-        keys = list(self.filters.keys())
-        if "no_filter" not in keys:
-            keys += ["no_filter"]
-        self._stat = {key: {} for key in keys}
+        if "no_filter" not in self.filters:
+            self.filters["no_filter"] = ""
+        self._stat = {key: {} for key in self.filters}
         # some variables used for initialization:
         # genomic distance bining for the ++/--/-+/+- distribution
         self._dist_bins = np.r_[
@@ -56,7 +55,8 @@ class PairCounter(Mapping):
         ]
 
         # establish structure of an empty _stat:
-        for key in keys:
+        for key in self.filters:
+            self._stat[key]["filter_expression"] = self.filters[key]
             self._stat[key]["total"] = 0
             self._stat[key]["total_unmapped"] = 0
             self._stat[key]["total_single_sided_mapped"] = 0
@@ -446,29 +446,35 @@ class PairCounter(Mapping):
                 'chrom1', 'pos1', 'chrom2', 'pos2', 'strand1', 'strand2', 'pair_type'
         """
         for key in self.filters.keys():
+            print(key)
             if key == "no_filter":
-                pass
+                df_filtered = df.copy()
             else:
                 expr = self.filters[key]
-                df = df.query(expr).reset_index(drop=True)
-            total_count = df.shape[0]
+                df_filtered = df.query(expr).reset_index(drop=True)
+            total_count = df_filtered.shape[0]
             self._stat[key]["total"] += total_count
 
             # collect pair type stats including DD:
-            for pair_type, type_count in df["pair_type"].value_counts().items():
+            for pair_type, type_count in (
+                df_filtered["pair_type"].value_counts().items()
+            ):
                 self._stat[key]["pair_types"][pair_type] = (
                     self._stat[key]["pair_types"].get(pair_type, 0) + type_count
                 )
 
             # Count the unmapped by the "unmapped" chromosomes (debatable, as WW are also marked as ! and they might be mapped):
             unmapped_count = np.logical_and(
-                df["chrom1"] == unmapped_chrom, df["chrom2"] == unmapped_chrom
+                df_filtered["chrom1"] == unmapped_chrom,
+                df_filtered["chrom2"] == unmapped_chrom,
             ).sum()
             self._stat[key]["total_unmapped"] += int(unmapped_count)
 
             # Count the mapped:
-            df_mapped = df.loc[
-                (df["chrom1"] != unmapped_chrom) & (df["chrom2"] != unmapped_chrom), :
+            df_mapped = df_filtered.loc[
+                (df_filtered["chrom1"] != unmapped_chrom)
+                & (df_filtered["chrom2"] != unmapped_chrom),
+                :,
             ]
             mapped_count = df_mapped.shape[0]
 
@@ -659,10 +665,7 @@ class PairCounter(Mapping):
                 # store nested dicts/arrays in a context dependet manner:
                 # nested categories are stored only if they are non-trivial
                 else:
-                    if (
-                        k
-                        in ["pair_types", "dedup", "chromsizes", "dist_freq", "summary"]
-                    ) and v:
+                    if (k != "chrom_freq") and v:
                         # simple dicts inside
                         # treat them the exact same way:
                         formatted_stat[key][k] = deepcopy(v)
