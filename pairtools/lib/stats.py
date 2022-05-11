@@ -79,17 +79,6 @@ class PairCounter(Mapping):
             self._stat[key]["cis_10kb+"] = 0
             self._stat[key]["cis_20kb+"] = 0
             self._stat[key]["cis_40kb+"] = 0
-
-            self._stat[key]["chrom_freq"] = {}
-
-            self._stat[key]["dist_freq"] = {
-                "+-": {bin.item(): 0 for bin in self._dist_bins},
-                "-+": {bin.item(): 0 for bin in self._dist_bins},
-                "--": {bin.item(): 0 for bin in self._dist_bins},
-                "++": {bin.item(): 0 for bin in self._dist_bins},
-            }
-
-            # Summaries are derived from other stats and are recalculated on merge
             self._stat[key]["summary"] = dict(
                 [
                     ("frac_cis", 0),
@@ -103,16 +92,25 @@ class PairCounter(Mapping):
                     ("complexity_naive", 0),
                 ]
             )
+
+            self._stat[key]["chrom_freq"] = {}
+
+            self._stat[key]["dist_freq"] = {
+                "+-": {bin.item(): 0 for bin in self._dist_bins},
+                "-+": {bin.item(): 0 for bin in self._dist_bins},
+                "--": {bin.item(): 0 for bin in self._dist_bins},
+                "++": {bin.item(): 0 for bin in self._dist_bins},
+            }
+
+            # Summaries are derived from other stats and are recalculated on merge
+
         self._save_bytile_dups = bytile_dups
         if self._save_bytile_dups:
-            self._bytile_dups = {
-                key: pd.DataFrame(
-                    index=pd.MultiIndex(
-                        levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
-                    )
+            self._bytile_dups = pd.DataFrame(
+                index=pd.MultiIndex(
+                    levels=[[], []], codes=[[], []], names=["tile", "parent_tile"]
                 )
-                for key in keys
-            }
+            )
         self._summaries_calculated = False
 
     def __getitem__(self, key):
@@ -198,50 +196,52 @@ class PairCounter(Mapping):
     def calculate_summaries(self):
         """calculate summary statistics (fraction of cis pairs at different cutoffs,
         complexity estimate) based on accumulated counts. Results are saved into
-        self._stat['summary']
+        self._stat["filter_name"]['summary"]
         """
-
-        self._stat["summary"]["frac_dups"] = (
-            (self._stat["total_dups"] / self._stat["total_mapped"])
-            if self._stat["total_mapped"] > 0
-            else 0
-        )
-
-        for cis_count in (
-            "cis",
-            "cis_1kb+",
-            "cis_2kb+",
-            "cis_4kb+",
-            "cis_10kb+",
-            "cis_20kb+",
-            "cis_40kb+",
-        ):
-            self._stat["summary"][f"frac_{cis_count}"] = (
-                (self._stat[cis_count] / self._stat["total_nodups"])
-                if self._stat["total_nodups"] > 0
+        for key in self.filters.keys():
+            self._stat[key]["summary"]["frac_dups"] = (
+                (self._stat[key]["total_dups"] / self._stat[key]["total_mapped"])
+                if self._stat[key]["total_mapped"] > 0
                 else 0
             )
 
-        self._stat["summary"]["complexity_naive"] = estimate_library_complexity(
-            self._stat["total_mapped"], self._stat["total_dups"], 0
-        )
-
-        if self._save_bytile_dups:
-            # Estimate library complexity with information by tile, if provided:
-            if self._bytile_dups.shape[0] > 0:
-                self._stat["dups_by_tile_median"] = (
-                    self._bytile_dups["dup_count"].median() * self._bytile_dups.shape[0]
-                )
-            if "dups_by_tile_median" in self._stat.keys():
-                self._stat["summary"][
-                    "complexity_dups_by_tile_median"
-                ] = estimate_library_complexity(
-                    self._stat["total_mapped"],
-                    self._stat["total_dups"],
-                    self._stat["dups_by_tile_median"],
+            for cis_count in (
+                "cis",
+                "cis_1kb+",
+                "cis_2kb+",
+                "cis_4kb+",
+                "cis_10kb+",
+                "cis_20kb+",
+                "cis_40kb+",
+            ):
+                self._stat[key]["summary"][f"frac_{cis_count}"] = (
+                    (self._stat[key][cis_count] / self._stat[key]["total_nodups"])
+                    if self._stat[key]["total_nodups"] > 0
+                    else 0
                 )
 
-        self._summaries_calculated = True
+            self._stat[key]["summary"][
+                "complexity_naive"
+            ] = estimate_library_complexity(
+                self._stat[key]["total_mapped"], self._stat[key]["total_dups"], 0
+            )
+            if key == "no_filter" and self._save_bytile_dups:
+                # Estimate library complexity with information by tile, if provided:
+                if self._bytile_dups.shape[0] > 0:
+                    self._stat[key]["dups_by_tile_median"] = (
+                        self._bytile_dups["dup_count"].median()
+                        * self._bytile_dups.shape[0]
+                    )
+                if "dups_by_tile_median" in self._stat[key].keys():
+                    self._stat[key]["summary"][
+                        "complexity_dups_by_tile_median"
+                    ] = estimate_library_complexity(
+                        self._stat[key]["total_mapped"],
+                        self._stat[key]["total_dups"],
+                        self._stat[key]["dups_by_tile_median"],
+                    )
+
+            self._summaries_calculated = True
 
     @classmethod
     def from_file(cls, file_handle):
@@ -522,11 +522,11 @@ class PairCounter(Mapping):
             self._stat[key]["cis_40kb+"] += int(np.sum(dist >= 40000))
 
             ### Add by-tile dups
-            if self._save_bytile_dups and (df_dups.shape[0] > 0):
+            if key == "no_filter" and self._save_bytile_dups and (df_dups.shape[0] > 0):
                 bytile_dups = analyse_bytile_duplicate_stats(df_dups)
-                self._bytile_dups[key] = (
-                    self._bytile_dups[key].add(bytile_dups, fill_value=0).astype(int)
-                )
+                self._bytile_dups = self._bytile_dups.add(
+                    bytile_dups, fill_value=0
+                ).astype(int)
 
     def add_chromsizes(self, chromsizes):
         """ Add chromsizes field to the output stats
@@ -659,7 +659,10 @@ class PairCounter(Mapping):
                 # store nested dicts/arrays in a context dependet manner:
                 # nested categories are stored only if they are non-trivial
                 else:
-                    if (k in ["pair_types", "dedup", "chromsizes", "dist_freq"]) and v:
+                    if (
+                        k
+                        in ["pair_types", "dedup", "chromsizes", "dist_freq", "summary"]
+                    ) and v:
                         # simple dicts inside
                         # treat them the exact same way:
                         formatted_stat[key][k] = deepcopy(v)
@@ -675,7 +678,7 @@ class PairCounter(Mapping):
             # return formatted dict
         return formatted_stat
 
-    def save(self, outstream, yaml=False):
+    def save(self, outstream, yaml=True):
         """save PairCounter to tab-delimited text file.
         Flattened version of PairCounter is stored in the file.
 
@@ -702,7 +705,7 @@ class PairCounter(Mapping):
             import yaml
 
             data = self.format()
-            yaml.dump(data, outstream, default_flow_style=False)
+            yaml.dump(data, outstream, default_flow_style=False, sort_keys=False)
         else:
             for k, v in self.flatten().items():
                 outstream.write("{}{}{}\n".format(k, self._SEP, v))
