@@ -446,7 +446,6 @@ class PairCounter(Mapping):
                 'chrom1', 'pos1', 'chrom2', 'pos2', 'strand1', 'strand2', 'pair_type'
         """
         for key in self.filters.keys():
-            print(key)
             if key == "no_filter":
                 df_filtered = df.copy()
             else:
