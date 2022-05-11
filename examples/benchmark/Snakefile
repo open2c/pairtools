@@ -1,68 +1,45 @@
-cores_choices = [1, 2, 4]
-memory_choices = ["low", "high"]
-# pairtools_versions = ["pairtools03", "pairtools1", "pairtools1_bwamem2"]
+cores_choices = [1] #, 2, 4]
 
 chromap = expand(
-    "output/result.chromap.{memory}.{cores}.pairs",
+    "output/result.chromap.{cores}.pairs",
     cores=cores_choices,
-    memory=memory_choices,
 )
 juicer = expand(
-    "output/result.juicer.{memory}.{cores}.pairs",
+    "output/result.juicer.{cores}.pairs",
     cores=cores_choices,
-    memory=["regular"],
 )
 hicexplorer = expand(
-    "output/result.hicexplorer.{memory}.{cores}.cool",
+    "output/result.hicexplorer.{cores}.cool",
     cores=cores_choices,
-    memory=memory_choices,
 )
 fanc_bwa = expand(
-    "output/result.fanc_bwa.{memory}.{cores}.pairs",
+    "output/result.fanc_bwa.{cores}.pairs",
     cores=cores_choices,
-    memory=["regular"],
 )
 fanc_bowtie = expand(
-    "output/result.fanc_bowtie2.{memory}.{cores}.pairs",
+    "output/result.fanc_bowtie2.{cores}.pairs",
     cores=cores_choices,
-    memory=["regular"],
 )
 hicpro = expand(
-    "output/result.hicpro.{memory}.{cores}.pairs",
+    "output/result.hicpro.{cores}.pairs",
     cores=cores_choices,
-    memory=["regular"],
 )
 pairtools = expand(
-    "output/result.pairtools.{memory}.{cores}.pairs",
+    "output/result.pairtools.{cores}.pairs",
     cores=cores_choices,
-    memory=memory_choices,
 )
 pairtools_bwamem2 = expand(
-    "output/result.pairtools_bwamem2.{memory}.{cores}.pairs",
+    "output/result.pairtools_bwamem2.{cores}.pairs",
     cores=cores_choices,
-    memory=memory_choices,
 )
-# pairtools_cython = expand(
-#     "output/result.{mode}.{regime}.{memory}.{cores}.pairs",
-#     regime=['cython'],
-#     mode=pairtools_versions,
-#     cores=cores_choices,
-#     memory=["regular"],
-# )
-# pairtools_nocython = expand(
-#     "output/result.{mode}.{regime}.{memory}.{cores}.pairs",
-#     regime=['sklearn', 'scipy'],
-#     mode=pairtools_versions,
-#     cores=cores_choices,
-#     memory=memory_choices,
-# )
 
 rule all:
     input:
-        lambda wildcards: hicexplorer + hicpro 
-# fanc_bowtie + fanc_bwa + pairtools_cython + pairtools_nocython + chromap
-# hicpro +
-# + juicer # run separately with the number of cores equal to tested!
+        lambda wildcards: juicer #pairtools + pairtools_bwamem2 + chromap + hicpro + fanc_bowtie + fanc_bwa + hicexplorer
+
+# juicer #
+# hicexplorer # heavy because it creates coolers
+# juicer # run separately with the number of cores equal to tested!
 
 rule test:
     input:
@@ -77,31 +54,19 @@ rule test:
         genome_rsites="data/hg38/hg38.DpnII.bed",
     threads: lambda wildcards: int(wildcards.cores),
     output:
-        file="output/result.{mode}.{memory}.{cores}.{format}",
+        file="output/result.{mode}.{cores}.{format}",
     benchmark:
         repeat(
-            "benchmarks/result.{mode}.{memory}.{cores}.{format}.benchmark",
+            "benchmarks/result.{mode}.{cores}.{format}.benchmark",
             5,
         )
-    params:
-        memory_chromap = lambda wildcards: '--low-mem' if (wildcards.memory=='low') else '', # for chromap only
-        chunksize_pairtools = lambda wildcards: '--chunksize 100000' if (wildcards.memory=='low') else '--chunksize 10000000', # for pairtools 1.0.0 and above
-        memory_hicpro = lambda wildcards: "sed -i 's/SORT_RAM = 1000M/SORT_RAM = 100M/' $TMP_CONFIG" if (wildcards.memory=='low') else "sed -i 's/SORT_RAM = 1000M/SORT_RAM = 10000M/' $TMP_CONFIG",
-        chunksize_hicexplorer = lambda wildcards: '--inputBufferSize 100000' if (wildcards.memory == 'low') else '--inputBufferSize 10000000'  # for pairtools 1.0.0 and above
     run:
-        # if wildcards.mode == "pairtools03":
-        #     shell("""
-        #         soft/pairtools0.3.0/bin/bwa mem -t {wildcards.cores} -SP {input.genome_index_bwa} {input.fastq1} {input.fastq2} | \
-        #             soft/pairtools0.3.0/bin/pairtools parse --nproc-in {wildcards.cores} --nproc-out {wildcards.cores} --drop-sam --drop-seq -c {input.chromsizes} | \
-        #             soft/pairtools0.3.0/bin/pairtools sort --nproc {wildcards.cores} | \
-        #             soft/pairtools0.3.0/bin/pairtools dedup -o {output.file}
-        #         """)
         if wildcards.mode == "pairtools_bwamem2":
             shell("""
                 soft/bwa-mem2/bwa-mem2 mem -t {wildcards.cores} -SP {input.genome_index_bwamem2} {input.fastq1} {input.fastq2} | \
                     soft/pairtools1.0.0/bin/pairtools parse --nproc-in {wildcards.cores} --nproc-out {wildcards.cores} --drop-sam --drop-seq -c {input.chromsizes} | \
                     soft/pairtools1.0.0/bin/pairtools sort --nproc {wildcards.cores} | \
-                    soft/pairtools1.0.0/bin/pairtools dedup -p {wildcards.cores} --backend {wildcards.regime} {params.chunksize_pairtools} \
+                    soft/pairtools1.0.0/bin/pairtools dedup -p {wildcards.cores} --chunksize 1000000 \
                     -o {output.file}
                 """)
         elif wildcards.mode == "pairtools":
@@ -109,47 +74,50 @@ rule test:
                 soft/pairtools1.0.0/bin/bwa mem -t {wildcards.cores} -SP {input.genome_index_bwa} {input.fastq1} {input.fastq2} | \
                     soft/pairtools1.0.0/bin/pairtools parse --nproc-in {wildcards.cores} --nproc-out {wildcards.cores} --drop-sam --drop-seq -c {input.chromsizes} | \
                     soft/pairtools1.0.0/bin/pairtools sort --nproc {wildcards.cores} | \
-                    soft/pairtools1.0.0/bin/pairtools dedup -p {wildcards.cores} --backend {wildcards.regime} {params.chunksize_pairtools} \
+                    soft/pairtools1.0.0/bin/pairtools dedup -p {wildcards.cores} --chunksize 1000000 \
                     -o {output.file}
                 """)
 
         elif wildcards.mode == "chromap":
             shell("""
-                soft/chromap/bin/chromap --preset hic {params.memory_chromap}\
+                soft/chromap/bin/chromap --preset hic \
                   -t {wildcards.cores} -x {input.genome_index_chromap} -r {input.genomefile} \
                   -1 {input.fastq1} -2 {input.fastq2} -o {output.file}
                 """)
         elif wildcards.mode == "fanc_bwa":
             shell("""
-                TMP_FILE1=$(mktemp output/tmp.XXXXXXXX.bam)
-                TMP_FILE2=$(mktemp output/tmp.XXXXXXXX.bam)
-                soft/fanc/bin/fanc map -t {wildcards.cores} {input.fastq1} {input.genome_index_bwa} | samtools sort -@ {wildcards.cores} - -o $TMP_FILE1
-                soft/fanc/bin/fanc map -t {wildcards.cores} {input.fastq2} {input.genome_index_bwa} | samtools sort -@ {wildcards.cores} - -o $TMP_FILE2
-                soft/fanc/bin/fanc pairs -f -g {input.genome_rsites} $TMP_FILE1 $TMP_FILE2 {output.file}
-                rm $TMP_FILE1 $TMP_FILE2
+                TMP_FILE1=$(mktemp -u output/tmp.XXXXXXXX.bam)
+                TMP_FILE2=$(mktemp -u output/tmp.XXXXXXXX.bam)
+                soft/fanc/bin/fanc map -t {wildcards.cores} {input.fastq1} {input.genome_index_bwa} $TMP_FILE1
+                samtools sort -n -@ {wildcards.cores} $TMP_FILE1 -o $TMP_FILE1.sorted.bam
+                soft/fanc/bin/fanc map -t {wildcards.cores} {input.fastq2} {input.genome_index_bwa} $TMP_FILE2
+                samtools sort -n -@ {wildcards.cores} $TMP_FILE2 -o $TMP_FILE2.sorted.bam
+                soft/fanc/bin/fanc pairs -f -g {input.genome_rsites} $TMP_FILE1.sorted.bam $TMP_FILE2.sorted.bam {output.file}
+                rm $TMP_FILE1 $TMP_FILE2 $TMP_FILE1.sorted.bam $TMP_FILE2.sorted.bam
             """)
         elif wildcards.mode == "fanc_bowtie2":
             shell("""
-                TMP_FILE1=$(mktemp output/tmp.XXXXXXXX.bam)
-                TMP_FILE2=$(mktemp output/tmp.XXXXXXXX.bam)
-                soft/fanc/bin/fanc map -t {wildcards.cores} {input.fastq1} {input.genome_index_bowtie2} | samtools sort -@ {wildcards.cores} - -o $TMP_FILE1
-                soft/fanc/bin/fanc map -t {wildcards.cores} {input.fastq2} {input.genome_index_bowtie2} | samtools sort -@ {wildcards.cores} - -o $TMP_FILE2
-                soft/fanc/bin/fanc pairs -f -g {input.genome_rsites} $TMP_FILE1 $TMP_FILE2 {output.file}
-                rm $TMP_FILE1 $TMP_FILE2
+                TMP_FILE1=$(mktemp -u output/tmp.XXXXXXXX.bam)
+                TMP_FILE2=$(mktemp -u output/tmp.XXXXXXXX.bam)
+                soft/fanc/bin/fanc map -t {wildcards.cores} {input.fastq1} {input.genome_index_bowtie2} $TMP_FILE1
+                samtools sort -n -@ {wildcards.cores} $TMP_FILE1 -o $TMP_FILE1.sorted.bam
+                soft/fanc/bin/fanc map -t {wildcards.cores} {input.fastq2} {input.genome_index_bowtie2} $TMP_FILE2
+                samtools sort -n -@ {wildcards.cores} $TMP_FILE2 -o $TMP_FILE2.sorted.bam
+                soft/fanc/bin/fanc pairs -f -g {input.genome_rsites} $TMP_FILE1.sorted.bam $TMP_FILE2.sorted.bam {output.file}
+                rm $TMP_FILE1 $TMP_FILE2 $TMP_FILE1.sorted.bam $TMP_FILE2.sorted.bam
             """)
         elif wildcards.mode == "hicpro":
             shell("""
                 cd soft/HiC-Pro_env/HiC-Pro/
-                TMP_CONFIG=$(mktemp output/tmp.XXXXXXXX)
-                TMP_DIR=$(mktemp -d output/tmp.XXXXXXXX)
+                TMP_CONFIG=$(mktemp -u output/tmp.XXXXXXXX)
+                TMP_DIR=$(mktemp -d -u output/tmp.XXXXXXXX)
                 cp config-hicpro.txt $TMP_CONFIG
                 
                 sed -i 's/N_CPU = 4/N_CPU = {wildcards.cores}/' $TMP_CONFIG
-                {params.memory_hicpro}
                 bin/HiC-Pro -i rawdata/ -o $TMP_DIR -c $TMP_CONFIG
                 
                 # Cleanup:
-                cp $TMP_DIR/hic_results/data/sample1/sample1.allValidPairs {output.file}
+                cp $TMP_DIR/hic_results/data/sample1/sample1.allValidPairs ../../../{output.file}
                 rm -r $TMP_DIR $TMP_CONFIG
                 """)
         elif wildcards.mode == "juicer":
@@ -161,13 +129,11 @@ rule test:
 
                 # Cleanup:
                 mv data/4juicer/aligned/merged_nodups.txt {output.file}
-                rm -rf data/4juicer/aligned data/4juicer/splits/*[^q]
+                rm -rf data/4juicer/aligned; rm -rf data/4juicer/splits/[^S]*
                 """)
         elif wildcards.mode == "hicexplorer":
-            # Note that this process is not guaranteed to work well in parallel mode;
-            # recommended to run separately
             shell("""
-                TMP_DIR=$(mktemp -d output/tmp.XXXXXXXX)
+                TMP_DIR=$(mktemp -d -u output/tmp.XXXXXXXX)
                 
                 soft/hicexplorer/bin/hicBuildMatrix --samFiles \
                                 <(bwa mem -A1 -B4 -E50 -L0 {input.genome_index_bwa} -t {wildcards.cores} data/SRR6107789_1.fastq.gz | samtools view -@ {wildcards.cores} -Shb -) \
@@ -176,10 +142,10 @@ rule test:
                                  --danglingSequence GATC \
                                  --restrictionCutFile {input.genome_rsites}  \
                                  --threads {wildcards.cores} \
-                                 {params.chunksize_hicexplorer} \
+                                 --inputBufferSize 1000000 \
                                  --QCfolder $TMP_DIR \
                                  -o {output.file}
-                                 
+
                 # Cleanup:
                 rm -r $TMP_DIR
                 """)
