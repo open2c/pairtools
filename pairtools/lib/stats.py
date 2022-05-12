@@ -596,13 +596,13 @@ class PairCounter(Mapping):
         else:
             return self.__add__(other)
 
-    def flatten(self):
+    def flatten(self, filter="no_filter"):
         """return a flattened dict (formatted same way as .stats file)"""
         # dict for flat store:
         flat_stat = {}
 
         # Storing statistics
-        for k, v in self._stat.items():
+        for k, v in self._stat[filter].items():
             if isinstance(v, int):
                 flat_stat[k] = v
             # store nested dicts/arrays in a context dependet manner:
@@ -649,7 +649,7 @@ class PairCounter(Mapping):
         # return flattened dict
         return flat_stat
 
-    def format(self):
+    def format_yaml(self):
         """return a formatted dict (for the yaml output)"""
 
         from copy import deepcopy
@@ -706,9 +706,10 @@ class PairCounter(Mapping):
         if yaml:
             import yaml
 
-            data = self.format()
+            data = self.format_yaml()
             yaml.dump(data, outstream, default_flow_style=False, sort_keys=False)
         else:
+            data = self.flatten()
             for k, v in self.flatten().items():
                 outstream.write("{}{}{}\n".format(k, self._SEP, v))
 
