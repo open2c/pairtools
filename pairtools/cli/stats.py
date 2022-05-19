@@ -60,8 +60,48 @@ UTIL_NAME = "pairtools_stats"
     " By default, by-tile duplicate statistics are not printed."
     " Note that the readID and parent_readID should be provided and contain tile information for this option.",
 )
+# Filtering options:
+@click.option(
+    "--filter",
+    default=None,
+    required=False,
+    multiple=True,
+    help="Filters with conditions to apply to the data (similar to `pairtools select`). "
+         "For non-YAML output only the first filter will be reported. "
+         """Example: pairtools stats --yaml --filter 'unique:(pair_type=="UU")' --filter 'close:(pair_type=="UU") and (abs(pos1-pos2)<10)' test.pairs """,
+)
+@click.option(
+    "--chrom-subset",
+    type=str,
+    default=None,
+    required=False,
+    help="A path to a chromosomes file (tab-separated, 1st column contains "
+    "chromosome names) containing a chromosome subset of interest. "
+    "If provided, additionally filter pairs with both sides originating from "
+    "the provided subset of chromosomes. This operation modifies the #chromosomes: "
+    "and #chromsize: header fields accordingly.",
+)
+@click.option(
+    "--startup-code",
+    type=str,
+    default=None,
+    required=False,
+    help="An auxiliary code to execute before filtering. "
+    "Use to define functions that can be evaluated in the CONDITION statement",
+)
+@click.option(
+    "-t",
+    "--type-cast",
+    type=(str, str),
+    default=(),
+    multiple=True,
+    help="Cast a given column to a given type. By default, only pos and mapq "
+    "are cast to int, other columns are kept as str. Provide as "
+    "-t <column_name> <type>, e.g. -t read_len1 int. Multiple entries are allowed.",
+)
+
 @common_io_options
-def stats(input_path, output, merge, bytile_dups, output_bytile_stats, **kwargs):
+def stats(input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs):
     """Calculate pairs statistics.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
@@ -73,12 +113,12 @@ def stats(input_path, output, merge, bytile_dups, output_bytile_stats, **kwargs)
     """
 
     stats_py(
-        input_path, output, merge, bytile_dups, output_bytile_stats, **kwargs,
+        input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs,
     )
 
 
 def stats_py(
-    input_path, output, merge, bytile_dups, output_bytile_stats, **kwargs
+    input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs
 ):
     if merge:
         do_merge(output, input_path, **kwargs)
@@ -114,8 +154,22 @@ def stats_py(
         )
         bytile_dups = False
 
+    # Define filters and their properties
+    first_filter_name = "no_filter" # default filter name for full output
+    if filter is not None and len(filter)>0:
+        first_filter_name = filter[0].split(':', 1)[0]
+        if len(filter)>1 and not kwargs.get("yaml", False):
+            logger.warn(f"Output the first filter only in non-YAML output: {first_filter_name}")
+
+        filter = dict([f.split(':', 1) for f in filter])
+    else:
+        filter = None
+
     # new stats class stuff would come here ...
-    stats = PairCounter(bytile_dups=bytile_dups)
+    stats = PairCounter(bytile_dups=bytile_dups,
+                        filters=filter,
+                        startup_code=kwargs.get("startup_code", ""), # for evaluation of filters
+                        type_cast = kwargs.get("type_cast", ())) # for evaluation of filters
 
     # Collecting statistics
     for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
@@ -129,7 +183,9 @@ def stats_py(
         stats.save_bytile_dups(output_bytile_stats)
 
     # save statistics to file ...
-    stats.save(outstream, yaml=kwargs.get("yaml", False))
+    stats.save(outstream,
+               yaml=kwargs.get("yaml", False), # format as yaml
+               filter=first_filter_name if not kwargs.get("yaml", False) else None) # output only the first filter if non-YAML output
 
     if instream != sys.stdin:
         instream.close()

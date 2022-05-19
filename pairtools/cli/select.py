@@ -4,6 +4,7 @@ import re, fnmatch
 import warnings
 
 from ..lib import fileio, pairsam_format, headerops
+from ..lib.select import evaluate_stream
 from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_select"
@@ -120,7 +121,7 @@ def select(
     pairtools select '(chrom1=="!") and (chrom2!="!")'
     pairtools select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
 
-    pairtools select 'True' --chr-subset mm9.reduced.chromsizes
+    pairtools select 'True' --chrom-subset mm9.reduced.chromsizes
 
     """
     select_py(
@@ -171,38 +172,7 @@ def select_py(
             command=kwargs.get("cmd_out", None),
         )
 
-    wildcard_library = {}
-
-    def wildcard_match(x, wildcard):
-        if wildcard not in wildcard_library:
-            regex = fnmatch.translate(wildcard)
-            reobj = re.compile(regex)
-            wildcard_library[wildcard] = reobj
-        return wildcard_library[wildcard].fullmatch(x)
-
-    csv_library = {}
-
-    def csv_match(x, csv):
-        if csv not in csv_library:
-            csv_library[csv] = set(csv.split(","))
-        return x in csv_library[csv]
-
-    regex_library = {}
-
-    def regex_match(x, regex):
-        if regex not in regex_library:
-            reobj = re.compile(regex)
-            regex_library[regex] = reobj
-        return regex_library[regex].fullmatch(x)
-
-    new_chroms = None
-    if chrom_subset is not None:
-        new_chroms = [l.strip().split("\t")[0] for l in open(chrom_subset, "r")]
-
-    TYPES = {"pos1": "int", "pos2": "int", "mapq1": "int", "mapq2": "int"}
-
-    TYPES.update(dict(type_cast))
-
+    # Parse the input stream:
     header, body_stream = headerops.get_header(instream)
 
     # Modify the header:
@@ -231,6 +201,10 @@ def select_py(
             header = headerops.set_columns(header, updated_columns)
 
     # Update the chromosomes:
+    new_chroms = None
+    if chrom_subset is not None:
+        new_chroms = [l.strip().split("\t")[0] for l in open(chrom_subset, "r")]
+
     if new_chroms is not None:
         header = headerops.subset_chroms_in_pairsheader(header, new_chroms)
     outstream.writelines((l + "\n" for l in header))
@@ -241,33 +215,20 @@ def select_py(
     if len(column_names) == 0:
         column_names = pairsam_format.COLUMNS
 
-    if startup_code is not None:
-        exec(startup_code, globals())
-
-    condition = condition.strip()
-    if new_chroms is not None:
-        condition = (
-            "({}) and (chrom1 in new_chroms) " "and (chrom2 in new_chroms)"
-        ).format(condition)
-
-    for i, col in enumerate(column_names):
-        if col in TYPES:
-            col_type = TYPES[col]
-            condition = condition.replace(col, "{}(COLS[{}])".format(col_type, i))
-        else:
-            condition = condition.replace(col, "COLS[{}]".format(i))
-
-    # Compile the filtering expression:
-    match_func = compile(condition, "<string>", "eval")
-
     # Columns filtration rule:
     if remove_columns:
         column_scheme = [input_columns.index(COL) for COL in updated_columns]
 
-    for line in body_stream:
+    # Format the condition:
+    condition = condition.strip()
+    if new_chroms is not None:
+        condition = (
+            f"({condition}) and (chrom1 in {new_chroms}) and (chrom2 in {new_chroms})"
+        )
+
+    for filter_passed, line in evaluate_stream(body_stream, condition, column_names, type_cast, startup_code):
         COLS = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
-        # Evaluate filtering expression:
-        filter_passed = eval(match_func)
+
         if remove_columns:
             COLS = [COLS[idx] for idx in column_scheme]  # re-order the columns according to the scheme:
             line = pairsam_format.PAIRSAM_SEP.join(COLS)+'\n'  # form the line
