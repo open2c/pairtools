@@ -235,9 +235,11 @@ class PairCounter(Mapping):
             if key == "no_filter" and self._save_bytile_dups:
                 # Estimate library complexity with information by tile, if provided:
                 if self._bytile_dups.shape[0] > 0:
-                    self._stat[key]["dups_by_tile_median"] = (
-                        self._bytile_dups["dup_count"].median()
-                        * self._bytile_dups.shape[0]
+                    self._stat[key]["dups_by_tile_median"] = int(
+                        round(
+                            self._bytile_dups["dup_count"].median()
+                            * self._bytile_dups.shape[0]
+                        )
                     )
                 if "dups_by_tile_median" in self._stat[key].keys():
                     self._stat[key]["summary"][
