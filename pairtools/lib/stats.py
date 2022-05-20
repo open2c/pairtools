@@ -3,6 +3,7 @@ import pandas as pd
 from scipy import special
 from collections.abc import Mapping
 import sys
+import yaml
 from . import fileio
 from .select import evaluate_df
 
