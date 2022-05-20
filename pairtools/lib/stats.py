@@ -245,7 +245,8 @@ class PairCounter(Mapping):
                     ] = estimate_library_complexity(
                         self._stat[key]["total_mapped"],
                         self._stat[key]["total_dups"],
-                        self._stat[key]["dups_by_tile_median"],
+                        self._stat[key]["total_dups"]
+                        - self._stat[key]["dups_by_tile_median"],
                     )
 
             self._summaries_calculated = True
