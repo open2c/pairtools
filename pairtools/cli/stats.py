@@ -71,6 +71,13 @@ UTIL_NAME = "pairtools_stats"
          """Example: pairtools stats --yaml --filter 'unique:(pair_type=="UU")' --filter 'close:(pair_type=="UU") and (abs(pos1-pos2)<10)' test.pairs """,
 )
 @click.option(
+    "--engine",
+    default="pandas",
+    required=False,
+    help="Engine for regular expression parsing. "
+         "Python will provide you regex functionality, while pandas does not accept custom funtctions and works faster. ",
+)
+@click.option(
     "--chrom-subset",
     type=str,
     default=None,
@@ -169,7 +176,8 @@ def stats_py(
     stats = PairCounter(bytile_dups=bytile_dups,
                         filters=filter,
                         startup_code=kwargs.get("startup_code", ""), # for evaluation of filters
-                        type_cast = kwargs.get("type_cast", ())) # for evaluation of filters
+                        type_cast=kwargs.get("type_cast", ()), # for evaluation of filters
+                        engine=kwargs.get("engine", "pandas"))
 
     # Collecting statistics
     for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
@@ -185,7 +193,8 @@ def stats_py(
     # save statistics to file ...
     stats.save(outstream,
                yaml=kwargs.get("yaml", False), # format as yaml
-               filter=first_filter_name if not kwargs.get("yaml", False) else None) # output only the first filter if non-YAML output
+               filter=first_filter_name if not kwargs.get("yaml", False) else None # output only the first filter if non-YAML output
+               )
 
     if instream != sys.stdin:
         instream.close()

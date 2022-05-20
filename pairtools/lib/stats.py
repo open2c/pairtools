@@ -41,6 +41,7 @@ class PairCounter(Mapping):
             self.filters = {"no_filter": ""}
         self.startup_code = kwargs.get("startup_code", "")
         self.type_cast = kwargs.get("type_cast", ())
+        self.engine = kwargs.get("engine", "pandas")
 
         # Define default filter:
         if "no_filter" not in self.filters:
@@ -454,7 +455,10 @@ class PairCounter(Mapping):
                 df_filtered = df.copy()
             else:
                 condition = self.filters[key]
-                filter_passed = evaluate_df(df, condition, type_cast=self.type_cast, startup_code=self.startup_code)
+                filter_passed = evaluate_df(df, condition,
+                                            type_cast=self.type_cast,
+                                            startup_code=self.startup_code,
+                                            engine=self.engine)
                 df_filtered = df.loc[filter_passed, :].reset_index(drop=True)
             total_count = df_filtered.shape[0]
             self._stat[key]["total"] += total_count

@@ -3,8 +3,6 @@ import re, fnmatch
 
 # Create environment of important functions:
 wildcard_library = {}
-
-
 def wildcard_match(x, wildcard):
     if wildcard not in wildcard_library:
         regex = fnmatch.translate(wildcard)
@@ -14,8 +12,6 @@ def wildcard_match(x, wildcard):
 
 
 csv_library = {}
-
-
 def csv_match(x, csv):
     if csv not in csv_library:
         csv_library[csv] = set(csv.split(","))
@@ -23,8 +19,6 @@ def csv_match(x, csv):
 
 
 regex_library = {}
-
-
 def regex_match(x, regex):
     if regex not in regex_library:
         reobj = re.compile(regex)
@@ -86,11 +80,11 @@ def evaluate_stream(headerless_stream,
         yield filter_passed, line
 
 
-
 def evaluate_df(df,
                 condition,
                 type_cast=(),
-                startup_code=None):
+                startup_code=None,
+                engine='pandas'):
     """
     Evaluate expression for the input headerless stream.
 
@@ -114,11 +108,29 @@ def evaluate_df(df,
     if startup_code is not None:
         exec(startup_code, globals())
 
+    # Set up the column formats:
     for col in df.columns:
         if col in TYPES.keys():
             if not str(df.dtypes[col]) != TYPES[col]:
                 df[col] = df[col].astype(TYPES[col])
 
-    filter_passed_output = df.eval(condition)
+    if engine=='pandas':
+        try:
+            filter_passed_output = df.eval(condition)
+        except ValueError as e:
+            raise ValueError(f"Try passing engine python to fix this: {e}")
+    else:
+        # Set up the columns indexing
+        for i, col in enumerate(df.columns):
+            condition = condition.replace(col, "COLS[{}]".format(i))
+
+        filter_passed_output = []
+        match_func = compile(condition, "<string>", "eval")
+        for i, r in df.iterrows():
+            COLS = r.values
+
+            # Evaluate filtering expression:
+            filter_passed = eval(match_func)
+            filter_passed_output.append(True if filter_passed else False)
 
     return filter_passed_output
