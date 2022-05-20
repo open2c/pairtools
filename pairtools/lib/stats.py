@@ -871,3 +871,28 @@ def extract_tile_info(series, regex=False):
                 f"Unable to convert tile names, does your readID have the tile information?\nHint: SRA removes tile information from readID.\nSample of your readIDs:\n{series.head()}"
             )
         return split
+
+    def yaml2pandas(yaml_path):
+        """Generate a pandas DataFrame with stats from a yaml file
+
+        Formats the keys within each filter using the PairCounter.flatten() method, to
+        achieve same naming as in non-yaml stats files.
+
+        Parameters
+        ----------
+        yaml_path : str
+            Path to a yaml-formatted file with stats
+
+        Returns
+        -------
+        pd.DataFrame
+            Dataframe with filter names in the index and stats in columns
+        """
+        counter = PairCounter.from_yaml(open(yaml_path, "r"))
+        stats = pd.concat(
+            [
+                pd.DataFrame(counter.flatten(filter=filter), index=[filter])
+                for filter in counter.filters
+            ]
+        )
+        return stats
