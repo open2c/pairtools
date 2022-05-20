@@ -33,7 +33,7 @@ class PairCounter(Mapping):
         log10_dist_bin_step=0.25,
         bytile_dups=False,
         filters=None,
-        **kwargs
+        **kwargs,
     ):
         # Define filters and parameters for filters evaluation:
         if filters is not None:
@@ -181,7 +181,7 @@ class PairCounter(Mapping):
                 )
                 # get the index of that bin:
                 bin_idx = (
-                        np.searchsorted(self._dist_bins, int(dist_bin_left), "right") - 1
+                    np.searchsorted(self._dist_bins, int(dist_bin_left), "right") - 1
                 )
                 # store corresponding value:
                 return self._stat["dist_freq"][dirs][bin_idx]
@@ -213,13 +213,13 @@ class PairCounter(Mapping):
             )
 
             for cis_count in (
-                    "cis",
-                    "cis_1kb+",
-                    "cis_2kb+",
-                    "cis_4kb+",
-                    "cis_10kb+",
-                    "cis_20kb+",
-                    "cis_40kb+",
+                "cis",
+                "cis_1kb+",
+                "cis_2kb+",
+                "cis_4kb+",
+                "cis_10kb+",
+                "cis_20kb+",
+                "cis_40kb+",
             ):
                 self._stat[key]["summary"][f"frac_{cis_count}"] = (
                     (self._stat[key][cis_count] / self._stat[key]["total_nodups"])
@@ -236,8 +236,8 @@ class PairCounter(Mapping):
                 # Estimate library complexity with information by tile, if provided:
                 if self._bytile_dups.shape[0] > 0:
                     self._stat[key]["dups_by_tile_median"] = (
-                            self._bytile_dups["dup_count"].median()
-                            * self._bytile_dups.shape[0]
+                        self._bytile_dups["dup_count"].median()
+                        * self._bytile_dups.shape[0]
                     )
                 if "dups_by_tile_median" in self._stat[key].keys():
                     self._stat[key]["summary"][
@@ -332,10 +332,10 @@ class PairCounter(Mapping):
                         )
                         # get the index of that bin:
                         bin_idx = (
-                                np.searchsorted(
-                                    stat_from_file._dist_bins, int(dist_bin_left), "right"
-                                )
-                                - 1
+                            np.searchsorted(
+                                stat_from_file._dist_bins, int(dist_bin_left), "right"
+                            )
+                            - 1
                         )
                         # store corresponding value:
                         stat_from_file._stat[key][dirs][bin_idx] = int(fields[1])
@@ -402,7 +402,7 @@ class PairCounter(Mapping):
         self._stat["no_filter"]["total"] += 1
         # collect pair type stats including DD:
         self._stat["no_filter"]["pair_types"][pair_type] = (
-                self._stat["no_filter"]["pair_types"].get(pair_type, 0) + 1
+            self._stat["no_filter"]["pair_types"].get(pair_type, 0) + 1
         )
         if chrom1 == "!" and chrom2 == "!":
             self._stat["no_filter"]["total_unmapped"] += 1
@@ -414,7 +414,7 @@ class PairCounter(Mapping):
             else:
                 self._stat["no_filter"]["total_nodups"] += 1
                 self._stat["no_filter"]["chrom_freq"][(chrom1, chrom2)] = (
-                        self._stat["no_filter"]["chrom_freq"].get((chrom1, chrom2), 0) + 1
+                    self._stat["no_filter"]["chrom_freq"].get((chrom1, chrom2), 0) + 1
                 )
 
                 if chrom1 == chrom2:
@@ -422,7 +422,7 @@ class PairCounter(Mapping):
                     dist = np.abs(pos2 - pos1)
                     bin = self._dist_bins[
                         np.searchsorted(self._dist_bins, dist, "right") - 1
-                        ]
+                    ]
                     self._stat["no_filter"]["dist_freq"][strand1 + strand2][bin] += 1
                     if dist >= 1000:
                         self._stat["no_filter"]["cis_1kb+"] += 1
@@ -456,20 +456,23 @@ class PairCounter(Mapping):
                 df_filtered = df.copy()
             else:
                 condition = self.filters[key]
-                filter_passed = evaluate_df(df, condition,
-                                            type_cast=self.type_cast,
-                                            startup_code=self.startup_code,
-                                            engine=self.engine)
+                filter_passed = evaluate_df(
+                    df,
+                    condition,
+                    type_cast=self.type_cast,
+                    startup_code=self.startup_code,
+                    engine=self.engine,
+                )
                 df_filtered = df.loc[filter_passed, :].reset_index(drop=True)
             total_count = df_filtered.shape[0]
             self._stat[key]["total"] += total_count
 
             # collect pair type stats including DD:
             for pair_type, type_count in (
-                    df_filtered["pair_type"].value_counts().items()
+                df_filtered["pair_type"].value_counts().items()
             ):
                 self._stat[key]["pair_types"][pair_type] = (
-                        self._stat[key]["pair_types"].get(pair_type, 0) + type_count
+                    self._stat[key]["pair_types"].get(pair_type, 0) + type_count
                 )
 
             # Count the unmapped by the "unmapped" chromosomes (debatable, as WW are also marked as ! and they might be mapped):
@@ -481,10 +484,10 @@ class PairCounter(Mapping):
 
             # Count the mapped:
             df_mapped = df_filtered.loc[
-                        (df_filtered["chrom1"] != unmapped_chrom)
-                        & (df_filtered["chrom2"] != unmapped_chrom),
-                        :,
-                        ]
+                (df_filtered["chrom1"] != unmapped_chrom)
+                & (df_filtered["chrom2"] != unmapped_chrom),
+                :,
+            ]
             mapped_count = df_mapped.shape[0]
 
             self._stat[key]["total_mapped"] += mapped_count
@@ -508,10 +511,10 @@ class PairCounter(Mapping):
 
             # Count pairs per chromosome:
             for (chrom1, chrom2), chrom_count in (
-                    df_nodups[["chrom1", "chrom2"]].value_counts().items()
+                df_nodups[["chrom1", "chrom2"]].value_counts().items()
             ):
                 self._stat[key]["chrom_freq"][(chrom1, chrom2)] = (
-                        self._stat[key]["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
+                    self._stat[key]["chrom_freq"].get((chrom1, chrom2), 0) + chrom_count
                 )
 
             # Count cis-trans by pairs:
@@ -521,10 +524,10 @@ class PairCounter(Mapping):
             dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
 
             df_cis.loc[:, "bin_idx"] = (
-                    np.searchsorted(self._dist_bins, dist, "right") - 1
+                np.searchsorted(self._dist_bins, dist, "right") - 1
             )
             for (strand1, strand2, bin_id), strand_bin_count in (
-                    df_cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
+                df_cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
             ):
                 self._stat[key]["dist_freq"][strand1 + strand2][
                     self._dist_bins[bin_id].item()
@@ -544,7 +547,7 @@ class PairCounter(Mapping):
                 ).astype(int)
 
     def add_chromsizes(self, chromsizes):
-        """ Add chromsizes field to the output stats
+        """Add chromsizes field to the output stats
         Parameters
         ----------
         chromsizes: Dataframe with chromsizes, read by headerops.chromsizes
@@ -626,9 +629,7 @@ class PairCounter(Mapping):
                                 dist_next = self._dist_bins[i + 1]
                                 formatted_key = self._KEY_SEP.join(
                                     ["{}", "{}-{}", "{}"]
-                                ).format(
-                                    k, dist, dist_next, dirs
-                                )
+                                ).format(k, dist, dist_next, dirs)
                             else:
                                 formatted_key = self._KEY_SEP.join(
                                     ["{}", "{}+", "{}"]
@@ -718,7 +719,7 @@ class PairCounter(Mapping):
 
             data = self.format_yaml()
             yaml.dump(data, outstream, default_flow_style=False, sort_keys=False)
-        else: # will output a single filter
+        else:  # will output a single filter
             data = self.flatten(filter=filter)
             for k, v in data.items():
                 outstream.write("{}{}{}\n".format(k, self._SEP, v))
@@ -827,9 +828,9 @@ def analyse_bytile_duplicate_stats(df_dups, tile_dup_regex=False):
     df_dups["same_tile"] = df_dups["tile"] == df_dups["parent_tile"]
     bytile_dups = (
         df_dups.groupby(["tile", "parent_tile"])
-            .size()
-            .reset_index(name="dup_count")
-            .sort_values(["tile", "parent_tile"])
+        .size()
+        .reset_index(name="dup_count")
+        .sort_values(["tile", "parent_tile"])
     )
     bytile_dups[["tile", "parent_tile"]] = np.sort(
         bytile_dups[["tile", "parent_tile"]].values, axis=1

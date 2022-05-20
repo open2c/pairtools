@@ -85,7 +85,7 @@ def select(
     startup_code,
     type_cast,
     remove_columns,
-    **kwargs
+    **kwargs,
 ):
     """Select pairs according to some condition.
 
@@ -133,7 +133,7 @@ def select(
         startup_code,
         type_cast,
         remove_columns,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -146,7 +146,7 @@ def select_py(
     startup_code,
     type_cast,
     remove_columns,
-    **kwargs
+    **kwargs,
 ):
 
     instream = fileio.auto_open(
@@ -226,12 +226,16 @@ def select_py(
             f"({condition}) and (chrom1 in {new_chroms}) and (chrom2 in {new_chroms})"
         )
 
-    for filter_passed, line in evaluate_stream(body_stream, condition, column_names, type_cast, startup_code):
+    for filter_passed, line in evaluate_stream(
+        body_stream, condition, column_names, type_cast, startup_code
+    ):
         COLS = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
 
         if remove_columns:
-            COLS = [COLS[idx] for idx in column_scheme]  # re-order the columns according to the scheme:
-            line = pairsam_format.PAIRSAM_SEP.join(COLS)+'\n'  # form the line
+            COLS = [
+                COLS[idx] for idx in column_scheme
+            ]  # re-order the columns according to the scheme:
+            line = pairsam_format.PAIRSAM_SEP.join(COLS) + "\n"  # form the line
 
         if filter_passed:
             outstream.write(line)

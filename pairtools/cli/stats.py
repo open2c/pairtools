@@ -11,6 +11,7 @@ from . import cli, common_io_options
 from ..lib.stats import PairCounter, do_merge
 
 from .._logging import get_logger
+
 logger = get_logger()
 
 UTIL_NAME = "pairtools_stats"
@@ -67,15 +68,15 @@ UTIL_NAME = "pairtools_stats"
     required=False,
     multiple=True,
     help="Filters with conditions to apply to the data (similar to `pairtools select`). "
-         "For non-YAML output only the first filter will be reported. "
-         """Example: pairtools stats --yaml --filter 'unique:(pair_type=="UU")' --filter 'close:(pair_type=="UU") and (abs(pos1-pos2)<10)' test.pairs """,
+    "For non-YAML output only the first filter will be reported. "
+    """Example: pairtools stats --yaml --filter 'unique:(pair_type=="UU")' --filter 'close:(pair_type=="UU") and (abs(pos1-pos2)<10)' test.pairs """,
 )
 @click.option(
     "--engine",
     default="pandas",
     required=False,
     help="Engine for regular expression parsing. "
-         "Python will provide you regex functionality, while pandas does not accept custom funtctions and works faster. ",
+    "Python will provide you regex functionality, while pandas does not accept custom funtctions and works faster. ",
 )
 @click.option(
     "--chrom-subset",
@@ -106,9 +107,10 @@ UTIL_NAME = "pairtools_stats"
     "are cast to int, other columns are kept as str. Provide as "
     "-t <column_name> <type>, e.g. -t read_len1 int. Multiple entries are allowed.",
 )
-
 @common_io_options
-def stats(input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs):
+def stats(
+    input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs
+):
     """Calculate pairs statistics.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
@@ -120,7 +122,13 @@ def stats(input_path, output, merge, bytile_dups, output_bytile_stats, filter, *
     """
 
     stats_py(
-        input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs,
+        input_path,
+        output,
+        merge,
+        bytile_dups,
+        output_bytile_stats,
+        filter,
+        **kwargs,
     )
 
 
@@ -162,22 +170,26 @@ def stats_py(
         bytile_dups = False
 
     # Define filters and their properties
-    first_filter_name = "no_filter" # default filter name for full output
-    if filter is not None and len(filter)>0:
-        first_filter_name = filter[0].split(':', 1)[0]
-        if len(filter)>1 and not kwargs.get("yaml", False):
-            logger.warn(f"Output the first filter only in non-YAML output: {first_filter_name}")
+    first_filter_name = "no_filter"  # default filter name for full output
+    if filter is not None and len(filter) > 0:
+        first_filter_name = filter[0].split(":", 1)[0]
+        if len(filter) > 1 and not kwargs.get("yaml", False):
+            logger.warn(
+                f"Output the first filter only in non-YAML output: {first_filter_name}"
+            )
 
-        filter = dict([f.split(':', 1) for f in filter])
+        filter = dict([f.split(":", 1) for f in filter])
     else:
         filter = None
 
     # new stats class stuff would come here ...
-    stats = PairCounter(bytile_dups=bytile_dups,
-                        filters=filter,
-                        startup_code=kwargs.get("startup_code", ""), # for evaluation of filters
-                        type_cast=kwargs.get("type_cast", ()), # for evaluation of filters
-                        engine=kwargs.get("engine", "pandas"))
+    stats = PairCounter(
+        bytile_dups=bytile_dups,
+        filters=filter,
+        startup_code=kwargs.get("startup_code", ""),  # for evaluation of filters
+        type_cast=kwargs.get("type_cast", ()),  # for evaluation of filters
+        engine=kwargs.get("engine", "pandas"),
+    )
 
     # Collecting statistics
     for chunk in pd.read_table(body_stream, names=cols, chunksize=100_000):
@@ -191,10 +203,13 @@ def stats_py(
         stats.save_bytile_dups(output_bytile_stats)
 
     # save statistics to file ...
-    stats.save(outstream,
-               yaml=kwargs.get("yaml", False), # format as yaml
-               filter=first_filter_name if not kwargs.get("yaml", False) else None # output only the first filter if non-YAML output
-               )
+    stats.save(
+        outstream,
+        yaml=kwargs.get("yaml", False),  # format as yaml
+        filter=first_filter_name
+        if not kwargs.get("yaml", False)
+        else None,  # output only the first filter if non-YAML output
+    )
 
     if instream != sys.stdin:
         instream.close()
