@@ -3,7 +3,6 @@ from . import dedup
 from . import dedup_cython
 from . import filterbycov
 from . import headerops
-from . import markasdup
 from . import pairsam_format
 from . import parse
 from . import parse_pysam

@@ -6,7 +6,7 @@ import click
 from ..lib import fileio, pairsam_format, headerops
 from . import cli, common_io_options
 
-from ..lib.markasdup import mark_split_pair_as_dup
+from ..lib.dedup import mark_split_pair_as_dup
 
 
 UTIL_NAME = "pairtools_markasdup"
@@ -25,7 +25,7 @@ UTIL_NAME = "pairtools_markasdup"
 )
 @common_io_options
 def markasdup(pairsam_path, output, **kwargs):
-    """Tag pairs as duplicates.
+    """Tag all pairs in the input file as duplicates.
 
     Change the type of all pairs inside a .pairs/.pairsam file to DD. If sam
     entries are present, change the pair type in the Yt SAM tag to 'Yt:Z:DD'.

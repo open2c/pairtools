@@ -1,7 +1,7 @@
 import numpy as np
 import warnings
 
-from .markasdup import mark_split_pair_as_dup
+from .dedup import mark_split_pair_as_dup
 from . import pairsam_format
 
 
@@ -226,7 +226,7 @@ def streaming_filterbycov(
                         )
                     if outstream_high:
                         outstream_high.write(
-                            # FF-marked pair:
+                            # DD-marked pair:
                             sep.join(mark_split_pair_as_dup(cols_buffer[i]))
                             if mark_multi
                             # pair as is:
