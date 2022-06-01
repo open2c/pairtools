@@ -79,11 +79,11 @@ Contents:
   :caption: Tutorials
   :titlesonly:
 
-  ../examples/pairtools_walkthrough.ipynb
-  ../examples/scaling_example.ipynb
-  ../examples/pairtools_restrict_walkthrough.ipynb
-  ../examples/pairtools_phase_walkthrough.ipynb
-  ../examples/benchmark/benchmark.ipynb
+  ./examples/pairtools_walkthrough.ipynb
+  ./examples/scaling_example.ipynb
+  ./examples/pairtools_restrict_walkthrough.ipynb
+  ./examples/pairtools_phase_walkthrough.ipynb
+  ./examples/benchmark/benchmark.ipynb
 
 
 * :ref:`genindex`
