@@ -1,10 +1,14 @@
 Cython
 numpy
 nose
-click
 scipy
 pandas
 pysam
-git+https://github.com/golobor/sphinx-click
-sphinx_rtd_theme
 bioframe
+click>=7.0
+git+https://github.com/golobor/sphinx-click
+ipython
+nbsphinx
+Sphinx
+sphinx_rtd_theme
+docutils<=0.16
