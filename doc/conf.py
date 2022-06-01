@@ -29,7 +29,19 @@ import os
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx_click.ext']
+extensions = [
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.mathjax',
+    'sphinx_click.ext',
+    'recommonmark',
+    'nbsphinx',
+    'sphinx_rtd_theme'
+]
 #extensions = []
 
 # Add any paths that contain templates here, relative to this directory.
