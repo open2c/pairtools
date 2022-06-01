@@ -6,6 +6,7 @@ import ast
 import pathlib
 
 from .._logging import get_logger
+
 logger = get_logger()
 
 from ..lib import fileio, pairsam_format, headerops
@@ -165,10 +166,14 @@ UTIL_NAME = "pairtools_dedup"
     "--sep",
     type=str,
     default=pairsam_format.PAIRSAM_SEP_ESCAPE,
-    help=r"Separator (\t, \v, etc. characters are " "supported, pass them in quotes). [input format option]",
+    help=r"Separator (\t, \v, etc. characters are "
+    "supported, pass them in quotes). [input format option]",
 )
 @click.option(
-    "--comment-char", type=str, default="#", help="The first character of comment lines. [input format option]"
+    "--comment-char",
+    type=str,
+    default="#",
+    help="The first character of comment lines. [input format option]",
 )
 @click.option(
     "--send-header-to",
@@ -264,7 +269,7 @@ UTIL_NAME = "pairtools_dedup"
     "If provided, additionally filter pairs with both sides originating from "
     "the provided subset of chromosomes. This operation modifies the #chromosomes: "
     "and #chromsize: header fields accordingly.  "
-    "Note that this will not change the deduplicated output pairs. [output stats filtering option]"
+    "Note that this will not change the deduplicated output pairs. [output stats filtering option]",
 )
 @click.option(
     "--startup-code",
@@ -284,7 +289,6 @@ UTIL_NAME = "pairtools_dedup"
     "are cast to int, other columns are kept as str. Provide as "
     "-t <column_name> <type>, e.g. -t read_len1 int. Multiple entries are allowed. [output stats filtering option]",
 )
-
 @common_io_options
 def dedup(
     pairs_path,
@@ -413,14 +417,16 @@ def dedup_py(
     bytile_dups = False
     if output_bytile_stats:
         out_bytile_stats_stream = fileio.auto_open(
-                output_bytile_stats,
-                mode="w",
-                nproc=kwargs.get("nproc_out"),
-                command=kwargs.get("cmd_out", None),
+            output_bytile_stats,
+            mode="w",
+            nproc=kwargs.get("nproc_out"),
+            command=kwargs.get("cmd_out", None),
         )
         bytile_dups = True
         if not keep_parent_id:
-            logger.warning("Force output --parent-readID because --output-bytile-stats provided.")
+            logger.warning(
+                "Force output --parent-readID because --output-bytile-stats provided."
+            )
             keep_parent_id = True
 
     # generate empty PairCounter if stats output is requested:

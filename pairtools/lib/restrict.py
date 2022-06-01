@@ -1,6 +1,7 @@
 from . import pairsam_format
 import warnings
 
+
 def find_rfrag(rfrags, chrom, pos):
 
     # Return empty if chromosome is unmapped:

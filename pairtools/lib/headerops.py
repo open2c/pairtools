@@ -12,12 +12,14 @@ from . import pairsam_format
 from .fileio import ParseError
 
 from .._logging import get_logger
+
 logger = get_logger()
 
 PAIRS_FORMAT_VERSION = "1.0.0"
 SEP_COLS = " "
 SEP_CHROMS = " "
 COMMENT_CHAR = "#"
+
 
 def get_stream_handlers(instream):
     # get peekable buffer for the instream
@@ -31,6 +33,7 @@ def get_stream_handlers(instream):
     else:
         raise ValueError("Cannot find the peek() function of the provided stream!")
     return readline_f, peek_f
+
 
 def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
     """Returns a header from the stream and an the reaminder of the stream
@@ -73,8 +76,10 @@ def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
     # apparently, next line does not start with the comment
     # return header and the instream, advanced to the beginning of the data
 
-    if len(header)==0 and not ignore_warning:
-        logger.warning("Headerless input, please, add the header by `pairtools header generate` or `pairtools header transfer`")
+    if len(header) == 0 and not ignore_warning:
+        logger.warning(
+            "Headerless input, please, add the header by `pairtools header generate` or `pairtools header transfer`"
+        )
 
     return header, instream
 
@@ -146,9 +151,11 @@ def validate_cols(stream, columns):
         line = line.decode()
 
     ncols_body = len(line.split(pairsam_format.PAIRSAM_SEP))
-    ncols_reference = len(columns) if isinstance(columns, list) else columns.split(SEP_COLS)
+    ncols_reference = (
+        len(columns) if isinstance(columns, list) else columns.split(SEP_COLS)
+    )
 
-    return ncols_body==ncols_reference
+    return ncols_body == ncols_reference
 
 
 def validate_header_cols(stream, header):
@@ -159,7 +166,7 @@ def validate_header_cols(stream, header):
 
 
 def is_empty_header(header):
-    if len(header)==0:
+    if len(header) == 0:
         return True
     if not header[0].startswith("##"):
         return True
@@ -781,8 +788,9 @@ def set_columns(header, columns):
     """
     for i in range(len(header)):
         if header[i].startswith("#columns:"):
-            header[i] = "#columns:"+ SEP_COLS + SEP_COLS.join(columns)
+            header[i] = "#columns:" + SEP_COLS + SEP_COLS.join(columns)
     return header
+
 
 # def _guess_genome_assembly(samheader):
 #    PG = [l for l in samheader if l.startswith('@PG') and '\tID:bwa' in l][0]

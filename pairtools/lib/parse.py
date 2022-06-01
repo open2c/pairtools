@@ -75,9 +75,9 @@ def streaming_classify(
         )
     )
     add_columns = kwargs.get("add_columns", "")
-    if isinstance(add_columns, str) and len(add_columns)>0:
+    if isinstance(add_columns, str) and len(add_columns) > 0:
         add_columns = add_columns.split(",")
-    elif len(add_columns)==0:
+    elif len(add_columns) == 0:
         add_columns = []
     elif not isinstance(add_columns, list):
         raise ValueError(f"Unknown type of add_columns: {type(add_columns)}")
@@ -458,7 +458,7 @@ def parse_read(
 
             # Walk was rescued as a simple walk:
             if rescued_linear_side is not None:
-                pair_index = (1, "R1" if rescued_linear_side==1 else "R2")
+                pair_index = (1, "R1" if rescued_linear_side == 1 else "R2")
             # Walk is unrescuable:
             else:
                 if walks_policy == "mask":
@@ -915,7 +915,7 @@ def parse_complex_walk(
             if (
                 n_algns1 >= 2
             ):  # single alignment on right read and multiple alignments on left
-                pair_index = (len(algns1)-1, "R1")
+                pair_index = (len(algns1) - 1, "R1")
                 output_pairs.append(
                     format_pair(
                         algns1[-2],
@@ -1001,12 +1001,15 @@ def parse_complex_walk(
     for i in reporting_order:
         # Determine the pair index depending on what is the overlap:
         shift = -1 if current_right_pair > 1 else 0
-        pair_index = ((
-            n_algns1
-            + min(current_right_pair, n_algns2 - last_reported_alignment_right)
-            - i
-            + shift
-        ), "R2")
+        pair_index = (
+            (
+                n_algns1
+                + min(current_right_pair, n_algns2 - last_reported_alignment_right)
+                - i
+                + shift
+            ),
+            "R2",
+        )
         output_pairs.append(
             format_pair(
                 algns2[i + 1],

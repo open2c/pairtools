@@ -16,15 +16,17 @@ UTIL_NAME = "pairtools_scaling"
 
 @cli.command()
 @click.argument("input_path", type=str, nargs=-1, required=False)
-@click.option("-o", "--output", type=str, default="", help="output .tsv file with summary.")
+@click.option(
+    "-o", "--output", type=str, default="", help="output .tsv file with summary."
+)
 @click.option(
     "--view",
     "--regions",
     help="Path to a BED file which defines which regions (viewframe) of the chromosomes to use. "
-         "By default, this is parsed from .pairs header. ",
+    "By default, this is parsed from .pairs header. ",
     type=str,
     required=False,
-    default=None
+    default=None,
 )
 @click.option(
     "--chunksize",
@@ -94,7 +96,7 @@ def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins, **k
     summary_stats = pd.concat([cis_scalings, trans_levels])
 
     # save statistics to the file
-    summary_stats.to_csv(outstream, sep='\t')
+    summary_stats.to_csv(outstream, sep="\t")
 
     if instream != sys.stdin:
         instream.close()

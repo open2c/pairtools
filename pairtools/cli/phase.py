@@ -9,6 +9,7 @@ from ..lib.phase import phase_side_XB, phase_side_XA
 
 UTIL_NAME = "pairtools_phase"
 
+
 @cli.command()
 @click.argument("pairs_path", type=str, required=False)
 @click.option(
@@ -47,10 +48,12 @@ UTIL_NAME = "pairtools_phase"
     is_flag=True,
     default=False,
     help="Report scores of optional, suboptimal and second suboptimal alignments. "
-         "NM (edit distance) with --tag-mode XA and AS (alfn score) with --tag-mode XB ",
+    "NM (edit distance) with --tag-mode XA and AS (alfn score) with --tag-mode XB ",
 )
 @common_io_options
-def phase(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_scores, **kwargs):
+def phase(
+    pairs_path, output, phase_suffixes, clean_output, tag_mode, report_scores, **kwargs
+):
     """Phase pairs mapped to a diploid genome.
     Diploid genome is the genome with two set of the chromosome variants,
     where each chromosome has one of two suffixes (phase-suffixes)
@@ -70,14 +73,24 @@ def phase(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_sco
     input is decompressed by bgzip/lz4c. By default, the input is read from stdin.
 
     """
-    phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_scores, **kwargs)
+    phase_py(
+        pairs_path,
+        output,
+        phase_suffixes,
+        clean_output,
+        tag_mode,
+        report_scores,
+        **kwargs
+    )
 
 
 if __name__ == "__main__":
     phase()
 
 
-def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_scores, **kwargs):
+def phase_py(
+    pairs_path, output, phase_suffixes, clean_output, tag_mode, report_scores, **kwargs
+):
 
     instream = (
         fileio.auto_open(
@@ -111,9 +124,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
             col for col in old_column_names if col in pairsam_format.COLUMNS
         ]
         new_column_idxs = [
-            i
-            for i, col in enumerate(old_column_names)
-            if col in pairsam_format.COLUMNS
+            i for i, col in enumerate(old_column_names) if col in pairsam_format.COLUMNS
         ]
         new_column_idxs += [idx_phase1, idx_phase2]
     else:
@@ -123,7 +134,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
     new_column_names.append("phase2")
 
     if report_scores:
-        if tag_mode=="XB":
+        if tag_mode == "XB":
             new_column_names.append("S1_1")
             new_column_names.append("S1_2")
             new_column_names.append("S2_1")
@@ -132,7 +143,7 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
             new_column_names.append("S3_2")
             if clean_output:
                 new_column_idxs += [(idx_phase2 + i + 1) for i in range(6)]
-        elif tag_mode=="XA":
+        elif tag_mode == "XA":
             new_column_names.append("M1_1")
             new_column_names.append("M1_2")
             new_column_names.append("M2_1")
@@ -222,8 +233,12 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
             if not report_scores:
                 cols[idx_phase1] = phase1
             else:
-                cols[idx_phase1], cols[idx_phase1+2], cols[idx_phase1+4], cols[idx_phase1+6] \
-                    = phase1, str(S1_1), str(S2_1), str(S3_1)
+                (
+                    cols[idx_phase1],
+                    cols[idx_phase1 + 2],
+                    cols[idx_phase1 + 4],
+                    cols[idx_phase1 + 6],
+                ) = (phase1, str(S1_1), str(S2_1), str(S3_1))
             cols[pairsam_format.COL_C1] = chrom_base1
 
             if chrom_base1 == "!":
@@ -254,8 +269,12 @@ def phase_py(pairs_path, output, phase_suffixes, clean_output, tag_mode, report_
             if not report_scores:
                 cols[idx_phase2] = phase2
             else:
-                cols[idx_phase2], cols[idx_phase2+2], cols[idx_phase2+4], cols[idx_phase2+6] \
-                    = phase2, str(S1_2), str(S2_2), str(S3_2)
+                (
+                    cols[idx_phase2],
+                    cols[idx_phase2 + 2],
+                    cols[idx_phase2 + 4],
+                    cols[idx_phase2 + 6],
+                ) = (phase2, str(S1_2), str(S2_2), str(S3_2))
             cols[pairsam_format.COL_C2] = chrom_base2
 
             if chrom_base2 == "!":

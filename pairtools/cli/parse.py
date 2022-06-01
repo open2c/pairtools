@@ -269,12 +269,7 @@ def parse_py(
 
     ### Parse input and write to the outputs
     streaming_classify(
-        input_sam,
-        outstream,
-        chromosomes,
-        out_alignments_stream,
-        out_stat,
-        **kwargs
+        input_sam, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
     )
 
     # save statistics to a file if it was requested:

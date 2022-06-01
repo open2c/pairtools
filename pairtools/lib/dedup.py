@@ -9,6 +9,7 @@ from . import dedup_cython, pairsam_format
 from .stats import PairCounter
 
 from .._logging import get_logger
+
 logger = get_logger()
 import time
 
@@ -97,7 +98,7 @@ def streaming_dedup(
     t1 = time.time()
     t = t1 - t0
     logger.debug(f"total time: {t}")
-    if N>0:
+    if N > 0:
         logger.debug(f"time per mln pairs: {t/N*1e6}")
     else:
         logger.debug(f"Processed {N} pairs")
@@ -529,7 +530,7 @@ def streaming_dedup_cython(
     t1 = time.time()
     t = t1 - t0
     logger.debug(f"total time: {t}")
-    if N>0:
+    if N > 0:
         logger.debug(f"time per mln pairs: {t/N*1e6}")
     else:
         logger.debug(f"Processed {N} pairs")
