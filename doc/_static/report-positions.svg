@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="88px" height="85px" viewBox="0 0 88 85" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>report-positions</title>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="report-positions" transform="translate(0.805945, 0.953422)">
+            <line x1="47.1446958" y1="0.99559924" x2="39.3554527" y2="0.99559924" id="path4191-9-2-29-3" stroke="#000000" stroke-width="0.5" stroke-dasharray="1.693333333331004,0.5644444444436679"></line>
+            <line x1="24.1452627" y1="1.96846158" x2="27.6940547" y2="13.546578" id="path5953-8-5-9-9" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="32.0240295" y1="1.96846158" x2="30.6940547" y2="13.546578" id="path5955-8-8-6-1" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="47.3941463" y1="2.01835282" x2="42.6940547" y2="7.546578" id="path5972-8-5-0-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="53.6940547" y1="1.546578" x2="45.6940547" y2="7.546578" id="path5974-4-0-2-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="53.3941463" y1="2.01835282" x2="48.6940547" y2="19.546578" id="path5972-8-5-0-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="62.6940547" y1="1.546578" x2="52.6940547" y2="19.546578" id="path5974-4-0-2-8" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <g id="g7455-1-7-1-5" transform="translate(24.094459, -0.000000)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-7-7-3-2" fill="#C44E52" fill-rule="nonzero" stroke-linecap="round" x="1.52655666e-16" y="0.0612360911" width="8.00856412" height="1.86873176"></rect>
+                <g id="g6125-3-5-76-2-7" transform="translate(1.737020, 0.000000)">
+                    <polyline id="path6063-8-1-9-1-9" points="0.1264411 0 0.88246596 0.952153593 0.11753404 1.91552505"></polyline>
+                    <polyline id="path6063-9-3-74-1-5-1" points="3.09012371 0 3.84614858 0.952153593 3.08121666 1.91552505"></polyline>
+                </g>
+                <rect id="rect4138-6-7-7-2-9-9" fill="#009900" fill-rule="nonzero" stroke-linecap="round" x="8.00551838" y="0.0628154061" width="7.21032001" height="1.86873069"></rect>
+                <g id="g6125-3-5-76-1-9-6" transform="translate(9.876804, 0.026190)">
+                    <polyline id="path6063-8-1-9-7-1-3" points="0.1264411 0 0.88246596 0.952153593 0.11753404 1.91552505"></polyline>
+                    <polyline id="path6063-9-3-74-1-7-4-6" points="3.09012371 0 3.84614858 0.952153593 3.08121666 1.91552505"></polyline>
+                </g>
+            </g>
+            <rect id="rect4138-7-1-8-1-4" stroke="#000000" stroke-width="0.5" fill="#3E9ADE" fill-rule="nonzero" stroke-linecap="round" x="47.2192758" y="0.06123569" width="6" height="1.86873123"></rect>
+            <rect id="rect4138-7-1-8-1-4" stroke="#000000" stroke-width="0.5" fill="#DEB93E" fill-rule="nonzero" stroke-linecap="round" x="53.2192758" y="0.06123569" width="10" height="1.86873123"></rect>
+            <g id="g6125-3-4-7-8-07-6" transform="translate(55.173823, 0.997449) scale(-1, 1) translate(-55.173823, -0.997449) translate(48.746460, 0.039686)" stroke="#000000" stroke-width="0.5">
+                <polyline id="path6063-8-7-0-0-5-6" points="0.1264411 0 0.88246596 0.952153593 0.11753404 1.91552505"></polyline>
+                <polyline id="path6063-9-3-6-4-3-8-7" points="3.09012371 0 3.84614858 0.952153593 3.08121666 1.91552505"></polyline>
+                <polyline id="path6063-9-9-3-8-0-70-7-2" points="6.05380235 0 6.80982721 0.952153593 6.04489529 1.91552505"></polyline>
+                <polyline id="path6063-9-9-1-3-9-8-6-0-7" points="9.01748382 0 9.77351121 0.952153593 9.00857904 1.91552505"></polyline>
+                <polyline id="path6063-9-9-1-4-80-0-5-9-48-4" points="11.9811684 0 12.737193 0.952153593 11.9722608 1.91552505"></polyline>
+            </g>
+            <path d="M24.3402106,7.54263187 C24.0036831,7.51963076 23.4216139,7.93230456 23.4253967,8.9959098 C23.4293383,10.059515 24.0114019,10.4716498 24.3479265,10.4486374 L55.2170867,10.4486374 L55.5682106,9.8263176 L58.4102759,9.8263176 L59.0474829,10.4486374 L63.2168731,10.4486374 C63.5820969,10.3551061 64.0252733,9.7540998 64.0184261,8.99239331 C64.0109251,8.23068682 63.572126,7.63558458 63.2091572,7.54263187 L59.0397641,7.54263187 L58.40256,8.16550478 L55.5604947,8.16550478 L55.2093707,7.54263187 L24.3402106,7.54263187 Z" id="path5671-5-9-0-1" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <path d="M24.4048479,13.4150481 C24.0683205,13.392047 23.4862513,13.8047208 23.4900341,14.8683261 C23.4939757,15.9319313 24.0760393,16.3440661 24.4125639,16.3210537 L55.281724,16.3210537 L55.632848,15.6987339 L58.4749133,15.6987339 L59.1121202,16.3210537 L63.2815105,16.3210537 C63.6467343,16.2275224 64.0899106,15.6265161 64.0830634,14.8648096 C64.0755625,14.1031031 63.6367634,13.5080008 63.2737945,13.4150481 L59.1044015,13.4150481 L58.4671973,14.037921 L55.625132,14.037921 L55.2740081,13.4150481 L24.4048479,13.4150481 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <path d="M24.4048479,19.4150481 C24.0683205,19.392047 23.4862513,19.8047208 23.4900341,20.8683261 C23.4939757,21.9319313 24.0760393,22.3440661 24.4125639,22.3210537 L55.281724,22.3210537 L55.632848,21.6987339 L58.4749133,21.6987339 L59.1121202,22.3210537 L63.2815105,22.3210537 C63.6467343,22.2275224 64.0899106,21.6265161 64.0830634,20.8648096 C64.0755625,20.1031031 63.6367634,19.5080008 63.2737945,19.4150481 L59.1044015,19.4150481 L58.4671973,20.037921 L55.625132,20.037921 L55.2740081,19.4150481 L24.4048479,19.4150481 Z" id="path5671-5-9-9-4-0" stroke="#000000" stroke-width="0.5" fill="#FFFFFF" fill-rule="nonzero"></path>
+            <g id="g7464-3-6-2-0" transform="translate(44.267686, 8.980006) scale(-1, 1) translate(-44.267686, -8.980006) translate(42.767686, 7.609101)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-1-7-0-9-6" fill="#3E9ADE" fill-rule="nonzero" stroke-linecap="round" x="1.11022302e-16" y="2.77555756e-17" width="3" height="2.74181073"></rect>
+                <g id="g6125-1-83-6-4" transform="translate(0.229949, 0.073755)">
+                    <polyline id="path6063-9-9-0-21-4-7" points="0.129310566 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-9-0-22-3" points="0.82979092 6.24500451e-17 1.58000842 1.29941462 0.82095228 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-7-5-2-4" points="1.53027155 6.24500451e-17 2.28048906 1.29941462 1.52143292 2.61413837"></polyline>
+                </g>
+            </g>
+            <g id="Group-5" transform="translate(13.485525, 51.046578)" fill-rule="nonzero">
+                <g id="Group" transform="translate(13.098541, 2.074467)">
+                    <g id="g7464-3-6-2-0" stroke-linecap="round" transform="translate(18.109989, 11.425533) scale(-1, 1) translate(-18.109989, -11.425533) translate(16.609989, 10.925533)" fill="#3E9ADE" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-7-0-9-6" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="g7473-9-8-8-8-5" stroke-linecap="round" transform="translate(24.609989, 11.425533) rotate(-180.000000) translate(-24.609989, -11.425533) translate(22.609989, 10.925533)" fill="#DEB93E" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-5-9-5-7-3-68" x="0" y="0" width="4" height="1"></rect>
+                    </g>
+                    <g id="g7473-9-8-8-8-5-2" stroke-linecap="round" transform="translate(9.109989, 3.425533) scale(-1, 1) rotate(-180.000000) translate(-9.109989, -3.425533) translate(7.609989, 2.925533)" fill="#009900" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-5-9-5-7-3-68-1" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="g7473-9-8-0-7" stroke-linecap="round" transform="translate(1.609989, 2.925533)" fill="#C44E52" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-5-9-5-5-2" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="*" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="-1.19949929e-24" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="*" transform="translate(6.000000, 0.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="*" transform="translate(19.000000, 8.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="g7464-3-6-2-0" stroke-linecap="round" transform="translate(18.109989, 7.425533) scale(-1, 1) translate(-18.109989, -7.425533) translate(16.609989, 6.925533)" fill="#3E9ADE" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-7-0-9-6" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="g7473-9-8-8-8-5-2" stroke-linecap="round" transform="translate(9.109989, 7.425533) scale(-1, 1) rotate(-180.000000) translate(-9.109989, -7.425533) translate(7.609989, 6.925533)" fill="#009900" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-5-9-5-7-3-68-1" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="*" transform="translate(6.000000, 4.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="*" transform="translate(19.000000, 4.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="*" transform="translate(26.000000, 8.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                </g>
+                <g id="read" transform="translate(0.000000, 7.074467)" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                    <text>
+                        <tspan x="-1.66533454e-16" y="3">read</tspan>
+                    </text>
+                </g>
+                <g id="{" transform="translate(8.711030, 0.000000)" fill="#000000" font-family="Helvetica-Light, Helvetica" font-size="13" font-weight="300">
+                    <text>
+                        <tspan x="0" y="13">{</tspan>
+                    </text>
+                </g>
+            </g>
+            <g id="Group-7" transform="translate(13.488281, 67.046578)" fill-rule="nonzero">
+                <g id="Group-3" transform="translate(13.095784, 2.074467)">
+                    <g id="g7464-3-6-2-0" stroke-linecap="round" transform="translate(18.109989, 11.425533) scale(-1, 1) translate(-18.109989, -11.425533) translate(16.609989, 10.925533)" fill="#3E9ADE" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-7-0-9-6" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="g7473-9-8-8-8-5" stroke-linecap="round" transform="translate(24.609989, 11.425533) rotate(-180.000000) translate(-24.609989, -11.425533) translate(22.609989, 10.925533)" fill="#DEB93E" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-5-9-5-7-3-68" x="0" y="0" width="4" height="1"></rect>
+                    </g>
+                    <g id="g7473-9-8-8-8-5-2" stroke-linecap="round" transform="translate(9.109989, 3.425533) scale(-1, 1) rotate(-180.000000) translate(-9.109989, -3.425533) translate(7.609989, 2.925533)" fill="#009900" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-5-9-5-7-3-68-1" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="g7473-9-8-0-7" stroke-linecap="round" transform="translate(1.609989, 2.925533)" fill="#C44E52" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-5-9-5-5-2" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="*" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="1.19949929e-24" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="*" transform="translate(6.000000, 0.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="*" transform="translate(15.000000, 8.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="g7464-3-6-2-0" stroke-linecap="round" transform="translate(18.109989, 7.425533) scale(-1, 1) translate(-18.109989, -7.425533) translate(16.609989, 6.925533)" fill="#3E9ADE" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-7-0-9-6" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="g7473-9-8-8-8-5-2" stroke-linecap="round" transform="translate(9.109989, 7.425533) scale(-1, 1) rotate(-180.000000) translate(-9.109989, -7.425533) translate(7.609989, 6.925533)" fill="#009900" stroke="#000000" stroke-width="0.5">
+                        <rect id="rect4138-6-1-5-9-5-7-3-68-1" x="0" y="0" width="3" height="1"></rect>
+                    </g>
+                    <g id="*" transform="translate(6.000000, 4.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="*" transform="translate(15.000000, 4.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                    <g id="*" transform="translate(21.000000, 8.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                        <text>
+                            <tspan x="0" y="5">*</tspan>
+                        </text>
+                    </g>
+                </g>
+                <g id="walk" transform="translate(-0.000000, 7.074467)" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                    <text>
+                        <tspan x="-5.55111512e-17" y="3">walk</tspan>
+                    </text>
+                </g>
+                <g id="{" transform="translate(8.708273, 0.000000)" fill="#000000" font-family="Helvetica-Light, Helvetica" font-size="13" font-weight="300">
+                    <text>
+                        <tspan x="0" y="13">{</tspan>
+                    </text>
+                </g>
+            </g>
+            <g id="Group-9" transform="translate(12.701421, 22.046578)" fill-rule="nonzero">
+                <g id="Group-8" transform="translate(0.000000, 0.000000)">
+                    <g id="Group-4" transform="translate(13.882644, 2.074467)">
+                        <g id="g7464-3-6-2-0" stroke-linecap="round" transform="translate(18.109989, 11.425533) scale(-1, 1) translate(-18.109989, -11.425533) translate(16.609989, 10.925533)" fill="#3E9ADE" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-7-0-9-6" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="g7473-9-8-8-8-5" stroke-linecap="round" transform="translate(24.609989, 11.425533) rotate(-180.000000) translate(-24.609989, -11.425533) translate(22.609989, 10.925533)" fill="#DEB93E" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-5-9-5-7-3-68" x="0" y="0" width="4" height="1"></rect>
+                        </g>
+                        <g id="g7473-9-8-8-8-5-2" stroke-linecap="round" transform="translate(9.109989, 3.425533) scale(-1, 1) rotate(-180.000000) translate(-9.109989, -3.425533) translate(7.609989, 2.925533)" fill="#009900" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-5-9-5-7-3-68-1" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="g7473-9-8-0-7" stroke-linecap="round" transform="translate(1.609989, 2.925533)" fill="#C44E52" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-5-9-5-5-2" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="*" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="1.19949929e-24" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="*" transform="translate(10.000000, 0.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="*" transform="translate(15.000000, 8.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="g7464-3-6-2-0" stroke-linecap="round" transform="translate(18.109989, 7.425533) scale(-1, 1) translate(-18.109989, -7.425533) translate(16.609989, 6.925533)" fill="#3E9ADE" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-7-0-9-6" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="g7473-9-8-8-8-5-2" stroke-linecap="round" transform="translate(9.109989, 7.425533) scale(-1, 1) rotate(-180.000000) translate(-9.109989, -7.425533) translate(7.609989, 6.925533)" fill="#009900" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-5-9-5-7-3-68-1" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="*" transform="translate(6.000000, 4.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="*" transform="translate(19.000000, 4.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="*" transform="translate(26.000000, 8.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                    </g>
+                    <text id="outer" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                        <tspan x="2.22044605e-15" y="11.0744672">outer</tspan>
+                    </text>
+                    <text id="{" fill="#000000" font-family="Helvetica-Light, Helvetica" font-size="13" font-weight="300">
+                        <tspan x="9.49513329" y="13">{</tspan>
+                    </text>
+                </g>
+                <g id="deafault-for-parse--" transform="translate(45.432682, 5.074467)" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                    <text id="default-for">
+                        <tspan x="0" y="3">default for</tspan>
+                    </text>
+                    <text id="parse---walks-policy-all">
+                        <tspan x="0" y="7">parse --walks-policy all</tspan>
+                    </text>
+                </g>
+            </g>
+            <g id="Group-10" transform="translate(9.406532, 36.046578)" fill-rule="nonzero">
+                <g id="Group-6">
+                    <g id="Group-2" transform="translate(18.787523, 3.074467)">
+                        <g id="g7464-3-6-2-0" stroke-linecap="round" transform="translate(16.500000, 11.425533) scale(-1, 1) translate(-16.500000, -11.425533) translate(15.000000, 10.925533)" fill="#3E9ADE" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-7-0-9-6" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="g7473-9-8-8-8-5" stroke-linecap="round" transform="translate(23.000000, 11.425533) rotate(-180.000000) translate(-23.000000, -11.425533) translate(21.000000, 10.925533)" fill="#DEB93E" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-5-9-5-7-3-68" x="0" y="0" width="4" height="1"></rect>
+                        </g>
+                        <g id="g7473-9-8-8-8-5-2" stroke-linecap="round" transform="translate(7.500000, 3.425533) scale(-1, 1) rotate(-180.000000) translate(-7.500000, -3.425533) translate(6.000000, 2.925533)" fill="#009900" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-5-9-5-7-3-68-1" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="g7473-9-8-0-7" stroke-linecap="round" transform="translate(0.000000, 2.925533)" fill="#C44E52" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-5-9-5-5-2" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="*" transform="translate(2.390011, 0.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="4.4408921e-16" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="*" transform="translate(4.390011, 0.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="*" transform="translate(17.390011, 8.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="g7464-3-6-2-0" stroke-linecap="round" transform="translate(16.500000, 7.425533) scale(-1, 1) translate(-16.500000, -7.425533) translate(15.000000, 6.925533)" fill="#3E9ADE" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-7-0-9-6" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="g7473-9-8-8-8-5-2" stroke-linecap="round" transform="translate(7.500000, 7.425533) scale(-1, 1) rotate(-180.000000) translate(-7.500000, -7.425533) translate(6.000000, 6.925533)" fill="#009900" stroke="#000000" stroke-width="0.5">
+                            <rect id="rect4138-6-1-5-9-5-7-3-68-1" x="0" y="0" width="3" height="1"></rect>
+                        </g>
+                        <g id="*" transform="translate(8.390011, 4.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="*" transform="translate(13.390011, 4.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                        <g id="*" transform="translate(19.390011, 8.000000)" fill="#000000" font-family="Helvetica" font-size="5" font-weight="normal">
+                            <text>
+                                <tspan x="0" y="5">*</tspan>
+                            </text>
+                        </g>
+                    </g>
+                    <text id="junction" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                        <tspan x="1.55431223e-15" y="10.0744672">junction</tspan>
+                    </text>
+                    <text id="{" fill="#000000" font-family="Helvetica-Light, Helvetica" font-size="13" font-weight="300">
+                        <tspan x="12.7900226" y="13">{</tspan>
+                    </text>
+                </g>
+                <g id="deafult-for-parse2" transform="translate(48.727572, 7.074467)" fill="#000000" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                    <text id="default-for">
+                        <tspan x="0" y="3">default for</tspan>
+                    </text>
+                    <text id="parse2">
+                        <tspan x="0" y="7">parse2</tspan>
+                    </text>
+                </g>
+            </g>
+            <g id="g7473-9-8-0-7" transform="translate(28.002663, 13.497845)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-1-5-9-5-5-2" fill="#C44E52" fill-rule="nonzero" stroke-linecap="round" x="8.32667268e-17" y="-1.11022302e-16" width="2.51439406" height="2.74181155"></rect>
+                <g id="g6125-9-3-5-52-1" transform="translate(0.485824, 0.060417)">
+                    <polyline id="path6063-9-9-1-5-1-8-9-7" points="0.129310565 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-8-2-2-02-9" points="0.829791201 6.24500451e-17 1.5800087 1.29941462 0.820952565 2.61413837"></polyline>
+                </g>
+            </g>
+            <g id="g7473-9-8-8-8-5" transform="translate(50.730006, 20.962000) rotate(-180.000000) translate(-50.730006, -20.962000) translate(48.730006, 19.591094)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-1-5-9-5-7-3-68" fill="#DEB93E" fill-rule="nonzero" stroke-linecap="round" x="0" y="0" width="4" height="2.74181155"></rect>
+                <g id="g6125-9-3-5-5-8-9" transform="translate(1.971430, 0.060417)">
+                    <polyline id="path6063-9-9-1-5-1-8-2-0-5" points="0.129310565 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-8-2-2-4-4-5" points="0.829791201 6.24500451e-17 1.5800087 1.29941462 0.820952565 2.61413837"></polyline>
+                </g>
+                <g id="g6125-9-3-5-5-8-9" transform="translate(0.501986, 0.060417)">
+                    <polyline id="path6063-9-9-1-5-1-8-2-0-5" points="0.129310565 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-8-2-2-4-4-5" points="0.829791201 6.24500451e-17 1.5800087 1.29941462 0.820952565 2.61413837"></polyline>
+                </g>
+            </g>
+            <g id="g7473-9-8-8-8-5-2" transform="translate(36.405568, 8.997083) scale(-1, 1) rotate(-180.000000) translate(-36.405568, -8.997083) translate(35.148371, 7.626177)" stroke="#000000" stroke-width="0.5">
+                <rect id="rect4138-6-1-5-9-5-7-3-68-1" fill="#009900" fill-rule="nonzero" stroke-linecap="round" x="8.32667268e-17" y="-1.11022302e-16" width="2.51439406" height="2.74181155"></rect>
+                <g id="g6125-9-3-5-5-8-9-5" transform="translate(0.485824, 0.060417)">
+                    <polyline id="path6063-9-9-1-5-1-8-2-0-5-9" points="0.129310565 6.24500451e-17 0.87952807 1.29941462 0.12047193 2.61413837"></polyline>
+                    <polyline id="path6063-9-9-1-4-8-2-2-4-4-5-9" points="0.829791201 6.24500451e-17 1.5800087 1.29941462 0.820952565 2.61413837"></polyline>
+                </g>
+            </g>
+            <line x1="32.0583325" y1="1.98471476" x2="34.6940547" y2="7.546578" id="path5953-8-5-8-56-2-1" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <line x1="39.341452" y1="1.94705784" x2="37.6940547" y2="7.546578" id="path5953-8-5-8-56-2-1-6" stroke="#000000" stroke-width="0.4" stroke-dasharray="1.1,1"></line>
+            <text id="--report-position" fill="#000000" fill-rule="nonzero" font-family="Helvetica" font-size="2.82222222" font-weight="normal">
+                <tspan x="0" y="24.1210452">--report-position</tspan>
+            </text>
+        </g>
+    </g>
+</svg>

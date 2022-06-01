@@ -48,7 +48,7 @@ Pairtools' flavor of .pairs
 
 .pairs files produced by `pairtools` extend .pairs format in a few ways.
 
-1. `pairtools` store null/ambiguous/chimeric alignments as chrom='!', pos=0, strand='-'.
+1. `pairtools` store null, unmapped, ambiguous (multiply mapped) and chimeric (if not parsed by `parse2` or `--walks-policy all` of `parse`) alignments as chrom='!', pos=0, strand='-'.
 
 #. `pairtools` store the header of the source .sam files in the 
    '#samheader:' fields of the pairs header. When multiple .pairs files are merged,
