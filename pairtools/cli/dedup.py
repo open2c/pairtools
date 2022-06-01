@@ -70,6 +70,7 @@ UTIL_NAME = "pairtools_dedup"
     " By default, by-tile duplicate statistics are not printed."
     " Note that the readID should be provided and contain tile information for this option. ",
 )
+
 ### Set the dedup method:
 @click.option(
     "--max-mismatch",
@@ -77,14 +78,14 @@ UTIL_NAME = "pairtools_dedup"
     default=3,
     show_default=True,
     help="Pairs with both sides mapped within this distance (bp) from each "
-    "other are considered duplicates. ",
+    "other are considered duplicates. [dedup option]",
 )
 @click.option(
     "--method",
     type=click.Choice(["max", "sum"]),
     default="max",
     help="define the mismatch as either the max or the sum of the mismatches of"
-    "the genomic locations of the both sides of the two compared molecules",
+    "the genomic locations of the both sides of the two compared molecules. [dedup option]",
     show_default=True,
 )
 @click.option(
@@ -101,7 +102,7 @@ UTIL_NAME = "pairtools_dedup"
     " It is available for backwards compatibility and to allow specification of the"
     " column order."
     " Now the default scipy backend is generally the fastest, and with chunksize below"
-    " 1 mln has the lowest memory requirements."
+    " 1 mln has the lowest memory requirements. [dedup option]"
     # " 'cython' is deprecated and provided for backwards compatibility",
 )
 
@@ -114,7 +115,7 @@ UTIL_NAME = "pairtools_dedup"
     help="Number of pairs in each chunk. Reduce for lower memory footprint."
     " Below 10,000 performance starts suffering significantly and the algorithm might"
     " miss a few duplicates with non-zero --max-mismatch."
-    " Only works with '--backend scipy or sklearn'",
+    " Only works with '--backend scipy or sklearn'. [dedup option]",
 )
 @click.option(
     "--carryover",
@@ -123,7 +124,7 @@ UTIL_NAME = "pairtools_dedup"
     show_default=True,
     help="Number of deduped pairs to carry over from previous chunk to the new chunk"
     " to avoid breaking duplicate clusters."
-    " Only works with '--backend scipy or sklearn'",
+    " Only works with '--backend scipy or sklearn'. [dedup option]",
 )
 @click.option(
     "-p",
@@ -131,7 +132,7 @@ UTIL_NAME = "pairtools_dedup"
     type=int,
     default=1,
     help="Number of cores to use. Only applies with sklearn backend."
-    "Still needs testing whether it is ever useful.",
+    "Still needs testing whether it is ever useful. [dedup option]",
 )
 
 ### Output options:
@@ -139,13 +140,13 @@ UTIL_NAME = "pairtools_dedup"
     "--mark-dups",
     is_flag=True,
     help='If specified, duplicate pairs are marked as DD in "pair_type" and '
-    "as a duplicate in the sam entries.",
+    "as a duplicate in the sam entries. [output format option]",
 )
 @click.option(
     "--keep-parent-id",
     is_flag=True,
     help="If specified, duplicate pairs are marked with the readID of the retained"
-    " deduped read in the 'parent_readID' field.",
+    " deduped read in the 'parent_readID' field. [output format option]",
 )
 @click.option(
     "--extra-col-pair",
@@ -156,7 +157,7 @@ UTIL_NAME = "pairtools_dedup"
     "duplicates. Can be either provided as 0-based column indices or as column "
     'names (requires the "#columns" header field). The option can be provided '
     "multiple times if multiple column pairs must match. "
-    'Example: --extra-col-pair "phase1" "phase2"',
+    'Example: --extra-col-pair "phase1" "phase2". [output format option]',
 )
 
 ### Input options:
@@ -164,58 +165,58 @@ UTIL_NAME = "pairtools_dedup"
     "--sep",
     type=str,
     default=pairsam_format.PAIRSAM_SEP_ESCAPE,
-    help=r"Separator (\t, \v, etc. characters are " "supported, pass them in quotes) ",
+    help=r"Separator (\t, \v, etc. characters are " "supported, pass them in quotes). [input format option]",
 )
 @click.option(
-    "--comment-char", type=str, default="#", help="The first character of comment lines"
+    "--comment-char", type=str, default="#", help="The first character of comment lines. [input format option]"
 )
 @click.option(
     "--send-header-to",
     type=click.Choice(["dups", "dedup", "both", "none"]),
     default="both",
-    help="Which of the outputs should receive header and comment lines",
+    help="Which of the outputs should receive header and comment lines. [input format option]",
 )
 @click.option(
     "--c1",
     type=int,
     default=pairsam_format.COL_C1,
     help=f"Chrom 1 column; default {pairsam_format.COL_C1}"
-    " Only works with '--backend cython'",
+    " Only works with '--backend cython'. [input format option]",
 )
 @click.option(
     "--c2",
     type=int,
     default=pairsam_format.COL_C2,
     help=f"Chrom 2 column; default {pairsam_format.COL_C2}"
-    " Only works with '--backend cython'",
+    " Only works with '--backend cython'. [input format option]",
 )
 @click.option(
     "--p1",
     type=int,
     default=pairsam_format.COL_P1,
     help=f"Position 1 column; default {pairsam_format.COL_P1}"
-    " Only works with '--backend cython'",
+    " Only works with '--backend cython'. [input format option]",
 )
 @click.option(
     "--p2",
     type=int,
     default=pairsam_format.COL_P2,
     help=f"Position 2 column; default {pairsam_format.COL_P2}"
-    " Only works with '--backend cython'",
+    " Only works with '--backend cython'. [input format option]",
 )
 @click.option(
     "--s1",
     type=int,
     default=pairsam_format.COL_S1,
     help=f"Strand 1 column; default {pairsam_format.COL_S1}"
-    " Only works with '--backend cython'",
+    " Only works with '--backend cython'. [input format option]",
 )
 @click.option(
     "--s2",
     type=int,
     default=pairsam_format.COL_S2,
     help=f"Strand 2 column; default {pairsam_format.COL_S2}"
-    " Only works with '--backend cython'",
+    " Only works with '--backend cython'. [input format option]",
 )
 @click.option(
     "--unmapped-chrom",
@@ -225,6 +226,65 @@ UTIL_NAME = "pairtools_dedup"
         pairsam_format.UNMAPPED_CHROM
     ),
 )
+
+# Output stats option
+@click.option(
+    "--yaml/--no-yaml",
+    is_flag=True,
+    default=False,
+    help="Output stats in yaml format instead of table. [output stats format option]",
+)
+
+# Filtering options for reporting stats:
+@click.option(
+    "--filter",
+    default=None,
+    required=False,
+    multiple=True,
+    help="Filter stats with condition to apply to the data (similar to `pairtools select` or `pairtools stats`). "
+    "For non-YAML output only the first filter will be reported. [output stats filtering option] "
+    "Note that this will not change the deduplicated output pairs. "
+    """Example: pairtools dedup --yaml --filter 'unique:(pair_type=="UU")' --filter 'close:(pair_type=="UU") and (abs(pos1-pos2)<10)' --output-stats - test.pairs """,
+)
+@click.option(
+    "--engine",
+    default="pandas",
+    required=False,
+    help="Engine for regular expression parsing for stats filtering. "
+    "Python will provide you regex functionality, while pandas does not accept "
+    "custom funtctions and works faster. [output stats filtering option]",
+)
+@click.option(
+    "--chrom-subset",
+    type=str,
+    default=None,
+    required=False,
+    help="A path to a chromosomes file (tab-separated, 1st column contains "
+    "chromosome names) containing a chromosome subset of interest for stats filter. "
+    "If provided, additionally filter pairs with both sides originating from "
+    "the provided subset of chromosomes. This operation modifies the #chromosomes: "
+    "and #chromsize: header fields accordingly.  "
+    "Note that this will not change the deduplicated output pairs. [output stats filtering option]"
+)
+@click.option(
+    "--startup-code",
+    type=str,
+    default=None,
+    required=False,
+    help="An auxiliary code to execute before filteringfor stats. "
+    "Use to define functions that can be evaluated in the CONDITION statement. [output stats filtering option]",
+)
+@click.option(
+    "-t",
+    "--type-cast",
+    type=(str, str),
+    default=(),
+    multiple=True,
+    help="Cast a given column to a given type for stats filtering. By default, only pos and mapq "
+    "are cast to int, other columns are kept as str. Provide as "
+    "-t <column_name> <type>, e.g. -t read_len1 int. Multiple entries are allowed. [output stats filtering option]",
+)
+
 @common_io_options
 def dedup(
     pairs_path,
@@ -331,35 +391,23 @@ def dedup_py(
     send_header_to_dedup = send_header_to in ["both", "dedup"]
     send_header_to_dup = send_header_to in ["both", "dups"]
 
-    instream = (
-        fileio.auto_open(
-            pairs_path,
-            mode="r",
-            nproc=kwargs.get("nproc_in"),
-            command=kwargs.get("cmd_in", None),
-        )
-        if pairs_path
-        else sys.stdin
+    instream = fileio.auto_open(
+        pairs_path,
+        mode="r",
+        nproc=kwargs.get("nproc_in"),
+        command=kwargs.get("cmd_in", None),
     )
-    outstream = (
-        fileio.auto_open(
-            output,
-            mode="w",
-            nproc=kwargs.get("nproc_out"),
-            command=kwargs.get("cmd_out", None),
-        )
-        if output
-        else sys.stdout
+    outstream = fileio.auto_open(
+        output,
+        mode="w",
+        nproc=kwargs.get("nproc_out"),
+        command=kwargs.get("cmd_out", None),
     )
-    out_stats_stream = (
-        fileio.auto_open(
-            output_stats,
-            mode="w",
-            nproc=kwargs.get("nproc_out"),
-            command=kwargs.get("cmd_out", None),
-        )
-        if output_stats
-        else None
+    out_stats_stream = fileio.auto_open(
+        output_stats,
+        mode="w",
+        nproc=kwargs.get("nproc_out"),
+        command=kwargs.get("cmd_out", None),
     )
 
     bytile_dups = False
@@ -376,7 +424,30 @@ def dedup_py(
             keep_parent_id = True
 
     # generate empty PairCounter if stats output is requested:
-    out_stat = PairCounter(bytile_dups=bytile_dups) if output_stats else None
+    if output_stats:
+        filter = kwargs.get("filter", None)
+        # Define filters and their properties
+        first_filter_name = "no_filter"  # default filter name for full output
+        if filter is not None and len(filter) > 0:
+            first_filter_name = filter[0].split(":", 1)[0]
+            if len(filter) > 1 and not kwargs.get("yaml", False):
+                logger.warn(
+                    f"Output the first filter only in non-YAML output: {first_filter_name}"
+                )
+
+            filter = dict([f.split(":", 1) for f in filter])
+        else:
+            filter = None
+
+        out_stat = PairCounter(
+            bytile_dups=bytile_dups,
+            filters=filter,
+            startup_code=kwargs.get("startup_code", ""),  # for evaluation of filters
+            type_cast=kwargs.get("type_cast", ()),  # for evaluation of filters
+            engine=kwargs.get("engine", "pandas"),
+        )
+    else:
+        out_stat = None
 
     if not output_dups:
         outstream_dups = None
@@ -488,7 +559,13 @@ def dedup_py(
 
     # save statistics to a file if it was requested:
     if out_stat:
-        out_stat.save(out_stats_stream)
+        out_stat.save(
+            outstream,
+            yaml=kwargs.get("yaml", False),  # format as yaml
+            filter=first_filter_name
+            if not kwargs.get("yaml", False)
+            else None,  # output only the first filter if non-YAML output
+        )
 
     if bytile_dups:
         out_stat.save_bytile_dups(out_bytile_stats_stream)

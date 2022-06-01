@@ -182,7 +182,6 @@ def stats_py(
     else:
         filter = None
 
-    # new stats class stuff would come here ...
     stats = PairCounter(
         bytile_dups=bytile_dups,
         filters=filter,
