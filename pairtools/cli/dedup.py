@@ -566,7 +566,7 @@ def dedup_py(
     # save statistics to a file if it was requested:
     if out_stat:
         out_stat.save(
-            outstream,
+            out_stats_stream,
             yaml=kwargs.get("yaml", False),  # format as yaml
             filter=first_filter_name
             if not kwargs.get("yaml", False)
