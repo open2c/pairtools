@@ -26,7 +26,7 @@ UTIL_NAME = "pairtools_stats"
     help="If specified, merge multiple input stats files instead of calculating"
     " statistics of a .pairs/.pairsam file. Merging is performed via summation of"
     " all overlapping statistics. Non-overlapping statistics are appended to"
-    " the end of the file.",
+    " the end of the file. Supported for tsv stats with single filter.",
 )
 @click.option(
     "--with-chromsizes/--no-chromsizes",
