@@ -410,7 +410,11 @@ def parse_read(
     """
 
     # Check if there is at least one sam entry per side:
-    if (len(sams1) == 0) or (len(sams2) == 0):
+    if walks_policy=="all":
+        is_empty = (len(sams1) == 0 and len(sams2) < 2) or (len(sams2) == 0 and len(sams1) < 2)
+    else:
+        is_empty = (len(sams1) == 0) or (len(sams2) == 0)
+    if is_empty:
         algns1 = [empty_alignment()]
         algns2 = [empty_alignment()]
         algns1[0]["type"] = "X"
@@ -422,8 +426,14 @@ def parse_read(
     algns1 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams1]
     algns2 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams2]
 
-    algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
-    algns2 = sorted(algns2, key=lambda algn: algn["dist_to_5"])
+    if len(algns1) > 0:
+        algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
+    else:
+        algns1 = [empty_alignment()]  # Empty alignment dummy
+    if len(algns2) > 0:
+        algns2 = sorted(algns2, key=lambda algn: algn["dist_to_5"])
+    else:
+        algns2 = [empty_alignment()]  # Empty alignment dummy
 
     if max_inter_align_gap is not None:
         _convert_gaps_into_alignments(algns1, max_inter_align_gap)
@@ -560,7 +570,8 @@ def parse2_read(
         if max_inter_align_gap is not None:
             _convert_gaps_into_alignments(algns1, max_inter_align_gap)
 
-        algns2 = [empty_alignment()]  # Empty alignment dummy
+        algns2 = [empty_alignment()]  # Empty alignment dummy,
+        # for now it will be reported as last extra pair of N* type
 
         if len(algns1)>1:
             # Look for ligation pair, and report linear alignments after deduplication of complex walks:
@@ -599,7 +610,8 @@ def parse2_read(
     # Paired-end mode:
     else:
         # Check if there is at least one SAM entry per side:
-        if (len(sams1)==0 and len(sams2)<2) or (len(sams2)==0 and len(sams1)<2):
+        is_empty = (len(sams1)==0 and len(sams2)<2) or (len(sams2)==0 and len(sams1)<2)
+        if is_empty:
             algns1 = [empty_alignment()]
             algns2 = [empty_alignment()]
             algns1[0]["type"] = "X"
@@ -616,8 +628,14 @@ def parse2_read(
         ]
 
         # Sort alignments by the distance to the 5'-end:
-        algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
-        algns2 = sorted(algns2, key=lambda algn: algn["dist_to_5"])
+        if len(algns1)>0:
+            algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
+        else:
+            algns1 = [empty_alignment()]  # Empty alignment dummy
+        if len(algns2)>0:
+            algns2 = sorted(algns2, key=lambda algn: algn["dist_to_5"])
+        else:
+            algns2 = [empty_alignment()]  # Empty alignment dummy
 
         # Convert alignment gaps to alignments:
         if max_inter_align_gap is not None:
