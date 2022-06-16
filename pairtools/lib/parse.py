@@ -62,6 +62,8 @@ def streaming_classify(
         report_orientation, one of: "pair", "junction", "read", "walk"
         allowed_offset: For detection of overlaps of pairs and ends
         max_fragment_size: maximum fragment size to search for overlapping ends
+        expand: perform combinatorial expansion or not
+        max_expansion_depth: maximum expansion depth, works in combination with expand=True
 
     """
 
@@ -137,6 +139,8 @@ def streaming_classify(
                     sam_tags=sam_tags,
                     allowed_offset=kwargs["allowed_offset"],
                     store_seq=store_seq,
+                    expand=kwargs["expand"],
+                    max_expansion_depth=kwargs["max_expansion_depth"],
                 )
 
             ### Write:
@@ -528,6 +532,8 @@ def parse2_read(
     sam_tags=[],
     allowed_offset=3,
     store_seq=False,
+    expand=False,
+    max_expansion_depth=None,
 ):
     """
     Parse sam entries corresponding to a Hi-C molecule into alignments in parse2 mode
@@ -567,6 +573,8 @@ def parse2_read(
                     report_position,
                     report_orientation,
                     allowed_offset,
+                    expand,
+                    max_expansion_depth
                 ),
                 algns1,
                 algns2,
@@ -584,7 +592,7 @@ def parse2_read(
     # Paired-end mode:
     else:
         # Check if there is at least one SAM entry per side:
-        if (len(sams1) == 0) or (len(sams2) == 0):
+        if (len(sams1) == 0) and (len(sams2) == 0):
             algns1 = [empty_alignment()]
             algns2 = [empty_alignment()]
             algns1[0]["type"] = "X"
@@ -600,9 +608,11 @@ def parse2_read(
             parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams2
         ]
 
+        # Sort alignments by the distance to the 5'-end:
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
         algns2 = sorted(algns2, key=lambda algn: algn["dist_to_5"])
 
+        # Convert alignment gaps to alignments:
         if max_inter_align_gap is not None:
             _convert_gaps_into_alignments(algns1, max_inter_align_gap)
             _convert_gaps_into_alignments(algns2, max_inter_align_gap)
@@ -620,6 +630,9 @@ def parse2_read(
                     max_fragment_size,
                     report_position,
                     report_orientation,
+                    allowed_offset,
+                    expand,
+                    max_expansion_depth,
                 ),
                 algns1,
                 algns2,
@@ -773,6 +786,8 @@ def parse_complex_walk(
     report_position,
     report_orientation,
     allowed_offset=3,
+    expand=False,
+    max_expansion_depth=None,
 ):
     """
     Parse a set of ligations that appear as a complex walk.
@@ -784,6 +799,8 @@ def parse_complex_walk(
     :param report_position: one of "outer", "junction", "read", "walk"; sets pos5 and pos3
     :param report_orientation: one of "pair", "junction", "read", "walk"; sets strand
     :param allowed_offset: the number of basepairs that are allowed at the ends of alignments to detect overlaps
+    :param expand: perform combinatorial expansion of pairs or not
+    :param max_expansion_depth: maximum depth (number of segments separating pair). All by default.
 
     :return: iterator with parsed pairs
 
@@ -1020,9 +1037,55 @@ def parse_complex_walk(
             )
         )
 
-    # Sort the pairs according by the pair index:
+    # Sort the pairs according to the pair index:
     output_pairs.sort(key=lambda x: int(x[-1][0]))
+    if expand:
+        output_pairs = expand_pairs(output_pairs, max_expansion_depth)
     return iter(output_pairs)
+
+### Additional functions for pairs ###
+def expand_pairs(pairs_list, max_expansion_depth=None):
+    """
+    Perform combinatorial expansion of the pairs.
+
+    Parameters
+    ----------
+    pairs_list: List of formatted pairs (triplets: algn1, algn2, pair_index).
+    max_expansion_depth: maximum depth of expansion; all by default (None),
+                    number will enforce only pairs from the same strand.
+    Returns
+    -------
+    list of expanded pairs
+
+    """
+
+    for algn1, _algn1, pair_index1 in pairs_list:
+        for _algn2, algn2, pair_index2 in pairs_list:
+            if pair_index1>pair_index2:
+                continue
+            elif pair_index1==pair_index2:
+                # output regular pair with no change
+                yield algn1, _algn1, pair_index1
+            else:
+                pair_order1, pair_type1 = pair_index1
+                pair_order2, pair_type2 = pair_index2
+                separated_by = pair_order2-pair_order1
+                if pair_type1=="R1-2" or pair_type2=="R1-2" or (pair_type1=="R1" and pair_type2=="R2"):
+                    pair_type = "R1-2"
+                elif pair_type1==pair_type2:
+                    pair_type = pair_type1
+                elif pair_type1=="R1&2":
+                    pair_type = pair_type2
+                elif pair_type2=="R1&2":
+                    pair_type = pair_type1
+                else:
+                    raise ValueError(f"Unexpected error, pair types: {pair_type1}, {pair_type2}")
+                same_read = (pair_type!="R1-2")
+
+                if (max_expansion_depth is None) or \
+                   ((separated_by<=max_expansion_depth) and same_read):
+                    pair_type = f"E{separated_by}_{pair_type}"
+                    yield algn1, algn2, (pair_order1, pair_type)
 
 
 ### Additional functions for complex walks rescue ###
