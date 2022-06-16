@@ -562,7 +562,7 @@ def parse2_read(
 
         algns2 = [empty_alignment()]  # Empty alignment dummy
 
-        if len(algns1) > 1:
+        if len(algns1)>1:
             # Look for ligation pair, and report linear alignments after deduplication of complex walks:
             # (Note that coordinate system for single-end reads does not change the behavior)
             return (
@@ -579,20 +579,27 @@ def parse2_read(
                 algns1,
                 algns2,
             )
-        else:
+        elif len(algns1)==1:
             # If no additional information, we assume each molecule is a single ligation with single unconfirmed pair:
             algn2 = algns2[0]
             if report_orientation == "walk":
                 algn2 = flip_orientation(algn2)
             if report_position == "walk":
                 algn2 = flip_position(algn2)
-            pair_index = (1, "R1-2")
+            pair_index = (1, "R1")
             return iter([(algns1[0], algn2, pair_index)]), algns1, algns2
+        else:
+            algns1 = [empty_alignment()]
+            algns2 = [empty_alignment()]
+            algns1[0]["type"] = "X"
+            algns2[0]["type"] = "X"
+            pair_index = (1, "R1")
+            return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
 
     # Paired-end mode:
     else:
         # Check if there is at least one SAM entry per side:
-        if (len(sams1) == 0) and (len(sams2) == 0):
+        if (len(sams1)==0 and len(sams2)<2) or (len(sams2)==0 and len(sams1)<2):
             algns1 = [empty_alignment()]
             algns2 = [empty_alignment()]
             algns1[0]["type"] = "X"
