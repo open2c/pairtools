@@ -84,10 +84,13 @@ def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins, **k
         command=kwargs.get("cmd_out", None),
     )
 
+    if view is not None:
+        view = pd.read_table(view)
+
     # Pass the header to the instream so that it can parse the header automatically
     cis_scalings, trans_levels = compute_scaling(
         instream,
-        regions=pd.read_table(view),
+        regions=view,
         chromsizes=None,
         dist_range=dist_range,
         n_dist_bins=n_dist_bins,
