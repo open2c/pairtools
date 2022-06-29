@@ -488,6 +488,8 @@ def dedup_py(
         )
 
     header, body_stream = headerops.get_header(instream)
+    if not any([l.startswith("#sorted") for l in header]):
+        logger.warning("Pairs file appears not to be sorted, dedup might produce wrong results.")
     header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     if send_header_to_dedup:
         outstream.writelines((l + "\n" for l in header))

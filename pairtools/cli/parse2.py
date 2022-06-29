@@ -116,7 +116,22 @@ EXTRA_COLUMNS = [
     help="Offset (in nucleotides) to consider alignments overlapping. ",
 )
 @click.option(
-    "--single-end", is_flag=True, help="If specified, the input is single-end."
+    "--single-end", is_flag=True, help="If specified, the input is single-end. "
+)
+@click.option(
+    "--expand/--no-expand",
+    is_flag=True,
+    help="If specified, perform combinatorial expansion on the pairs. ",
+)
+@click.option(
+    "--max-expansion-depth",
+    type=int,
+    default=None,
+    show_default=True,
+    help="Works in combination with --expand. "
+         "Maximum number of segments separating pair. By default, expanding all possible pairs."
+         "Setting the number will limit the expansion depth and enforce contacts from the same "
+         "side of the read. ",
 )
 @click.option(
     "--flip/--no-flip",
@@ -152,7 +167,9 @@ EXTRA_COLUMNS = [
 @click.option(
     "--add-pair-index",
     is_flag=True,
-    help="If specified, parse2 will report pair index in the walk as additional column",
+    help="If specified, parse2 will report pair index in the walk as additional columns."
+         "For combinatorial expanded pairs, two numbers will be reported: "
+         "original pair index of the left and right segments. ",
 )
 @click.option(
     "--add-columns",
