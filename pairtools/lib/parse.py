@@ -410,8 +410,10 @@ def parse_read(
     """
 
     # Check if there is at least one sam entry per side:
-    if walks_policy=="all":
-        is_empty = (len(sams1) == 0 and len(sams2) < 2) or (len(sams2) == 0 and len(sams1) < 2)
+    if walks_policy == "all":
+        is_empty = (len(sams1) == 0 and len(sams2) < 2) or (
+            len(sams2) == 0 and len(sams1) < 2
+        )
     else:
         is_empty = (len(sams1) == 0) or (len(sams2) == 0)
     if is_empty:
@@ -564,53 +566,46 @@ def parse2_read(
     if single_end:
         # Generate a sorted, gap-filled list of all alignments
         algns1 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams1
+            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq)
+            for sam in sams2  # note sams2, that's how these reads are typically parsed
         ]
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
         if max_inter_align_gap is not None:
             _convert_gaps_into_alignments(algns1, max_inter_align_gap)
 
-        algns2 = [empty_alignment()]  # Empty alignment dummy,
-        # for now it will be reported as last extra pair of N* type
+        algns2 = [empty_alignment()]  # Empty alignment dummy
 
-        if len(algns1)>1:
+        if len(algns1) > 1:
             # Look for ligation pair, and report linear alignments after deduplication of complex walks:
             # (Note that coordinate system for single-end reads does not change the behavior)
-            return (
-                parse_complex_walk(
-                    algns1,
-                    algns2,
-                    max_fragment_size,
-                    report_position,
-                    report_orientation,
-                    allowed_offset,
-                    expand,
-                    max_expansion_depth
-                ),
+            output = parse_complex_walk(
                 algns1,
                 algns2,
+                max_fragment_size,
+                report_position,
+                report_orientation,
+                allowed_offset,
             )
-        elif len(algns1)==1:
+            output = [x for x in output if x[-1][-1] != "R1-2"]
+            return (output, algns1, algns2)
+        elif len(algns1) == 1:
             # If no additional information, we assume each molecule is a single ligation with single unconfirmed pair:
-            algn2 = algns2[0]
-            if report_orientation == "walk":
-                algn2 = flip_orientation(algn2)
-            if report_position == "walk":
-                algn2 = flip_position(algn2)
+            algn2 = empty_alignment()
             pair_index = (1, "R1")
             return iter([(algns1[0], algn2, pair_index)]), algns1, algns2
         else:
-            algns1 = [empty_alignment()]
-            algns2 = [empty_alignment()]
-            algns1[0]["type"] = "X"
-            algns2[0]["type"] = "X"
+            # If no additional information, we assume each molecule is a single ligation with single unconfirmed pair:
+            algn1 = empty_alignment()
+            algn2 = empty_alignment()
             pair_index = (1, "R1")
-            return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
+            return iter([(algn1, algn2, pair_index)]), algns1, algns2
 
     # Paired-end mode:
     else:
         # Check if there is at least one SAM entry per side:
-        is_empty = (len(sams1)==0 and len(sams2)<2) or (len(sams2)==0 and len(sams1)<2)
+        is_empty = (len(sams1) == 0 and len(sams2) < 2) or (
+            len(sams2) == 0 and len(sams1) < 2
+        )
         if is_empty:
             algns1 = [empty_alignment()]
             algns2 = [empty_alignment()]
@@ -628,11 +623,11 @@ def parse2_read(
         ]
 
         # Sort alignments by the distance to the 5'-end:
-        if len(algns1)>0:
+        if len(algns1) > 0:
             algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
         else:
             algns1 = [empty_alignment()]  # Empty alignment dummy
-        if len(algns2)>0:
+        if len(algns2) > 0:
             algns2 = sorted(algns2, key=lambda algn: algn["dist_to_5"])
         else:
             algns2 = [empty_alignment()]  # Empty alignment dummy
@@ -1068,6 +1063,7 @@ def parse_complex_walk(
         output_pairs = expand_pairs(output_pairs, max_expansion_depth)
     return iter(output_pairs)
 
+
 ### Additional functions for pairs ###
 def expand_pairs(pairs_list, max_expansion_depth=None):
     """
@@ -1086,29 +1082,36 @@ def expand_pairs(pairs_list, max_expansion_depth=None):
 
     for algn1, _algn1, pair_index1 in pairs_list:
         for _algn2, algn2, pair_index2 in pairs_list:
-            if pair_index1>pair_index2:
+            if pair_index1 > pair_index2:
                 continue
-            elif pair_index1==pair_index2:
+            elif pair_index1 == pair_index2:
                 # output regular pair with no change
                 yield algn1, _algn1, pair_index1
             else:
                 pair_order1, pair_type1 = pair_index1
                 pair_order2, pair_type2 = pair_index2
-                separated_by = pair_order2-pair_order1
-                if pair_type1=="R1-2" or pair_type2=="R1-2" or (pair_type1=="R1" and pair_type2=="R2"):
+                separated_by = pair_order2 - pair_order1
+                if (
+                    pair_type1 == "R1-2"
+                    or pair_type2 == "R1-2"
+                    or (pair_type1 == "R1" and pair_type2 == "R2")
+                ):
                     pair_type = "R1-2"
-                elif pair_type1==pair_type2:
+                elif pair_type1 == pair_type2:
                     pair_type = pair_type1
-                elif pair_type1=="R1&2":
+                elif pair_type1 == "R1&2":
                     pair_type = pair_type2
-                elif pair_type2=="R1&2":
+                elif pair_type2 == "R1&2":
                     pair_type = pair_type1
                 else:
-                    raise ValueError(f"Unexpected error, pair types: {pair_type1}, {pair_type2}")
-                same_read = (pair_type!="R1-2")
+                    raise ValueError(
+                        f"Unexpected error, pair types: {pair_type1}, {pair_type2}"
+                    )
+                same_read = pair_type != "R1-2"
 
-                if (max_expansion_depth is None) or \
-                   ((separated_by<=max_expansion_depth) and same_read):
+                if (max_expansion_depth is None) or (
+                    (separated_by <= max_expansion_depth) and same_read
+                ):
                     pair_type = f"E{separated_by}_{pair_type}"
                     yield algn1, algn2, (pair_order1, pair_type)
 
