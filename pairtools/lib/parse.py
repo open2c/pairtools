@@ -60,8 +60,8 @@ def streaming_classify(
         single_end: indicator whether single-end data is provided
         report_position, one of: "outer", "junction", "read", "walk"
         report_orientation, one of: "pair", "junction", "read", "walk"
-        allowed_offset: For detection of overlaps of pairs and ends
-        max_fragment_size: maximum fragment size to search for overlapping ends
+        dedup_max_mismatch: For intramolecular deduplication
+        max_insert_size: maximum insert size when searching for overlapping ends of R1 and R2
         expand: perform combinatorial expansion or not
         max_expansion_depth: maximum expansion depth, works in combination with expand=True
 
@@ -132,12 +132,12 @@ def streaming_classify(
                     sams2,
                     min_mapq=kwargs["min_mapq"],
                     max_inter_align_gap=kwargs["max_inter_align_gap"],
-                    max_fragment_size=kwargs["max_fragment_size"],
+                    max_insert_size=kwargs.get("max_insert_size", 500),
                     single_end=kwargs["single_end"],
                     report_position=kwargs["report_position"],
                     report_orientation=kwargs["report_orientation"],
                     sam_tags=sam_tags,
-                    allowed_offset=kwargs["allowed_offset"],
+                    dedup_max_mismatch=kwargs["dedup_max_mismatch"],
                     store_seq=store_seq,
                     expand=kwargs["expand"],
                     max_expansion_depth=kwargs["max_expansion_depth"],
@@ -148,7 +148,8 @@ def streaming_classify(
             for (algn1, algn2, pair_index) in pairstream:
                 read_has_alignments = True
 
-                if kwargs["report_alignment_end"] == "5":
+                # Alignment end defaults to 5' if report_alignment_end is unspecified:
+                if kwargs.get("report_alignment_end", "5") == "5":
                     algn1["pos"] = algn1["pos5"]
                     algn2["pos"] = algn2["pos5"]
                 else:
@@ -537,12 +538,12 @@ def parse2_read(
     sams2,
     min_mapq,
     max_inter_align_gap,
-    max_fragment_size,
+    max_insert_size,
     single_end,
     report_position="outer",
     report_orientation="pair",
     sam_tags=[],
-    allowed_offset=3,
+    dedup_max_mismatch=3,
     store_seq=False,
     expand=False,
     max_expansion_depth=None,
@@ -581,10 +582,10 @@ def parse2_read(
             output = parse_complex_walk(
                 algns1,
                 algns2,
-                max_fragment_size,
+                max_insert_size,
                 report_position,
                 report_orientation,
-                allowed_offset,
+                dedup_max_mismatch,
             )
             output = [x for x in output if x[-1][-1] != "R1-2"]
             return (output, algns1, algns2)
@@ -647,10 +648,10 @@ def parse2_read(
                 parse_complex_walk(
                     algns1,
                     algns2,
-                    max_fragment_size,
+                    max_insert_size,
                     report_position,
                     report_orientation,
-                    allowed_offset,
+                    dedup_max_mismatch,
                     expand,
                     max_expansion_depth,
                 ),
@@ -802,10 +803,10 @@ def _convert_gaps_into_alignments(sorted_algns, max_inter_align_gap):
 def parse_complex_walk(
     algns1,
     algns2,
-    max_fragment_size,
+    max_insert_size,
     report_position,
     report_orientation,
-    allowed_offset=3,
+    dedup_max_mismatch=3,
     expand=False,
     max_expansion_depth=None,
 ):
@@ -815,10 +816,10 @@ def parse_complex_walk(
 
     :param algns1: List of sequential lefts alignments
     :param algns2: List of sequential right alignments
-    :param max_fragment_size: maximum expected restriction/digestion fragment size
+    :param max_insert_size: maximum insert size when searching for overlapping ends of R1 and R2
     :param report_position: one of "outer", "junction", "read", "walk"; sets pos5 and pos3
     :param report_orientation: one of "pair", "junction", "read", "walk"; sets strand
-    :param allowed_offset: the number of basepairs that are allowed at the ends of alignments to detect overlaps
+    :param dedup_max_mismatch: allowed mismatch between intramolecular alignments to detect readthrough duplicates
     :param expand: perform combinatorial expansion of pairs or not
     :param max_expansion_depth: maximum depth (number of segments separating pair). All by default.
 
@@ -906,7 +907,7 @@ def parse_complex_walk(
             pair1 = (algns1[-current_left_pair - 1], algns1[-current_left_pair])
             pair2 = (algns2[-current_right_pair - 1], algns2[-current_right_pair])
             # Compare (initial or not, step 2 or 5):
-            is_overlap = pairs_overlap(pair1, pair2, allowed_offset=allowed_offset)
+            is_overlap = pairs_overlap(pair1, pair2, dedup_max_mismatch=dedup_max_mismatch)
             if is_overlap:
                 last_idx_left_temp = current_left_pair
                 last_idx_right_temp = current_right_pair
@@ -924,7 +925,7 @@ def parse_complex_walk(
                         algns2[-last_idx_right_temp],
                     )
                     is_overlap &= pairs_overlap(
-                        pair1, pair2, allowed_offset=allowed_offset
+                        pair1, pair2, dedup_max_mismatch=dedup_max_mismatch
                     )
                     checked_right_temp -= 1
                 if is_overlap:  # exit
@@ -946,8 +947,8 @@ def parse_complex_walk(
         if partial_overlap(
             algns1[-1],
             algns2[-1],
-            max_fragment_size=max_fragment_size,
-            allowed_offset=allowed_offset,
+            max_insert_size=max_insert_size,
+            dedup_max_mismatch=dedup_max_mismatch,
         ):
             if (
                 n_algns1 >= 2
@@ -1117,16 +1118,16 @@ def expand_pairs(pairs_list, max_expansion_depth=None):
 
 
 ### Additional functions for complex walks rescue ###
-def partial_overlap(algn1, algn2, max_fragment_size=500, allowed_offset=5):
+def partial_overlap(algn1, algn2, max_insert_size=500, dedup_max_mismatch=5):
     """
     Two ends of alignments overlap if:
      1) they are from the same chromosome,
      2) map in the opposite directions,
-     3) the distance between the outer ends of the two alignments is below the specified max_fragment_size,
+     3) the distance between the outer ends of the two alignments is below the specified max_insert_size,
      4) the distance between the outer ends of the two alignments is above the maximum alignment size.
     (4) guarantees that the alignments point towards each other on the chromosomes.
 
-    Allowed offset is for the cases when few nucleotides are mismapped by bwa at the ends of chimeric parts.
+    Allowed mismatch between intramolecular alignments to detect readthrough duplicates.
 
     Return: 1 if the alignments overlap or both have troubles with unique mapping,
             0 if they do not overlap or if we do not have enough information
@@ -1161,15 +1162,15 @@ def partial_overlap(algn1, algn2, max_fragment_size=500, allowed_offset=5):
         )
         distance_outer_ends = algn1["pos5"] - algn2["pos5"]
 
-    do_overlap &= distance_outer_ends <= max_fragment_size + allowed_offset
-    do_overlap &= distance_outer_ends >= min_algn_size - allowed_offset
+    do_overlap &= distance_outer_ends <= max_insert_size + dedup_max_mismatch
+    do_overlap &= distance_outer_ends >= min_algn_size - dedup_max_mismatch
 
     if do_overlap:
         return 1
     return 0
 
 
-def pairs_overlap(algns1, algns2, allowed_offset=3):
+def pairs_overlap(algns1, algns2, dedup_max_mismatch=3):
     """
     We assume algns1 originate from left read, and algns2 originate from right read:
     left read:                             right read:
@@ -1181,7 +1182,7 @@ def pairs_overlap(algns1, algns2, allowed_offset=3):
     Two pairs of alignments overlap if:
     1) chromosomes/mapping/strand of left_5'-algn and right_3'-algn are the same,
     2) chromosomes/mapping/strand of left_3'-algn and right_5'-algn are the same,
-    3) pos3 of left_5'-algn is close to pos5 of right_3'-algn (with allowed_offset), and
+    3) pos3 of left_5'-algn is close to pos5 of right_3'-algn (with dedup_max_mismatch), and
     4) pos5 of left_3'-algn is close to pos3 of right_5'-algn.
 
     Return: 1 of the pairs of alignments overlap, 0 otherwise.
@@ -1220,8 +1221,8 @@ def pairs_overlap(algns1, algns2, allowed_offset=3):
         right_overlap &= left3_algn["strand"] != right5_algn["strand"]
 
     same_pair = True
-    same_pair &= abs(left5_algn["pos3"] - right3_algn["pos5"]) <= allowed_offset
-    same_pair &= abs(left3_algn["pos5"] - right5_algn["pos3"]) <= allowed_offset
+    same_pair &= abs(left5_algn["pos3"] - right3_algn["pos5"]) <= dedup_max_mismatch
+    same_pair &= abs(left3_algn["pos5"] - right5_algn["pos3"]) <= dedup_max_mismatch
 
     if left_overlap & right_overlap & same_pair:
         return 1

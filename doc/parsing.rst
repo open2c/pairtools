@@ -237,20 +237,17 @@ Consider the read with overlapping left and right sides:
    :alt: Complex walk with overlap
    :align: center
 
-Such molecules are detected and **rescued** them. Briefly, we detects all the unique ligation junctions,
-and do not report the same junction as a pair multiple times.
-
-To rescue complex walks, you may use ``pairtools parse --walks-policy all`` and ``parse2``.
-They have slightly different functionalities.
+``pairtools`` can detect such molecules and parse them.
+Briefly, we detects all the unique ligation junctions, and do not report the same junction as a pair multiple times.
+To parse complex walks, you may use ``pairtools parse --walks-policy all`` and ``parse2``, which have slightly different functionalities.
 
 ``pairtools parse --walks-policy all`` is used with regular paired-end Hi-C, when you want
 all pairs in the walk to be reported as if they appeared in the sequencing data independently.
 
-``parse2`` is used with single-end data or when you want to report different mode of orientation or position.
-By default, ``parse2`` reports ligation junctions instead of outer ends of the alignmentns.
-It may report also the position or orientation of the walk or of individual read.
+``parse2`` is used with single-end data or when you want to customize your reporting (orientation, position of alignments, or perform combinatorial expansion).
+For example, ``parse2`` defaults to reporting ligation junctions instead of outer ends of the alignments.
 
-The complete guide through the reporting options of ``parse2``, orientation reporting:
+The complete guide through the reporting options of ``parse2``, orientation:
 
 .. figure:: _static/report-orientation.svg
    :width: 60 %
@@ -258,16 +255,15 @@ The complete guide through the reporting options of ``parse2``, orientation repo
    :align: center
 
 
-position reporting: 
+position:
 
 .. figure:: _static/report-positions.svg
    :width: 60 %
    :alt: parse2 --report-position
    :align: center
 
-
-To restore the sequence of ligation events, there are special fields ``walk_pair_index`` and ``walk_pair_type`` that you have as
-a separate column of .pair file when setting ``--add-pair-index`` option.
+Sometimes it is important to restore the sequence of ligation events (e.g., for MC-3C data). For that, you can add
+special columns ``walk_pair_index`` and ``walk_pair_type`` by setting ``--add-pair-index`` option of ``parse2``, that will keep the order and type of pair in the whole walk in the output .pairs file.
 
 - ``walk_pair_index`` contains information on the order of the pair in the recovered walk, starting from 5'-end of left read
 - ``walk_pair_type`` describes the type of the pair relative to R1 and R2 reads of paired-end sequencing:
@@ -278,7 +274,15 @@ a separate column of .pair file when setting ``--add-pair-index`` option.
   - "R1&2" - pair was sequenced at both left and right read. Direct ligation.
 With this information, the whole sequence of ligation events can be restored from the .pair file.
 
+Combinatorial expansion is a way to increase the number of contacts in you data, which assumes that all DNA fragments
+in the same molecule (read) are in contact. Use ``--expand`` parameter for combinatorial expansion.
+Note that expanded pairs have modified pair type, "E{separation}_{pair type}", e.g.:
 
+- "E1_R1" is a pair obtained by combining left alignment of some pair in R1 read and right alignment of the next pair in R1 sequence of the same read.
+- "E2_R1" is a pair obtained by combining left alignment of some pair in R1 read and right alignment of the pair separated by 2 alignments in R1 sequence of the same read.
+- "E2_R1&2" as above, both source pairs were sequenced on both R1 and R2.
+- "E4_R1-2" is a pair obtained by combining left alignment of some pair in R1 read and right alignment of some pair in R1 sequence, separated by at least 4 alignments in between.
+Note that "-" in the pair type means that pair is separated by unsequenced gap, which may contain other pairs.
 
 .. [1] Following the lead of `C-walks <https://www.nature.com/articles/nature20158>`_
 

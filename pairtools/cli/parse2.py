@@ -46,7 +46,7 @@ EXTRA_COLUMNS = [
     "--output",
     type=str,
     default="",
-    help="output file. "
+    help="output file with pairs. "
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
     "By default, the output is printed into stdout. ",
 )
@@ -54,28 +54,25 @@ EXTRA_COLUMNS = [
     "--report-position",
     type=click.Choice(["junction", "read", "walk", "outer"]),
     default="outer",
-    help="Specifies what end will be reported as pos5 of the rescued pairs. "
-    "junction - inner ends of sequential alignments, "
-    "read - 5'-end of alignments relative to the forward and reverse read, "
-    "walk - 5'-end of alignments relative to the whole walk, "
-    "outer - outer ends. ",
+    help="""Reported position of alignments in pairs of complex walks (pos columns). 
+    Each alignment in .bam/.sam Hi-C-like data has two ends, and you can report one or another depending of the position of alignment on a read or in a pair.  
+    
+    "junction" - inner ends of sequential alignments in each pair, aka ligation junctions (complex walks default),
+    "read" - 5'-end of alignments relative to R1 or R2 read coordinate system (as in traditional Hi-C),
+    "walk" - 5'-end of alignments relative to the whole walk coordinate system,
+    "outer" - outer ends of sequential alignments in each pair. """,
 )
 @click.option(
     "--report-orientation",
     type=click.Choice(["pair", "read", "walk", "junction"]),
     default="pair",
-    help="Specifies what orientation will be reported for the rescued pairs. "
-    "pair - Hi-C-like orientation as if each pair was sequenced independently, "
-    "read - orientation of each left/right read, "
-    "walk - orientation of the walk, "
-    "junction - orientation opposite to 'pair', orientation is reported as if pair was sequenced starting from the junction",
-)
-@click.option(
-    "--report-alignment-end",
-    type=click.Choice(["5", "3"]),
-    default="5",
-    help="Specifies whether the 5' or 3' end of the alignment is reported as"
-    " the position of the Hi-C read.",
+    help="""Reported orientataion of pairs in complex walk (strand columns).
+    Each alignment in .bam/.sam Hi-C-like data has orientation, and you can report it relative to the read, pair or whole walk coordinate system.
+    
+    "pair" - orientation as if each pair in complex walk was sequenced independently from the outer ends or molecule (as in traditional Hi-C, also complex walks default),
+    "read" - orientation defined by the read (R1 or R2 read coordinate system),
+    "walk" - orientation defined by the walk coordinate system,
+    "junction" - reversed "pair" orientation, as if pair was sequenced in both directions starting from the junction""",
 )
 @click.option(
     "--assembly",
@@ -87,41 +84,53 @@ EXTRA_COLUMNS = [
     type=int,
     default=1,
     show_default=True,
-    help="The minimal MAPQ score to consider a read as uniquely mapped",
+    help="The minimal MAPQ score to consider a read as uniquely mapped.",
 )
 @click.option(
     "--max-inter-align-gap",
     type=int,
     default=20,
     show_default=True,
-    help="read segments that are not covered by any alignment and"
+    help="Read segments that are not covered by any alignment and"
     ' longer than the specified value are treated as "null" alignments.'
     " These null alignments convert otherwise linear alignments into walks,"
     " and affect how they get reported as a Hi-C pair.",
 )
 @click.option(
-    "--max-fragment-size",
+    "--max-insert-size",
     type=int,
     default=500,
     show_default=True,
-    help="Largest fragment size for the detection of overlapping "
-    "alignments at the ends of forward and reverse reads. "
-    "Not used in --single-end mode. ",
+    help="When searching for overlapping ends of left and right read (R1 and R2), this sets the minimal distance "
+    "when two alignments on the same strand and chromosome are considered part of the same fragment (and thus reported as the same alignment "
+    "and not a pair). For traditional Hi-C with long restriction fragments and shorter molecules after ligation+sonication, this "
+    "can be the expected molecule size. For complex walks with short restriction fragments, this can be the expected restriction fragment "
+    "size. Note that unsequenced insert is *terra incognita* and might contain unsequenced DNA (including ligations) in it. "
+    "This parameter is ignored in --single-end mode. ",
 )
 @click.option(
-    "--allowed-offset",
+    "--dedup-max-mismatch",
     type=int,
     default=3,
     show_default=True,
-    help="Offset (in nucleotides) to consider alignments overlapping. ",
+    help="Allowed mismatch between intramolecular alignments to detect readthrough duplicates. "
+    "Pairs with both sides mapped within this distance (bp) from each "
+    "other are considered duplicates. ",
 )
 @click.option(
-    "--single-end", is_flag=True, help="If specified, the input is single-end. "
+    "--single-end",
+    is_flag=True,
+    help="If specified, the input is single-end. "
+    "Never use this for paired-end data, because R1 read will be omitted. "
+    "If single-end data is provided, but parameter is unset, the pairs will be "
+    "generated, but may contain artificial UN pairs. ",
 )
 @click.option(
     "--expand/--no-expand",
     is_flag=True,
-    help="If specified, perform combinatorial expansion on the pairs. ",
+    help="If specified, perform combinatorial expansion on the pairs. "
+    "Combinatorial expansion is a way to increase the number of contacts in you data, assuming that all DNA fragments in the same molecule (read) are in contact. "
+    "Expanded pairs have modified pair type, 'E{separation}_{pair type}'",
 )
 @click.option(
     "--max-expansion-depth",
@@ -129,9 +138,9 @@ EXTRA_COLUMNS = [
     default=None,
     show_default=True,
     help="Works in combination with --expand. "
-         "Maximum number of segments separating pair. By default, expanding all possible pairs."
-         "Setting the number will limit the expansion depth and enforce contacts from the same "
-         "side of the read. ",
+    "Maximum number of segments separating pair. By default, expanding all possible pairs."
+    "Setting the number will limit the expansion depth and enforce contacts from the same "
+    "side of the read. ",
 )
 @click.option(
     "--flip/--no-flip",
@@ -141,9 +150,10 @@ EXTRA_COLUMNS = [
     "the order in which they were sequenced.",
 )
 @click.option(
-    "--drop-readid",
+    "--drop-readid/--keep-readid",
     is_flag=True,
-    help="If specified, do not add read ids to the output",
+    default=False,
+    help="If specified, do not add read ids to the output. By default, keep read ids. Useful for long walks analysis. ",
 )
 @click.option(
     "--readid-transform",
@@ -157,19 +167,23 @@ EXTRA_COLUMNS = [
     show_default=True,
 )
 @click.option(
-    "--drop-seq",
+    "--drop-seq/--keep-seq",
     is_flag=True,
-    help="If specified, remove sequences and PHREDs from the sam fields",
+    default=False,
+    help="Remove sequences and PHREDs from the sam fields by default. Kept otherwise. ",
 )
 @click.option(
-    "--drop-sam", is_flag=True, help="If specified, do not add sams to the output"
+    "--drop-sam/--keep-sam",
+    is_flag=True,
+    default=False,
+    help="Do not add sams to the output by default. Kept otherwise. ",
 )
 @click.option(
     "--add-pair-index",
     is_flag=True,
     help="If specified, parse2 will report pair index in the walk as additional columns."
-         "For combinatorial expanded pairs, two numbers will be reported: "
-         "original pair index of the left and right segments. ",
+    "For combinatorial expanded pairs, two numbers will be reported: "
+    "original pair index of the left and right segments. ",
 )
 @click.option(
     "--add-columns",
@@ -185,8 +199,8 @@ EXTRA_COLUMNS = [
     "--output-parsed-alignments",
     type=str,
     default="",
-    help="output file for all parsed alignments, including walks."
-    " Useful for debugging and rnalysis of walks."
+    help="output file with all parsed alignments (one alignment per line)."
+    " Useful for debugging and analysis of walks."
     " If file exists, it will be open in the append mode."
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4-compressed."
     " By default, not used.",
@@ -202,9 +216,9 @@ EXTRA_COLUMNS = [
 def parse2(
     sam_path, chroms_path, output, output_parsed_alignments, output_stats, **kwargs
 ):
-    """Find pairs in .sam data, make .pairs.
-    SAM_PATH : an input .sam/.bam file with paired-end sequence alignments of
-    Hi-C molecules. If the path ends with .bam, the input is decompressed from
+    """Extracts pairs from .sam/.bam data with complex walks, make .pairs.
+    SAM_PATH : an input .sam/.bam file with paired-end or single-end sequence alignments of
+    Hi-C (or Hi-C-like) molecules. If the path ends with .bam, the input is decompressed from
     bam with samtools. By default, the input is read from stdin.
     """
     parse2_py(
