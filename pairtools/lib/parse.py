@@ -35,7 +35,7 @@ II. python-based data types are parsed from pysam-based ones:
 
 """
 from . import pairsam_format
-
+from .parse_pysam import get_mismatches_c
 
 def streaming_classify(
     instream, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
@@ -240,6 +240,7 @@ def empty_alignment():
         "clip5_ref": 0,
         "read_len": 0,
         "type": "N",
+        "mismatches": ""
     }
 
 
@@ -282,11 +283,23 @@ def parse_pysam_entry(
                 # Note that pysam output is zero-based, thus add +1:
                 pos3 = sam.reference_start + 1
 
+            # Get number of matches:
+            if not sam.has_tag("MD"):
+                mismatches = ""
+            else:
+                seq = sam.query_sequence.upper()
+                quals = sam.query_qualities
+                aligned_pairs = sam.get_aligned_pairs(with_seq=True, matches_only=True)
+                mismatches = get_mismatches_c(seq, quals, aligned_pairs)
+                mismatches = ",".join([f"{original}:{mutated}:{phred}:{ref}:{read}" for original, mutated, phred, ref, read in mismatches])
+                #n_matches = len(aligned_pairs)
+
         else:
             chrom = pairsam_format.UNMAPPED_CHROM
             strand = pairsam_format.UNMAPPED_STRAND
             pos5 = pairsam_format.UNMAPPED_POS
             pos3 = pairsam_format.UNMAPPED_POS
+            mismatches = ""
     else:
         chrom = pairsam_format.UNMAPPED_CHROM
         strand = pairsam_format.UNMAPPED_STRAND
@@ -295,6 +308,7 @@ def parse_pysam_entry(
 
         dist_to_5 = 0
         dist_to_3 = 0
+        mismatches = ""
 
     algn = {
         "chrom": chrom,
@@ -308,6 +322,7 @@ def parse_pysam_entry(
         "dist_to_5": dist_to_5,
         "dist_to_3": dist_to_3,
         "type": ("N" if not is_mapped else ("M" if not is_unique else "U")),
+        "mismatches": mismatches
     }
 
     algn.update(cigar)
