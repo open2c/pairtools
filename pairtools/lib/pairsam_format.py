@@ -62,3 +62,18 @@ UNMAPPED_POS = 0
 UNMAPPED_STRAND = "-"
 
 UNANNOTATED_RFRAG = -1
+
+EXTRA_COLUMNS = [
+    "mapq",
+    "pos5",
+    "pos3",
+    "cigar",
+    "read_len",
+    "matched_bp",
+    "algn_ref_span",
+    "algn_read_span",
+    "dist_to_5",
+    "dist_to_3",
+    "seq",
+    "mismatches" # Format: "{ref_letter}:{mut_letter}:{phred}:{ref_position}:{read_position}"
+]

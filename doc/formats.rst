@@ -148,3 +148,38 @@ Finally, sam1 and sam2 can store multiple .sam alignments, separated by a string
 .. |check| unicode:: U+2714 .. check
 .. |cross| unicode:: U+274C .. cross
 
+Extra columns
+----------------
+
+`pairtools` can operate on `.pairs/.pairsam` with extra columns.
+Extra columns are specified in the order defined by the order their addition by various tools.
+Column names can be checked in the header of `.pairs/.pairsam` file.
+We provide `pairtools header` utilities for manipulating and verifying compatibility of headers and their columns.
+
+The list of additional columns used thoughout `pairtools` modules:
+
+============== ============================ ================ ============== ======================================================= =============
+extra column    module that adds column     format           how to add it   description                                             examples
+============== ============================ ================ ============== ======================================================= =============
+mapq            `pairtools parse/parse2`
+pos5            `pairtools parse/parse2`
+pos3            `pairtools parse/parse2`
+cigar           `pairtools parse/parse2`
+read_len        `pairtools parse/parse2`
+matched_bp      `pairtools parse/parse2`
+algn_ref_span   `pairtools parse/parse2`
+algn_read_span  `pairtools parse/parse2`
+dist_to_5       `pairtools parse/parse2`
+dist_to_3       `pairtools parse/parse2`
+seq             `pairtools parse/parse2`
+mismatches      `pairtools parse/parse2`
+XB,AS,XS or any sam flag    `pairtools parse/parse2`
+walk_pair_type  `pairtools parse/parse2`
+walk_pair_index `pairtools parse/parse2`
+phase           `pairtools phase`
+rfrag1          `pairtools restrict`
+rfrag_start1    `pairtools restrict`
+rfrag_end1      `pairtools restrict`
+rfrag2          `pairtools restrict`
+rfrag_start2    `pairtools restrict`
+rfrag_end2      `pairtools restrict`        integer number  run restrict in .pairs file      coordinate of the end of restriction fragment
