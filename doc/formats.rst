@@ -158,6 +158,7 @@ We provide `pairtools header` utilities for manipulating and verifying compatibi
 
 The list of additional columns used thoughout `pairtools` modules:
 
+
 ============== ============================ ================ ============== ======================================================= =============
 extra column    module that adds column     format           how to add it   description                                             examples
 ============== ============================ ================ ============== ======================================================= =============
@@ -183,3 +184,4 @@ rfrag_end1      `pairtools restrict`
 rfrag2          `pairtools restrict`
 rfrag_start2    `pairtools restrict`
 rfrag_end2      `pairtools restrict`        integer number  run restrict in .pairs file      coordinate of the end of restriction fragment
+============== ============================ ================ ============== ======================================================= =============
