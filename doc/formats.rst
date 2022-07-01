@@ -159,29 +159,30 @@ We provide `pairtools header` utilities for manipulating and verifying compatibi
 The list of additional columns used thoughout `pairtools` modules:
 
 
-============== ============================ ================ ============== ======================================================= =============
-extra column    module that adds column     format           how to add it   description                                             examples
-============== ============================ ================ ============== ======================================================= =============
-mapq            `pairtools parse/parse2`
-pos5            `pairtools parse/parse2`
-pos3            `pairtools parse/parse2`
-cigar           `pairtools parse/parse2`
-read_len        `pairtools parse/parse2`
-matched_bp      `pairtools parse/parse2`
-algn_ref_span   `pairtools parse/parse2`
-algn_read_span  `pairtools parse/parse2`
-dist_to_5       `pairtools parse/parse2`
-dist_to_3       `pairtools parse/parse2`
-seq             `pairtools parse/parse2`
-mismatches      `pairtools parse/parse2`
+========================= ============================ ================ ===================== ======================================================= =============
+extra column               module that adds column     format           how to add it          description                                             examples
+========================= ============================ ================ ===================== ======================================================= =============
+rfrag_end2                  `pairtools restrict`        integer number  `restrict` on .pairs   coordinate of the end of restriction fragment          .
+========================= ============================ ================ ===================== ======================================================= =============
+
+mapq                        `pairtools parse/parse2`   .
+pos5                        `pairtools parse/parse2`   .
+pos3                        `pairtools parse/parse2`   .
+cigar                       `pairtools parse/parse2`
+read_len                    `pairtools parse/parse2`
+matched_bp                  `pairtools parse/parse2`
+algn_ref_span               `pairtools parse/parse2`
+algn_read_span              `pairtools parse/parse2`
+dist_to_5                   `pairtools parse/parse2`
+dist_to_3                   `pairtools parse/parse2`
+seq                         `pairtools parse/parse2`
+mismatches                  `pairtools parse/parse2`
 XB,AS,XS or any sam flag    `pairtools parse/parse2`
-walk_pair_type  `pairtools parse/parse2`
-walk_pair_index `pairtools parse/parse2`
-phase           `pairtools phase`
-rfrag1          `pairtools restrict`
-rfrag_start1    `pairtools restrict`
-rfrag_end1      `pairtools restrict`
-rfrag2          `pairtools restrict`
-rfrag_start2    `pairtools restrict`
-rfrag_end2      `pairtools restrict`        integer number  run restrict in .pairs file      coordinate of the end of restriction fragment
-============== ============================ ================ ============== ======================================================= =============
+walk_pair_type              `pairtools parse/parse2`
+walk_pair_index             `pairtools parse/parse2`
+phase                       `pairtools phase`
+rfrag1                      `pairtools restrict`
+rfrag_start1                `pairtools restrict`
+rfrag_end1                  `pairtools restrict`
+rfrag2                      `pairtools restrict`
+rfrag_start2                `pairtools restrict`
