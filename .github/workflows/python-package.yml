@@ -39,7 +39,6 @@ jobs:
         hash -r
         conda config --set always_yes yes --set changeps1 no
         conda config --add channels conda-forge
-        conda config --add channels defaults                  
         conda config --add channels bioconda                  
         conda config --get                                    
 
@@ -48,8 +47,9 @@ jobs:
         conda info -a
 
         # Create test environment and install deps
-        conda create -q -n test-environment -c conda-forge -c bioconda python=${{ matrix.python-version }} setuptools pip cython numpy pandas nose samtools pysam scipy pyyaml bioframe
+        conda create -q -n test-environment -c anaconda python=${{ matrix.python-version }} setuptools pip numpy pandas nose
         source activate test-environment
+        conda install -c conda-forge -c bioconda cython samtools pysam scipy pyyaml bioframe
         pip install click
         python setup.py build_ext -i
         
