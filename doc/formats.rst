@@ -159,30 +159,26 @@ We provide `pairtools header` utilities for manipulating and verifying compatibi
 The list of additional columns used thoughout `pairtools` modules:
 
 
-========================= ============================ ================ ===================== ======================================================= =============
-extra column               module that adds column     format           how to add it          description                                             examples
-========================= ============================ ================ ===================== ======================================================= =============
-rfrag_end2                  `pairtools restrict`        integer number  `restrict` on .pairs   coordinate of the end of restriction fragment          .
-========================= ============================ ================ ===================== ======================================================= =============
-
-mapq                        `pairtools parse/parse2`   .
-pos5                        `pairtools parse/parse2`   .
-pos3                        `pairtools parse/parse2`   .
-cigar                       `pairtools parse/parse2`
-read_len                    `pairtools parse/parse2`
-matched_bp                  `pairtools parse/parse2`
-algn_ref_span               `pairtools parse/parse2`
-algn_read_span              `pairtools parse/parse2`
-dist_to_5                   `pairtools parse/parse2`
-dist_to_3                   `pairtools parse/parse2`
-seq                         `pairtools parse/parse2`
-mismatches                  `pairtools parse/parse2`
-XB,AS,XS or any sam flag    `pairtools parse/parse2`
-walk_pair_type              `pairtools parse/parse2`
-walk_pair_index             `pairtools parse/parse2`
-phase                       `pairtools phase`
-rfrag1                      `pairtools restrict`
-rfrag_start1                `pairtools restrict`
-rfrag_end1                  `pairtools restrict`
-rfrag2                      `pairtools restrict`
-rfrag_start2                `pairtools restrict`
+===== | ===== | ===== | ===== | ===== | =====
+extra column | generating module | format | how to add it | description | examples
+===== | ===== | ===== | ===== | ===== | =====
+mapq1, mapq2 | `parse/parse2` | number from 0 to 255 | `pairtools parse --add-columns mapq` | [Mapping quality](https://sequencing.qcfail.com/articles/mapq-values-are-really-useful-but-their-implementation-is-a-mess/) of alignment, as reported in .sam/.bam, usually $-10*log_{10}(P(mapping position is wrong)}$ |
+pos51, pos52 | `parse/parse2` | genomic coordinate | `pairtools parse --add-columns pos5` | 5' position of alignment (closer to read start) |
+pos31, pos32 | `parse/parse2` | genomic coordinate | `pairtools parse --add-columns pos3` | 3' position of alignment (further from read start) |
+cigar1, cigar2 | `parse/parse2` | string | `pairtools parse --add-columns cigar` | [CIGAR, or Compact Idiosyncratic Gapped Alignment Report](https://en.wikipedia.org/wiki/Sequence_alignment#CIGAR_Format) of alignment, as reported in .sam/.bam |
+read_len1, read_len2 | `parse/parse2` | number | `pairtools parse --add-columns read_len` | read length |
+matched_bp1, matched_bp2 | `parse/parse2` | number | `pairtools parse --add-columns matched_bp` | number of matched alignment basepairs to the reference |
+algn_ref_span1, algn_ref_span2 | `parse/parse2` | number | `pairtools parse --add-columns algn_ref_span` | basepairs of reference covered by alignment |
+algn_read_span1, algn_read_span2 | `parse/parse2` | number | `pairtools parse --add-columns algn_read_span` | basepairs of read covered by alignment |
+dist_to_51, dist_to_52 | `parse/parse2` | number | `pairtools parse --add-columns dist_to_5` | distance to 5'-end of read |
+dist_to_31, dist_to_32 | `parse/parse2` | number | `pairtools parse --add-columns dist_to_3` | distance to 3'-end of read |
+seq1, seq2 | `parse/parse2` | string | `pairtools parse --add-columns seq` | sequence of alignment |
+mismatches1, mismatches2 | `parse/parse2` | string | `pairtools parse --add-columns mismatches` | comma-separated list of mismatches relative to the reference, "{ref_letter}:{mut_letter}:{phred}:{ref_position}:{read_position}" |
+XB1/2,AS1/2,XS1/2 or any sam tag | `parse/parse2` | format depends on [tag specification](https://samtools.github.io/hts-specs/SAMv1.pdf) | `pairtools parse --add-columns XA,XB,NM` | |
+walk_pair_type  | `parse/parse2` | string | `pairtools parse2 --add-pair-index` | Type of the pair relative to R1 and R2 reads of paired-end sequencing, see [pasring docs](https://pairtools.readthedocs.io/en/latest/parsing.html#rescuing-complex-walks) |
+walk_pair_index | `parse/parse2` | number | `pairtools parse2 --add-pair-index` | Order of the pair in the complex walk, starting from 5'-end of left read, see [pasring docs](https://pairtools.readthedocs.io/en/latest/parsing.html#rescuing-complex-walks) |
+phase           | `phase` | 0, 1 or "." | `pairtools phase` | Phase of alignment (haplotype 1, 2, on unphased), see [phasing walkthrough](https://pairtools.readthedocs.io/en/latest/examples/pairtools_phase_walkthrough.html) |
+rfrag1, rfrag2          | `restrict` | number | `pairtools restrict` | Unique index of the restriction fragment after annotating pairs positions, see [restriction walkthrough](https://pairtools.readthedocs.io/en/latest/examples/pairtools_restrict_walkthrough.html) |
+rfrag_start1, rfrag_start2    | `restrict` | number | `pairtools restrict` | Coordinate of the start of restriction fragment
+rfrag_end1, rfrag_end2      | `restrict` | number | `pairtools restrict` | Coordinate of the end of restriction fragment
+===== | ===== | ===== | ===== | ===== | =====
