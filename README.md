@@ -2,7 +2,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/pairtools/badge/?version=latest)](http://pairtools.readthedocs.org/en/latest/)
 [![Build Status](https://travis-ci.org/mirnylab/pairtools.svg?branch=master)](https://travis-ci.org/mirnylab/pairtools)
-[![Join the chat at https://gitter.im/mirnylab/distiller](https://badges.gitter.im/mirnylab/distiller.svg)](https://gitter.im/mirnylab/distiller?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at Open2C Slack](https://join.slack.com/t/open2c/shared_invite/zt-1buzt2uyt-FLGp8~~MvbTCig5sQZTSNQ)](https://join.slack.com/t/open2c/shared_invite/zt-1buzt2uyt-FLGp8~~MvbTCig5sQZTSNQ)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1490831.svg)](https://doi.org/10.5281/zenodo.1490831)
 
 ## Process Hi-C pairs with pairtools
@@ -19,9 +19,12 @@ operations:
 - generate extensive statistics of Hi-C datasets
 - select Hi-C pairs given flexibly defined criteria
 - restore .sam alignments from Hi-C pairs
+- annotate restriction digestion sites
+- get the mutated positions in Hi-C pairs
 
 To get started:
-- Take a look at a [quick example](https://github.com/open2c/pairtools#quick-example)
+- Visit [pairtools tutorials](https://pairtools.readthedocs.io/en/latest/examples/pairtools_walkthrough.html),
+- Take a look at a [quick example](https://github.com/open2c/pairtools#quick-example),
 - Check out the detailed [documentation](http://pairtools.readthedocs.io).
 
 ## Data formats
@@ -32,17 +35,22 @@ format defined by the [4D Nucleome Consortium](https://www.4dnucleome.org/). All
 pairtools properly manage file headers and keep track of the data
 processing history.
 
-Additionally, `pairtools` define the .pairsam format, an extension of .pairs that includes the SAM alignments 
+Additionally, `pairtools` define the [.pairsam format](https://pairtools.readthedocs.io/en/latest/formats.html#pairsam), an extension of .pairs that includes the SAM alignments 
 of a sequenced Hi-C molecule. .pairsam complies with the .pairs format, and can be processed by any tool that
 operates on .pairs files.
+
+`pairtools` produces a set of additional extra columns, which describe properties of alignments, phase, mutations, restriction and complex walks.
+The full list of possible extra columns is provided in the [`pairtools` format specification](https://pairtools.readthedocs.io/en/latest/formats.html#extra-columns). 
 
 ## Installation
 
 Requirements:
 
 - Python 3.x
-- Python packages `cython`, `numpy` and `click`.
+- Python packages `cython`, `pysam`, `bioframe`, `pyyaml`, `numpy`, `scipy`, `pandas` and `click`.
 - Command-line utilities `sort` (the Unix version), `bgzip` (shipped with `samtools`)  and `samtools`. If available, `pairtools` can compress outputs with `pbgzip` and `lz4`.
+
+For the full list of recommended versions, see [requirements in the the GitHub repo](https://github.com/open2c/pairtools/blob/detect_mutations/requirements.txt). 
 
 We highly recommend using the `conda` package manager to install `pairtools` together with all its dependencies. To get it, you can either install the full [Anaconda](https://www.continuum.io/downloads) Python distribution or just the standalone [conda](http://conda.pydata.org/miniconda.html) package manager.
 
@@ -91,20 +99,26 @@ Hi-C data analysis workflow, based on `pairtools` and [nextflow](https://www.nex
 
 ## Tools
 
-- `parse`: read .sam files produced by bwa and form Hi-C pairs
+- `parse`: read .sam/.bam files produced by bwa and form Hi-C pairs
     - form Hi-C pairs by reporting the outer-most mapped positions and the strand
     on the either side of each molecule;
     - report unmapped/multimapped (ambiguous alignments)/chimeric alignments as
     chromosome "!", position 0, strand "-";
-    - identify and rescue chrimeric alignments produced by singly-ligated Hi-C 
-    molecules with a sequenced ligation junction on one of the sides;
-    - annotate chimeric alignments by restriction fragments and report true junctions and hops (One-Read-Based Interactions Annotation, ORBITA);
     - perform upper-triangular flipping of the sides of Hi-C molecules 
     such that the first side has a lower sorting index than the second side;
     - form hybrid pairsam output, where each line contains all available data 
     for one Hi-C molecule (outer-most mapped positions on the either side, 
     read ID, pair type, and .sam entries for each alignment);
+    - report .sam tags or mutations of the alignments;
     - print the .sam header as #-comment lines at the start of the file.
+
+- `parse2`: read .sam/.bam files with long paired-and or single-end reads and form Hi-C pairs from complex walks 
+    - identify and rescue chrimeric alignments produced by singly-ligated Hi-C 
+    molecules with a sequenced ligation junction on one of the sides;
+    - annotate chimeric alignments by restriction fragments and report true junctions and hops (One-Read-Based Interactions Annotation, ORBITA);
+    - perform intra-molecule deduplication of paired-end data when one side reads through the DNA on the other side of the read;
+    - report index of the pair in the complex walk;
+    - make combinatorial expansion of pairs produced from the same walk; 
 
 - `sort`: sort pairs files (the lexicographic order for chromosomes, 
     the numeric order for the positions, the lexicographic order for pair types).
@@ -125,7 +139,10 @@ Hi-C data analysis workflow, based on `pairtools` and [nextflow](https://www.nex
 - `dedup`: remove PCR duplicates from a sorted triu-flipped .pairs file
     - remove PCR duplicates by finding pairs of entries with both sides mapped
     to similar genomic locations (+/- N bp);
-    - optionally output the PCR duplicate entries into a separate file.
+    - optionally output the PCR duplicate entries into a separate file;
+    - detect optical duplicates from the original Illumina read ids;
+    - apply filtering by various properties of pairs (MAPQ; orientation; distance) together with deduplication; 
+    - output yaml or convenient tsv deduplication stats into text file.
     - NOTE: in order to remove all PCR duplicates, the input must contain \*all\* 
       mapped read pairs from a single experimental replicate;
 
@@ -136,9 +153,19 @@ Hi-C data analysis workflow, based on `pairtools` and [nextflow](https://www.nex
 
 - `split`: split a .pairsam file into .pairs and .sam.
 
+- `flip`: flip pairs to get an upper-triangular matrix
+
+- `header`: manipulate the .pairs/.pairsam header
+    - generate new header for headerless .pairs file
+    - transfer header from one .pairs file to another
+    - set column names for the .pairs file
+    - validate that the header corresponds to the information stored in .pairs file
+
 - `stats`: calculate various statistics of .pairs files
 
 - `restrict`: identify the span of the restriction fragment forming a Hi-C junction
+
+- `phase`: phase pairs mapped to a diploid genome 
 
 ## Contributing
 
