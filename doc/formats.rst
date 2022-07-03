@@ -161,7 +161,7 @@ The list of additional columns used throughout `pairtools` modules:
 +=====+=====+=====+=====+=====+=====+
 | extra column | generating module | format | how to add it | description |
 +=====+=====+=====+=====+=====+=====+
-| mapq1, mapq2 | `parse/parse2` | number from 0 to 255 | `pairtools parse --add-columns mapq` | [Mapping quality](https://sequencing.qcfail.com/articles/mapq-values-are-really-useful-but-their-implementation-is-a-mess/) of alignment, as reported in .sam/.bam, usually $-10*log_{10}(P(mapping position is wrong)}$ |
+| mapq1, mapq2 | `parse/parse2` | number from 0 to 255 | `pairtools parse --add-columns mapq` | [Mapping quality](https://sequencing.qcfail.com/articles/mapq-values-are-really-useful-but-their-implementation-is-a-mess/) of alignment, as reported in .sam/.bam, usually $-10*log_{10}(P(mapping position is wrong))$ |
 | pos51, pos52 | `parse/parse2` | genomic coordinate | `pairtools parse --add-columns pos5` | 5' position of alignment (closer to read start) |
 | pos31, pos32 | `parse/parse2` | genomic coordinate | `pairtools parse --add-columns pos3` | 3' position of alignment (further from read start) |
 | cigar1, cigar2 | `parse/parse2` | string | `pairtools parse --add-columns cigar` | [CIGAR, or Compact Idiosyncratic Gapped Alignment Report](https://en.wikipedia.org/wiki/Sequence_alignment#CIGAR_Format) of alignment, as reported in .sam/.bam |
