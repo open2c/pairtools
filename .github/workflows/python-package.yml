@@ -50,7 +50,8 @@ jobs:
         conda create -q -n test-environment -c anaconda python=${{ matrix.python-version }} setuptools pip numpy scipy pandas nose
         source activate test-environment
         conda install -c conda-forge cython pyyaml
-        conda install -c conda-forge -c bioconda samtools pysam bioframe
+        conda install -c bioconda samtools
+        pip install pysam bioframe # workaround: incompatible with python3.10 if installed by conda
         pip install click
         python setup.py build_ext -i
         
