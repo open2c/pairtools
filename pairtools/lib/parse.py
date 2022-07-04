@@ -125,6 +125,7 @@ def streaming_classify(
                     walks_policy=kwargs["walks_policy"],
                     sam_tags=sam_tags,
                     store_seq=store_seq,
+                    report_mismatches=True if 'mismatches' in add_columns else False,
                 )
             else:  # parse2 parser:
                 pairstream, all_algns1, all_algns2 = parse2_read(
@@ -141,6 +142,7 @@ def streaming_classify(
                     store_seq=store_seq,
                     expand=kwargs["expand"],
                     max_expansion_depth=kwargs["max_expansion_depth"],
+                    report_mismatches=True if 'mismatches' in add_columns else False,
                 )
 
             ### Write:
@@ -245,14 +247,21 @@ def empty_alignment():
 
 
 def parse_pysam_entry(
-    sam, min_mapq, sam_tags=None, store_seq=False, report_3_alignment_end=False
+    sam,
+    min_mapq,
+    sam_tags=None,
+    store_seq=False,
+    report_3_alignment_end=False,
+    report_mismatches=False
 ):
     """Parse alignments from pysam AlignedSegment entry
     :param sam: input pysam AlignedSegment entry
     :param min_mapq: minimal MAPQ to consider as a proper alignment
     :param sam_tags: list of sam tags to store
     :param store_seq: if True, the sequence will be parsed and stored in the output
-    :param report_3_alignment_end: if True, 3'-end of alignment will be reported as position (will be deprecated)
+    :param report_3_alignment_end: if True, 3'-end of alignment will be
+                                reported as position (will be deprecated)
+    :param report_mismatches: if True, mismatches will be parsed from MD field
     :return: parsed aligned entry (dictionary)
     """
 
@@ -284,7 +293,7 @@ def parse_pysam_entry(
                 pos3 = sam.reference_start + 1
 
             # Get number of matches:
-            if not sam.has_tag("MD"):
+            if not sam.has_tag("MD") or not report_mismatches:
                 mismatches = ""
             else:
                 seq = sam.query_sequence.upper()
@@ -408,6 +417,7 @@ def parse_read(
     walks_policy,
     sam_tags,
     store_seq,
+    report_mismatches=False,
 ):
     """
     Parse sam entries corresponding to a single read (or Hi-C molecule)
@@ -441,8 +451,8 @@ def parse_read(
         return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams1]
-    algns2 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams2]
+    algns1 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams1]
+    algns2 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams2]
 
     if len(algns1) > 0:
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
@@ -560,6 +570,7 @@ def parse2_read(
     sam_tags=[],
     dedup_max_mismatch=3,
     store_seq=False,
+    report_mismatches=False,
     expand=False,
     max_expansion_depth=None,
 ):
@@ -582,7 +593,7 @@ def parse2_read(
     if single_end:
         # Generate a sorted, gap-filled list of all alignments
         algns1 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq)
+            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches)
             for sam in sams2  # note sams2, that's how these reads are typically parsed
         ]
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
@@ -632,10 +643,10 @@ def parse2_read(
 
         # Generate a sorted, gap-filled list of all alignments
         algns1 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams1
+            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams1
         ]
         algns2 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams2
+            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams2
         ]
 
         # Sort alignments by the distance to the 5'-end:
