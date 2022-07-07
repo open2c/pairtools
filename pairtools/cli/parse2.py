@@ -130,9 +130,11 @@ UTIL_NAME = "pairtools_parse2"
 @click.option(
     "--flip/--no-flip",
     is_flag=True,
-    default=True,
-    help="If specified, do not flip pairs in genomic order and instead preserve "
-    "the order in which they were sequenced.",
+    default=False,
+    help="If specified, flip pairs in genomic order and instead preserve "
+    "the order in which they were sequenced. Note that no flip is recommended for analysis of walks because it will "
+    "override the order of alignments in pairs. Flip is required for appropriate deduplication of sorted pairs. "
+    "Flip is not required for cooler cload, which runs flipping internally. ",
 )
 @click.option(
     "--drop-readid/--keep-readid",
