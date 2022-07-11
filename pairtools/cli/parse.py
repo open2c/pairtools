@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import click
 import sys
 
@@ -12,20 +13,6 @@ from ..lib.parse import streaming_classify
 
 
 UTIL_NAME = "pairtools_parse"
-
-EXTRA_COLUMNS = [
-    "mapq",
-    "pos5",
-    "pos3",
-    "cigar",
-    "read_len",
-    "matched_bp",
-    "algn_ref_span",
-    "algn_read_span",
-    "dist_to_5",
-    "dist_to_3",
-    "seq",
-]
 
 
 @cli.command()
@@ -96,7 +83,7 @@ EXTRA_COLUMNS = [
     help="Report extra columns describing alignments "
     "Possible values (can take multiple values as a comma-separated "
     "list): a SAM tag (any pair of uppercase letters) or {}.".format(
-        ", ".join(EXTRA_COLUMNS)
+        ", ".join(pairsam_format.EXTRA_COLUMNS)
     ),
 )
 @click.option(
@@ -228,7 +215,7 @@ def parse_py(
     add_columns = kwargs.get("add_columns", [])
     add_columns = [col for col in add_columns.split(",") if col]
     for col in add_columns:
-        if not ((col in EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())):
+        if not ((col in pairsam_format.EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())):
             raise Exception("{} is not a valid extra column".format(col))
 
     columns = pairsam_format.COLUMNS + (

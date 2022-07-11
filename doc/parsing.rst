@@ -265,7 +265,7 @@ position:
 Sometimes it is important to restore the sequence of ligation events (e.g., for MC-3C data). For that, you can add
 special columns ``walk_pair_index`` and ``walk_pair_type`` by setting ``--add-pair-index`` option of ``parse2``, that will keep the order and type of pair in the whole walk in the output .pairs file.
 
-- ``walk_pair_index`` contains information on the order of the pair in the recovered walk, starting from 5'-end of left read
+- ``walk_pair_index`` contains information on the order of the pair in the complex walk, starting from 5'-end of left read
 - ``walk_pair_type`` describes the type of the pair relative to R1 and R2 reads of paired-end sequencing:
 
   - "R1-2" - unconfirmed pair, right and left alignments in the pair originate from different reads (left or right). This might be indirect ligation (mediated by other DNA fragments).

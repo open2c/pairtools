@@ -35,7 +35,7 @@ II. python-based data types are parsed from pysam-based ones:
 
 """
 from . import pairsam_format
-
+from .parse_pysam import get_mismatches_c
 
 def streaming_classify(
     instream, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
@@ -125,6 +125,7 @@ def streaming_classify(
                     walks_policy=kwargs["walks_policy"],
                     sam_tags=sam_tags,
                     store_seq=store_seq,
+                    report_mismatches=True if 'mismatches' in add_columns else False,
                 )
             else:  # parse2 parser:
                 pairstream, all_algns1, all_algns2 = parse2_read(
@@ -141,6 +142,7 @@ def streaming_classify(
                     store_seq=store_seq,
                     expand=kwargs["expand"],
                     max_expansion_depth=kwargs["max_expansion_depth"],
+                    report_mismatches=True if 'mismatches' in add_columns else False,
                 )
 
             ### Write:
@@ -240,18 +242,26 @@ def empty_alignment():
         "clip5_ref": 0,
         "read_len": 0,
         "type": "N",
+        "mismatches": ""
     }
 
 
 def parse_pysam_entry(
-    sam, min_mapq, sam_tags=None, store_seq=False, report_3_alignment_end=False
+    sam,
+    min_mapq,
+    sam_tags=None,
+    store_seq=False,
+    report_3_alignment_end=False,
+    report_mismatches=False
 ):
     """Parse alignments from pysam AlignedSegment entry
     :param sam: input pysam AlignedSegment entry
     :param min_mapq: minimal MAPQ to consider as a proper alignment
     :param sam_tags: list of sam tags to store
     :param store_seq: if True, the sequence will be parsed and stored in the output
-    :param report_3_alignment_end: if True, 3'-end of alignment will be reported as position (will be deprecated)
+    :param report_3_alignment_end: if True, 3'-end of alignment will be
+                                reported as position (will be deprecated)
+    :param report_mismatches: if True, mismatches will be parsed from MD field
     :return: parsed aligned entry (dictionary)
     """
 
@@ -282,11 +292,23 @@ def parse_pysam_entry(
                 # Note that pysam output is zero-based, thus add +1:
                 pos3 = sam.reference_start + 1
 
+            # Get number of matches:
+            if not sam.has_tag("MD") or not report_mismatches:
+                mismatches = ""
+            else:
+                seq = sam.query_sequence.upper()
+                quals = sam.query_qualities
+                aligned_pairs = sam.get_aligned_pairs(with_seq=True, matches_only=True)
+                mismatches = get_mismatches_c(seq, quals, aligned_pairs)
+                mismatches = ",".join([f"{original}:{mutated}:{phred}:{ref}:{read}" for original, mutated, phred, ref, read in mismatches])
+                #n_matches = len(aligned_pairs)
+
         else:
             chrom = pairsam_format.UNMAPPED_CHROM
             strand = pairsam_format.UNMAPPED_STRAND
             pos5 = pairsam_format.UNMAPPED_POS
             pos3 = pairsam_format.UNMAPPED_POS
+            mismatches = ""
     else:
         chrom = pairsam_format.UNMAPPED_CHROM
         strand = pairsam_format.UNMAPPED_STRAND
@@ -295,6 +317,7 @@ def parse_pysam_entry(
 
         dist_to_5 = 0
         dist_to_3 = 0
+        mismatches = ""
 
     algn = {
         "chrom": chrom,
@@ -308,6 +331,7 @@ def parse_pysam_entry(
         "dist_to_5": dist_to_5,
         "dist_to_3": dist_to_3,
         "type": ("N" if not is_mapped else ("M" if not is_unique else "U")),
+        "mismatches": mismatches
     }
 
     algn.update(cigar)
@@ -393,6 +417,7 @@ def parse_read(
     walks_policy,
     sam_tags,
     store_seq,
+    report_mismatches=False,
 ):
     """
     Parse sam entries corresponding to a single read (or Hi-C molecule)
@@ -426,8 +451,8 @@ def parse_read(
         return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams1]
-    algns2 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams2]
+    algns1 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams1]
+    algns2 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams2]
 
     if len(algns1) > 0:
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
@@ -545,6 +570,7 @@ def parse2_read(
     sam_tags=[],
     dedup_max_mismatch=3,
     store_seq=False,
+    report_mismatches=False,
     expand=False,
     max_expansion_depth=None,
 ):
@@ -567,7 +593,7 @@ def parse2_read(
     if single_end:
         # Generate a sorted, gap-filled list of all alignments
         algns1 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq)
+            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches)
             for sam in sams2  # note sams2, that's how these reads are typically parsed
         ]
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
@@ -617,10 +643,10 @@ def parse2_read(
 
         # Generate a sorted, gap-filled list of all alignments
         algns1 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams1
+            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams1
         ]
         algns2 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq) for sam in sams2
+            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams2
         ]
 
         # Sort alignments by the distance to the 5'-end:
