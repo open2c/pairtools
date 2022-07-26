@@ -32,10 +32,8 @@ UTIL_NAME = "pairtools_stats"
     "--with-chromsizes/--no-chromsizes",
     is_flag=True,
     default=True,
-    help="If specified, merge multiple input stats files instead of calculating"
-    " statistics of a .pairs/.pairsam file. Merging is performed via summation of"
-    " all overlapping statistics. Non-overlapping statistics are appended to"
-    " the end of the file.",
+    help="If enabled, will store sizes of chromosomes from the header of the pairs file"
+    " in the stats file.",
 )
 @click.option(
     "--yaml/--no-yaml",
@@ -122,13 +120,7 @@ def stats(
     """
 
     stats_py(
-        input_path,
-        output,
-        merge,
-        bytile_dups,
-        output_bytile_stats,
-        filter,
-        **kwargs,
+        input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs,
     )
 
 

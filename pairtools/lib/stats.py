@@ -300,9 +300,13 @@ class PairCounter(Mapping):
                     # 'pair_types' and 'dedup' treated the same
                     if len(key_fields) == 1:
                         try:
-                            stat_from_file._stat[default_filter][key][key_fields[0]] = int(fields[1])
+                            stat_from_file._stat[default_filter][key][
+                                key_fields[0]
+                            ] = int(fields[1])
                         except ValueError:
-                            stat_from_file._stat[default_filter][key][key_fields[0]] = float(fields[1])
+                            stat_from_file._stat[default_filter][key][
+                                key_fields[0]
+                            ] = float(fields[1])
                     else:
                         raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 1 identifier".format(
@@ -313,7 +317,9 @@ class PairCounter(Mapping):
                 elif key == "chrom_freq":
                     # assert remaining key_fields == [chr1, chr2]:
                     if len(key_fields) == 2:
-                        stat_from_file._stat[default_filter][key][tuple(key_fields)] = int(fields[1])
+                        stat_from_file._stat[default_filter][key][
+                            tuple(key_fields)
+                        ] = int(fields[1])
                     else:
                         raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 2 identifiers".format(
@@ -342,7 +348,9 @@ class PairCounter(Mapping):
                             - 1
                         )
                         # store corresponding value:
-                        stat_from_file._stat[default_filter][key][dirs][bin_idx] = int(fields[1])
+                        stat_from_file._stat[default_filter][key][dirs][bin_idx] = int(
+                            fields[1]
+                        )
                     else:
                         raise fileio.ParseError(
                             "{} is not a valid stats file: {} section implies 2 identifiers".format(
@@ -383,7 +391,17 @@ class PairCounter(Mapping):
         stat_from_file._stat = stat
         return stat_from_file
 
-    def add_pair(self, chrom1, pos1, strand1, chrom2, pos2, strand2, pair_type, filter="no_filter"):
+    def add_pair(
+        self,
+        chrom1,
+        pos1,
+        strand1,
+        chrom2,
+        pos2,
+        strand2,
+        pair_type,
+        filter="no_filter",
+    ):
         """Gather statistics for a Hi-C pair and add to the PairCounter.
         Parameters
         ----------
@@ -550,7 +568,7 @@ class PairCounter(Mapping):
                     bytile_dups, fill_value=0
                 ).astype(int)
 
-    def add_chromsizes(self, chromsizes, filter="no_filter"):
+    def add_chromsizes(self, chromsizes):
         """Add chromsizes field to the output stats
         Parameters
         ----------
@@ -558,7 +576,8 @@ class PairCounter(Mapping):
         """
 
         chromsizes = chromsizes.to_dict()
-        self._stat[filter]["chromsizes"] = chromsizes
+        for filter in self._stat.keys():
+            self._stat[filter]["chromsizes"] = chromsizes
         return
 
     def __add__(self, other, filter="no_filter"):
@@ -572,9 +591,17 @@ class PairCounter(Mapping):
         sum_stat = PairCounter()
         # use the empty PairCounter to iterate over:
         for k, v in sum_stat._stat[filter].items():
+            if k not in self._stat[filter] or k not in other._stat[filter]:
+                # Skip any missing fields and warn
+                logger.warning(
+                    f"{k} not found in at least one of the input stats, skipping"
+                )
+                continue
             # not nested fields are summed trivially:
             if isinstance(v, int):
-                sum_stat._stat[filter][k] = self._stat[filter][k] + other._stat[filter][k]
+                sum_stat._stat[filter][k] = (
+                    self._stat[filter][k] + other._stat[filter][k]
+                )
             # sum nested dicts/arrays in a context dependet manner:
             else:
                 if k in ["pair_types", "dedup", "summary"]:
@@ -585,7 +612,9 @@ class PairCounter(Mapping):
                         for key in set(dict_x) | set(dict_y)
                     }
                     # sum a pair of corresponding dicts:
-                    sum_stat._stat[filter][k] = sum_dicts(self._stat[filter][k], other._stat[filter][k])
+                    sum_stat._stat[filter][k] = sum_dicts(
+                        self._stat[filter][k], other._stat[filter][k]
+                    )
                 if k == "chrom_freq":
                     # union list of keys (chr1,chr2) with potential duplicates:
                     union_keys_with_dups = list(self._stat[filter][k].keys()) + list(
@@ -597,22 +626,25 @@ class PairCounter(Mapping):
                     sum_stat._stat[filter][k] = dict.fromkeys(union_keys_with_dups)
                     # perform a summation:
                     for union_key in sum_stat._stat[filter][k]:
-                        sum_stat._stat[filter][k][union_key] = self._stat[filter][k].get(
-                            union_key, 0
-                        ) + other._stat[filter][k].get(union_key, 0)
+                        sum_stat._stat[filter][k][union_key] = self._stat[filter][
+                            k
+                        ].get(union_key, 0) + other._stat[filter][k].get(union_key, 0)
                 if k == "dist_freq":
                     for dirs in sum_stat[k]:
 
                         from functools import reduce
+
                         def reducer(accumulator, element):
                             for key, value in element.items():
                                 accumulator[key] = accumulator.get(key, 0) + value
                             return accumulator
 
-                        sum_stat[k][dirs] = reduce(reducer,
-                                                   [self._stat[filter][k][dirs], other._stat[filter][k][dirs]],
-                                                   {})
-                        #sum_stat[k][dirs] = self._stat[filter][k][dirs] + other._stat[filter][k][dirs]
+                        sum_stat[k][dirs] = reduce(
+                            reducer,
+                            [self._stat[filter][k][dirs], other._stat[filter][k][dirs]],
+                            {},
+                        )
+                        # sum_stat[k][dirs] = self._stat[filter][k][dirs] + other._stat[filter][k][dirs]
         return sum_stat
 
     # we need this to be able to sum(list_of_PairCounters)
@@ -767,7 +799,10 @@ def do_merge(output, files_to_merge, **kwargs):
             command=kwargs.get("cmd_in", None),
         )
         # use a factory method to instanciate PairCounter
-        stat = PairCounter.from_file(f)
+        if kwargs.get("yaml", False):
+            stat = PairCounter.from_yaml(f)
+        else:
+            stat = PairCounter.from_file(f)
         stats.append(stat)
         f.close()
 
@@ -886,6 +921,7 @@ def extract_tile_info(series, regex=False):
                 f"Unable to convert tile names, does your readID have the tile information?\nHint: SRA removes tile information from readID.\nSample of your readIDs:\n{series.head()}"
             )
         return split
+
 
 def yaml2pandas(yaml_path):
     """Generate a pandas DataFrame with stats from a yaml file
