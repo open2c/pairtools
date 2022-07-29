@@ -65,10 +65,13 @@ def get_ext_modules():
         if not "pysam" in name and not "regions" in name:
             ext_modules.append(Extension(name, [src_file]))
         elif "regions" in name:
-            ext_modules.append(Extension(
-                name, [src_file],
-                language="c++",
-            ))
+            ext_modules.append(
+                Extension(
+                    name,
+                    [src_file],
+                    language="c++",
+                )
+            )
         else:
             import pysam
 

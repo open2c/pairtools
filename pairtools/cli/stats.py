@@ -120,7 +120,13 @@ def stats(
     """
 
     stats_py(
-        input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs,
+        input_path,
+        output,
+        merge,
+        bytile_dups,
+        output_bytile_stats,
+        filter,
+        **kwargs,
     )
 
 

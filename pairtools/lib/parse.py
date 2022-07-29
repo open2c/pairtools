@@ -37,6 +37,7 @@ II. python-based data types are parsed from pysam-based ones:
 from . import pairsam_format
 from .parse_pysam import get_mismatches_c
 
+
 def streaming_classify(
     instream, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
 ):
@@ -125,7 +126,7 @@ def streaming_classify(
                     walks_policy=kwargs["walks_policy"],
                     sam_tags=sam_tags,
                     store_seq=store_seq,
-                    report_mismatches=True if 'mismatches' in add_columns else False,
+                    report_mismatches=True if "mismatches" in add_columns else False,
                 )
             else:  # parse2 parser:
                 pairstream, all_algns1, all_algns2 = parse2_read(
@@ -142,7 +143,7 @@ def streaming_classify(
                     store_seq=store_seq,
                     expand=kwargs["expand"],
                     max_expansion_depth=kwargs["max_expansion_depth"],
-                    report_mismatches=True if 'mismatches' in add_columns else False,
+                    report_mismatches=True if "mismatches" in add_columns else False,
                 )
 
             ### Write:
@@ -242,7 +243,7 @@ def empty_alignment():
         "clip5_ref": 0,
         "read_len": 0,
         "type": "N",
-        "mismatches": ""
+        "mismatches": "",
     }
 
 
@@ -252,7 +253,7 @@ def parse_pysam_entry(
     sam_tags=None,
     store_seq=False,
     report_3_alignment_end=False,
-    report_mismatches=False
+    report_mismatches=False,
 ):
     """Parse alignments from pysam AlignedSegment entry
     :param sam: input pysam AlignedSegment entry
@@ -300,8 +301,13 @@ def parse_pysam_entry(
                 quals = sam.query_qualities
                 aligned_pairs = sam.get_aligned_pairs(with_seq=True, matches_only=True)
                 mismatches = get_mismatches_c(seq, quals, aligned_pairs)
-                mismatches = ",".join([f"{original}:{mutated}:{phred}:{ref}:{read}" for original, mutated, phred, ref, read in mismatches])
-                #n_matches = len(aligned_pairs)
+                mismatches = ",".join(
+                    [
+                        f"{original}:{mutated}:{phred}:{ref}:{read}"
+                        for original, mutated, phred, ref, read in mismatches
+                    ]
+                )
+                # n_matches = len(aligned_pairs)
 
         else:
             chrom = pairsam_format.UNMAPPED_CHROM
@@ -331,7 +337,7 @@ def parse_pysam_entry(
         "dist_to_5": dist_to_5,
         "dist_to_3": dist_to_3,
         "type": ("N" if not is_mapped else ("M" if not is_unique else "U")),
-        "mismatches": mismatches
+        "mismatches": mismatches,
     }
 
     algn.update(cigar)
@@ -451,8 +457,18 @@ def parse_read(
         return iter([(algns1[0], algns2[0], pair_index)]), algns1, algns2
 
     # Generate a sorted, gap-filled list of all alignments
-    algns1 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams1]
-    algns2 = [parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams2]
+    algns1 = [
+        parse_pysam_entry(
+            sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches
+        )
+        for sam in sams1
+    ]
+    algns2 = [
+        parse_pysam_entry(
+            sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches
+        )
+        for sam in sams2
+    ]
 
     if len(algns1) > 0:
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
@@ -593,7 +609,9 @@ def parse2_read(
     if single_end:
         # Generate a sorted, gap-filled list of all alignments
         algns1 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches)
+            parse_pysam_entry(
+                sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches
+            )
             for sam in sams2  # note sams2, that's how these reads are typically parsed
         ]
         algns1 = sorted(algns1, key=lambda algn: algn["dist_to_5"])
@@ -643,10 +661,16 @@ def parse2_read(
 
         # Generate a sorted, gap-filled list of all alignments
         algns1 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams1
+            parse_pysam_entry(
+                sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches
+            )
+            for sam in sams1
         ]
         algns2 = [
-            parse_pysam_entry(sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches) for sam in sams2
+            parse_pysam_entry(
+                sam, min_mapq, sam_tags, store_seq, report_mismatches=report_mismatches
+            )
+            for sam in sams2
         ]
 
         # Sort alignments by the distance to the 5'-end:
@@ -933,7 +957,9 @@ def parse_complex_walk(
             pair1 = (algns1[-current_left_pair - 1], algns1[-current_left_pair])
             pair2 = (algns2[-current_right_pair - 1], algns2[-current_right_pair])
             # Compare (initial or not, step 2 or 5):
-            is_overlap = pairs_overlap(pair1, pair2, dedup_max_mismatch=dedup_max_mismatch)
+            is_overlap = pairs_overlap(
+                pair1, pair2, dedup_max_mismatch=dedup_max_mismatch
+            )
             if is_overlap:
                 last_idx_left_temp = current_left_pair
                 last_idx_right_temp = current_right_pair

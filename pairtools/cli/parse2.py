@@ -13,6 +13,7 @@ from ..lib.parse import streaming_classify
 
 UTIL_NAME = "pairtools_parse2"
 
+
 @cli.command()
 @click.argument("sam_path", type=str, required=False)
 # Parsing options:
@@ -268,7 +269,9 @@ def parse2_py(
     add_columns = kwargs.get("add_columns", [])
     add_columns = [col for col in add_columns.split(",") if col]
     for col in add_columns:
-        if not ((col in pairsam_format.EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())):
+        if not (
+            (col in pairsam_format.EXTRA_COLUMNS) or (len(col) == 2 and col.isupper())
+        ):
             raise Exception("{} is not a valid extra column".format(col))
 
     columns = pairsam_format.COLUMNS + (

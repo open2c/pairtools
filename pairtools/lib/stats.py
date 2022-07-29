@@ -656,7 +656,7 @@ class PairCounter(Mapping):
 
     def flatten(self, filter="no_filter"):
         """return a flattened dict (formatted same way as .stats file)
-        Performed for a single filter. """
+        Performed for a single filter."""
         # dict for flat store:
         flat_stat = {}
 
@@ -710,7 +710,7 @@ class PairCounter(Mapping):
 
     def format_yaml(self, filter="no_filter"):
         """return a formatted dict (for the yaml output)
-        Performed for all filters at once. """
+        Performed for all filters at once."""
 
         from copy import deepcopy
 

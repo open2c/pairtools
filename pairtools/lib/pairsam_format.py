@@ -75,5 +75,5 @@ EXTRA_COLUMNS = [
     "dist_to_5",
     "dist_to_3",
     "seq",
-    "mismatches" # Format: "{ref_letter}:{mut_letter}:{phred}:{ref_position}:{read_position}"
+    "mismatches",  # Format: "{ref_letter}:{mut_letter}:{phred}:{ref_position}:{read_position}"
 ]

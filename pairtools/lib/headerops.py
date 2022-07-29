@@ -159,7 +159,7 @@ def validate_cols(stream, columns):
 
 
 def validate_header_cols(stream, header):
-    """ Validate that the number of columns corresponds between the stream and header """
+    """Validate that the number of columns corresponds between the stream and header"""
 
     columns = extract_column_names(header)
     return validate_cols(stream, header)
