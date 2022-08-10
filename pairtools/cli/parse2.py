@@ -129,6 +129,14 @@ UTIL_NAME = "pairtools_parse2"
     "side of the read. ",
 )
 @click.option(
+    "--add-pair-index",
+    is_flag=True,
+    help="If specified, parse2 will report pair index in the walk as additional columns (R1, R2, R1&R2 or R1-R2). "
+    "See documentation: https://pairtools.readthedocs.io/en/latest/parsing.html#rescuing-complex-walks "
+    "For combinatorial expanded pairs, two numbers will be reported: "
+    "original pair index of the left and right segments. ",
+)
+@click.option(
     "--flip/--no-flip",
     is_flag=True,
     default=False,
@@ -136,6 +144,16 @@ UTIL_NAME = "pairtools_parse2"
     "the order in which they were sequenced. Note that no flip is recommended for analysis of walks because it will "
     "override the order of alignments in pairs. Flip is required for appropriate deduplication of sorted pairs. "
     "Flip is not required for cooler cload, which runs flipping internally. ",
+)
+@click.option(
+    "--add-columns",
+    type=click.STRING,
+    default="",
+    help="Report extra columns describing alignments "
+    "Possible values (can take multiple values as a comma-separated "
+    "list): a SAM tag (any pair of uppercase letters) or {}.".format(
+        ", ".join(pairsam_format.EXTRA_COLUMNS)
+    ),
 )
 @click.option(
     "--drop-readid/--keep-readid",
@@ -165,23 +183,6 @@ UTIL_NAME = "pairtools_parse2"
     is_flag=True,
     default=False,
     help="Do not add sams to the output by default. Kept otherwise. ",
-)
-@click.option(
-    "--add-pair-index",
-    is_flag=True,
-    help="If specified, parse2 will report pair index in the walk as additional columns."
-    "For combinatorial expanded pairs, two numbers will be reported: "
-    "original pair index of the left and right segments. ",
-)
-@click.option(
-    "--add-columns",
-    type=click.STRING,
-    default="",
-    help="Report extra columns describing alignments "
-    "Possible values (can take multiple values as a comma-separated "
-    "list): a SAM tag (any pair of uppercase letters) or {}.".format(
-        ", ".join(pairsam_format.EXTRA_COLUMNS)
-    ),
 )
 @click.option(
     "--output-parsed-alignments",
