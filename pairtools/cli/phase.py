@@ -203,7 +203,7 @@ def phase_py(
     outstream.writelines((l + "\n" for l in header))
 
     for line in body_stream:
-        cols = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
+        cols = line.split(pairsam_format.PAIRSAM_SEP)
         cols.append("!")
         cols.append("!")
         if report_scores:
