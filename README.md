@@ -2,7 +2,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/pairtools/badge/?version=latest)](http://pairtools.readthedocs.org/en/latest/)
 [![Build Status](https://travis-ci.org/mirnylab/pairtools.svg?branch=master)](https://travis-ci.org/mirnylab/pairtools)
-[![Join the chat at Open2C Slack](https://join.slack.com/t/open2c/shared_invite/zt-1buzt2uyt-FLGp8~~MvbTCig5sQZTSNQ)](https://join.slack.com/t/open2c/shared_invite/zt-1buzt2uyt-FLGp8~~MvbTCig5sQZTSNQ)
+[![Join the chat on Slack](https://img.shields.io/badge/chat-slack-%233F0F3F?logo=slack)](https://bit.ly/2UaOpAe)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1490831.svg)](https://doi.org/10.5281/zenodo.1490831)
 
 ## Process Hi-C pairs with pairtools
