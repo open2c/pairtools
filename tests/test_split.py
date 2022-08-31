@@ -35,11 +35,8 @@ def setup_split():
         print(sys.exc_info())
         raise e
 
-    return mock_pairsam_path, pairs_path, sam_path, tmpdir
 
 def test_split(setup_split):
-
-    mock_pairsam_path, pairs_path, sam_path, tmpdir = setup_split
 
     pairsam_lines = [l.strip() for l in open(mock_pairsam_path, "r") if l.strip()]
     pairs_lines = [l.strip() for l in open(pairs_path, "r") if l.strip()]

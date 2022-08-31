@@ -5,9 +5,51 @@ import subprocess
 import pytest
 
 
-def test_mock_pairsam(setup_sort_two):
+import tempfile
 
-    mock_pairsam_path_1, mock_pairsam_path_2, mock_sorted_pairsam_path_1, mock_sorted_pairsam_path_2, tmpdir = setup_sort_two
+testdir = os.path.dirname(os.path.realpath(__file__))
+
+tmpdir = tempfile.TemporaryDirectory()
+tmpdir_name = tmpdir.name
+mock_pairsam_path_1 = os.path.join(testdir, "data", "mock.pairsam")
+mock_pairsam_path_2 = os.path.join(testdir, "data", "mock.2.pairsam")
+mock_sorted_pairsam_path_1 = os.path.join(tmpdir_name, "1.pairsam")
+mock_sorted_pairsam_path_2 = os.path.join(tmpdir_name, "2.pairsam")
+
+
+@pytest.fixture
+def setup_sort_two():
+    try:
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "sort",
+                mock_pairsam_path_1,
+                "--output",
+                mock_sorted_pairsam_path_1,
+            ],
+        )
+
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "sort",
+                mock_pairsam_path_2,
+                "--output",
+                mock_sorted_pairsam_path_2,
+            ],
+        )
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
+
+
+def test_mock_pairsam(setup_sort_two):
 
     try:
         result = subprocess.check_output(

@@ -31,7 +31,7 @@ for p in params:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_filterbycov():
     try:
         for p in params:
@@ -59,13 +59,12 @@ def setup_filterbycov():
         print(sys.exc_info())
         raise e
 
-    return params, mock_pairs_path_filterbycov, tmpdir
 
 def test_mock_pairs(setup_filterbycov):
-    params, mock_pairs_path, tmpdir = setup_filterbycov
+
     all_pairs = [
         l.strip().split("\t")
-        for l in open(mock_pairs_path, "r")
+        for l in open(mock_pairs_path_filterbycov, "r")
         if not l.startswith("#") and l.strip()
     ]
     for p in params:

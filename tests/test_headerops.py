@@ -4,7 +4,6 @@ from pairtools.lib import headerops
 import pytest
 
 
-
 def test_make_standard_header():
     header = headerops.make_standard_pairsheader()
 
