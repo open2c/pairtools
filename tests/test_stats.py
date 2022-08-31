@@ -2,12 +2,8 @@
 import os
 import sys
 import subprocess
-import pytest
 import numpy as np
-from pairtools.lib import stats
 import yaml
-from io import StringIO
-import copy
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
