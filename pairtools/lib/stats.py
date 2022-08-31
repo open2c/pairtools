@@ -109,6 +109,8 @@ class PairCounter(Mapping):
                 "++": {bin.item(): 0 for bin in self._dist_bins},
             }
 
+            self._stat[key]["chromsizes"] = {}
+
             # Summaries are derived from other stats and are recalculated on merge
 
         self._save_bytile_dups = bytile_dups
@@ -295,9 +297,9 @@ class PairCounter(Mapping):
                 # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup', 'summary']
                 # get the first 'key' and keep the remainders in 'key_fields'
                 key = key_fields.pop(0)
-                if key in ["pair_types", "dedup", "summary"]:
+                if key in ["pair_types", "dedup", "summary", "chromsizes"]:
                     # assert there is only one element in key_fields left:
-                    # 'pair_types' and 'dedup' treated the same
+                    # 'pair_types', 'dedup', 'summary' and 'chromsizes' treated the same
                     if len(key_fields) == 1:
                         try:
                             stat_from_file._stat[default_filter][key][
@@ -587,11 +589,15 @@ class PairCounter(Mapping):
         # 'cis', 'trans', 'pair_types', 'cis_1kb+', 'cis_2kb+',
         # 'cis_10kb+', 'cis_20kb+', 'chrom_freq', 'dist_freq', 'dedup'
         #
+        # If 'chromsizes' are present, they must be identical
+        #
         # initialize empty PairCounter for the result of summation:
         sum_stat = PairCounter()
         # use the empty PairCounter to iterate over:
         for k, v in sum_stat._stat[filter].items():
-            if k not in self._stat[filter] or k not in other._stat[filter]:
+            if k != "chromsizes" and (
+                k not in self._stat[filter] or k not in other._stat[filter]
+            ):
                 # Skip any missing fields and warn
                 logger.warning(
                     f"{k} not found in at least one of the input stats, skipping"
@@ -615,7 +621,7 @@ class PairCounter(Mapping):
                     sum_stat._stat[filter][k] = sum_dicts(
                         self._stat[filter][k], other._stat[filter][k]
                     )
-                if k == "chrom_freq":
+                elif k == "chrom_freq":
                     # union list of keys (chr1,chr2) with potential duplicates:
                     union_keys_with_dups = list(self._stat[filter][k].keys()) + list(
                         other._stat[filter][k].keys()
@@ -629,7 +635,7 @@ class PairCounter(Mapping):
                         sum_stat._stat[filter][k][union_key] = self._stat[filter][
                             k
                         ].get(union_key, 0) + other._stat[filter][k].get(union_key, 0)
-                if k == "dist_freq":
+                elif k == "dist_freq":
                     for dirs in sum_stat[k]:
 
                         from functools import reduce
@@ -645,6 +651,31 @@ class PairCounter(Mapping):
                             {},
                         )
                         # sum_stat[k][dirs] = self._stat[filter][k][dirs] + other._stat[filter][k][dirs]
+                elif k == "chromsizes":
+                    if k in self._stat[filter] and k in other._stat[filter]:
+                        if self._stat[filter][k] == other._stat[filter][k]:
+                            sum_stat._stat[filter][k] = self._stat[filter][k]
+                        elif (
+                            len(self._stat[filter][k]) == 0
+                            or len(other._stat[filter][k]) == 0
+                        ):
+                            logger.warning(
+                                "One of the stats has no chromsizes recorded,"
+                                "writing the one that is present to the output"
+                            )
+                            if len(self._stat[filter][k]) > 0:
+                                sum_stat._stat[filter][k] = self._stat[filter][k]
+                            else:
+                                sum_stat._stat[filter][k] = other._stat[filter][k]
+                        else:
+                            raise ValueError(
+                                "Can't merge stats with different chromsizes"
+                            )
+                    else:
+                        logger.warning(
+                            "One or both stats don't have chromsizes recorded"
+                        )
+
         return sum_stat
 
     # we need this to be able to sum(list_of_PairCounters)
@@ -782,6 +813,9 @@ class PairCounter(Mapping):
             self._bytile_dups.reset_index().to_csv(outstream, sep="\t", index=False)
         else:
             logger.error("Bytile dups are not calculated, cannot save.")
+
+    def __repr__(self):
+        return str(self._stat)
 
 
 ##################

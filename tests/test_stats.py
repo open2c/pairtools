@@ -2,9 +2,7 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises
 import numpy as np
-from pairtools.lib import stats
 import yaml
 
 testdir = os.path.dirname(os.path.realpath(__file__))
@@ -28,7 +26,6 @@ def test_mock_pairsam():
     #         stats["no_filter"][k] = int(stats["no_filter"][k])
     #     except (ValueError, TypeError):
     #         stats["no_filter"][k] = float(stats["no_filter"][k])
-    print(stats)
 
     assert stats["no_filter"]["total"] == 9
     assert stats["no_filter"]["total_single_sided_mapped"] == 2
@@ -61,3 +58,76 @@ def test_mock_pairsam():
     assert stats["no_filter"]["summary"]["frac_cis_20kb+"] == 0
     assert stats["no_filter"]["summary"]["frac_cis_40kb+"] == 0
     assert np.isclose(stats["no_filter"]["summary"]["frac_dups"], 1 / 6)
+
+
+def test_merge_stats():
+    mock_pairsam_path = os.path.join(testdir, "data", "mock.4stats.pairs")
+    try:
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "--with-chromsizes",
+                mock_pairsam_path,
+                "--output",
+                "mock.stats",
+            ],
+        )
+
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "--no-chromsizes",
+                mock_pairsam_path,
+                "--output",
+                "mock.no_chromsizes.stats",
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "mock.stats",
+                "mock.stats",
+                "--merge",
+                "--output",
+                "mock.merged_chromsizes.stats",
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "mock.stats",
+                "mock.no_chromsizes.stats",
+                "--merge",
+                "--output",
+                "mock.merged_mixed.stats",
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "mock.no_chromsizes.stats",
+                "mock.no_chromsizes.stats",
+                "--merge",
+                "--output",
+                "mock.merged_no_chromsizes.stats",
+            ],
+        )
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
