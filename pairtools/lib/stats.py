@@ -660,7 +660,8 @@ class PairCounter(Mapping):
                             or len(other._stat[filter][k]) == 0
                         ):
                             logger.warning(
-                                "One of the stats has no chromsizes recorded, using the one that is present"
+                                "One of the stats has no chromsizes recorded,"
+                                "writing the one that is present to the output"
                             )
                             if len(self._stat[filter][k]) > 0:
                                 sum_stat._stat[filter][k] = self._stat[filter][k]
