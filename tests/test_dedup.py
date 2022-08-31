@@ -6,89 +6,12 @@ import pytest
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
-mock_pairsam_path = os.path.join(testdir, "data", "mock.4dedup.pairsam")
-
-tmpdir = tempfile.TemporaryDirectory()
-tmpdir_name = tmpdir.name
-dedup_path = os.path.join(tmpdir_name, "dedup.pairsam")
-unmapped_path = os.path.join(tmpdir_name, "unmapped.pairsam")
-dups_path = os.path.join(tmpdir_name, "dups.pairsam")
-
-dedup_max_path = os.path.join(tmpdir_name, "dedup_max.pairsam")
-unmapped_max_path = os.path.join(tmpdir_name, "unmapped_max.pairsam")
-dups_max_path = os.path.join(tmpdir_name, "dups_max.pairsam")
-
-dedup_markdups_path = os.path.join(tmpdir_name, "dedup.markdups.pairsam")
-unmapped_markdups_path = os.path.join(tmpdir_name, "unmapped.markdups.pairsam")
-dups_markdups_path = os.path.join(tmpdir_name, "dups.markdups.pairsam")
-
-max_mismatch = 1
 
 
-@pytest.fixture(autouse=True)
-def setup_func():
-    try:
-        subprocess.check_output(
-            [
-                "python",
-                "-m",
-                "pairtools",
-                "dedup",
-                mock_pairsam_path,
-                "--output",
-                dedup_path,
-                "--output-dups",
-                dups_path,
-                "--output-unmapped",
-                unmapped_path,
-                "--max-mismatch",
-                str(max_mismatch),
-            ],
-        )
-        subprocess.check_output(
-            [
-                "python",
-                "-m",
-                "pairtools",
-                "dedup",
-                mock_pairsam_path,
-                "--output",
-                dedup_max_path,
-                "--output-dups",
-                dups_max_path,
-                "--output-unmapped",
-                unmapped_max_path,
-                "--max-mismatch",
-                str(max_mismatch),
-                "--method",
-                "max",
-            ],
-        )
-        subprocess.check_output(
-            [
-                "python",
-                "-m",
-                "pairtools",
-                "dedup",
-                mock_pairsam_path,
-                "--mark-dups",
-                "--output",
-                dedup_markdups_path,
-                "--output-dups",
-                dups_markdups_path,
-                "--output-unmapped",
-                unmapped_markdups_path,
-                "--max-mismatch",
-                str(max_mismatch),
-            ],
-        )
-    except subprocess.CalledProcessError as e:
-        print(e.output)
-        print(sys.exc_info())
-        raise e
-
-
-def test_mock_pairsam(setup_func):
+def test_mock_pairsam(setup_dedup):
+    mock_pairsam_path, dedup_path, unmapped_path, dups_path, \
+    dedup_max_path, unmapped_max_path, dups_max_path, \
+    dedup_markdups_path, unmapped_markdups_path, dups_markdups_path, max_mismatch, tmpdir = setup_dedup
 
     pairsam_pairs = [
         l.strip().split("\t")

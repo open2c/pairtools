@@ -14,8 +14,8 @@ pairs_path = os.path.join(tmpdir_name, "out.pairs")
 sam_path = os.path.join(tmpdir_name, "out.sam")
 
 
-@pytest.fixture(autouse=True)
-def setup_func():
+@pytest.fixture()
+def setup_split():
     try:
         subprocess.check_output(
             [
@@ -35,8 +35,11 @@ def setup_func():
         print(sys.exc_info())
         raise e
 
+    return mock_pairsam_path, pairs_path, sam_path, tmpdir
 
-def test_split(setup_func):
+def test_split(setup_split):
+
+    mock_pairsam_path, pairs_path, sam_path, tmpdir = setup_split
 
     pairsam_lines = [l.strip() for l in open(mock_pairsam_path, "r") if l.strip()]
     pairs_lines = [l.strip() for l in open(pairs_path, "r") if l.strip()]

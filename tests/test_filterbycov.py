@@ -7,7 +7,7 @@ import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
-mock_pairs_path = os.path.join(testdir, "data", "mock.4filterbycov.pairs")
+mock_pairs_path_filterbycov = os.path.join(testdir, "data", "mock.4filterbycov.pairs")
 
 tmpdir = tempfile.TemporaryDirectory()
 tmpdir_name = tmpdir.name
@@ -31,8 +31,8 @@ for p in params:
     )
 
 
-@pytest.fixture(autouse=True)
-def setup_func():
+@pytest.fixture()
+def setup_filterbycov():
     try:
         for p in params:
             subprocess.check_output(
@@ -41,7 +41,7 @@ def setup_func():
                     "-m",
                     "pairtools",
                     "filterbycov",
-                    mock_pairs_path,
+                    mock_pairs_path_filterbycov,
                     "--output",
                     p["lowcov_path"],
                     "--output-highcov",
@@ -59,9 +59,10 @@ def setup_func():
         print(sys.exc_info())
         raise e
 
+    return params, mock_pairs_path_filterbycov, tmpdir
 
-def test_mock_pairs(setup_func):
-
+def test_mock_pairs(setup_filterbycov):
+    params, mock_pairs_path, tmpdir = setup_filterbycov
     all_pairs = [
         l.strip().split("\t")
         for l in open(mock_pairs_path, "r")
