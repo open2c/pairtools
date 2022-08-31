@@ -36,7 +36,7 @@ def setup_func():
         raise e
 
 
-def test_split():
+def test_split(setup_func):
 
     pairsam_lines = [l.strip() for l in open(mock_pairsam_path, "r") if l.strip()]
     pairs_lines = [l.strip() for l in open(pairs_path, "r") if l.strip()]

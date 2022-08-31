@@ -60,7 +60,7 @@ def setup_func():
         raise e
 
 
-def test_mock_pairs():
+def test_mock_pairs(setup_func):
 
     all_pairs = [
         l.strip().split("\t")

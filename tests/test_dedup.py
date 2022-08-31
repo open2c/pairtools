@@ -88,7 +88,7 @@ def setup_func():
         raise e
 
 
-def test_mock_pairsam():
+def test_mock_pairsam(setup_func):
 
     pairsam_pairs = [
         l.strip().split("\t")
