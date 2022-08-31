@@ -2,10 +2,12 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises
+import pytest
 import numpy as np
 from pairtools.lib import stats
 import yaml
+from io import StringIO
+import copy
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -28,7 +30,6 @@ def test_mock_pairsam():
     #         stats["no_filter"][k] = int(stats["no_filter"][k])
     #     except (ValueError, TypeError):
     #         stats["no_filter"][k] = float(stats["no_filter"][k])
-    print(stats)
 
     assert stats["no_filter"]["total"] == 9
     assert stats["no_filter"]["total_single_sided_mapped"] == 2
@@ -61,3 +62,34 @@ def test_mock_pairsam():
     assert stats["no_filter"]["summary"]["frac_cis_20kb+"] == 0
     assert stats["no_filter"]["summary"]["frac_cis_40kb+"] == 0
     assert np.isclose(stats["no_filter"]["summary"]["frac_dups"], 1 / 6)
+
+
+def test_read_stats():
+    mock_pairsam_path = os.path.join(testdir, "data", "mock.4stats.pairs")
+    try:
+        result = subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "--with-chromsizes",
+                mock_pairsam_path,
+            ],
+        ).decode("ascii")
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
+    f = StringIO(result)
+    counter = stats.PairCounter().from_file(f)
+    counter_doubled = counter + counter
+    assert len(counter_doubled._stat["no_filter"]["chromsizes"]) == 3
+    counter_wrong_copy = copy.deepcopy(counter)
+    counter_wrong_copy._stat["no_filter"]["chromsizes"]["chr3"] = 101
+    with pytest.raises(ValueError):
+        counter_sum = counter + counter_wrong_copy
+    counter_missingchromsizes_copy = copy.deepcopy(counter)
+    counter_missingchromsizes_copy._stat["no_filter"]["chromsizes"] = {}
+    with pytest.warns():
+        counter_sum = counter + counter_missingchromsizes_copy
