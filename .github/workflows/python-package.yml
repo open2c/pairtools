@@ -55,4 +55,4 @@ jobs:
         pip install click
         python setup.py build_ext -i
         
-        pytest
+        nosetests
