@@ -7,7 +7,7 @@ requires = ["cython",
             "pandas>=1.3.4",
             "pysam>=0.15.0",
             "pyyaml",
-            "bioframe>0.3.3"]
+            "bioframe>=0.3.3"]
 [project]
 name = "pairtools"
 version = "1.0.1"

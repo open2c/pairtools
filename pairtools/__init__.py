@@ -10,6 +10,6 @@ CLI tools to process mapped Hi-C data
 
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # from . import lib
