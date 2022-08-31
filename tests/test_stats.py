@@ -64,10 +64,10 @@ def test_mock_pairsam():
     assert np.isclose(stats["no_filter"]["summary"]["frac_dups"], 1 / 6)
 
 
-def test_read_stats():
+def test_merge_stats():
     mock_pairsam_path = os.path.join(testdir, "data", "mock.4stats.pairs")
     try:
-        result = subprocess.check_output(
+        subprocess.check_output(
             [
                 "python",
                 "-m",
@@ -75,21 +75,63 @@ def test_read_stats():
                 "stats",
                 "--with-chromsizes",
                 mock_pairsam_path,
+                "--output",
+                "mock.stats",
             ],
-        ).decode("ascii")
+        )
+
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "--no-chromsizes",
+                mock_pairsam_path,
+                "--output",
+                "mock.no_chromsizes.stats",
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "mock.stats",
+                "mock.stats",
+                "--merge",
+                "--output",
+                "mock.merged_chromsizes.stats",
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "mock.stats",
+                "mock.no_chromsizes.stats",
+                "--merge",
+                "--output",
+                "mock.merged_mixed.stats",
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "mock.no_chromsizes.stats",
+                "mock.no_chromsizes.stats",
+                "--merge",
+                "--output",
+                "mock.merged_no_chromsizes.stats",
+            ],
+        )
     except subprocess.CalledProcessError as e:
         print(e.output)
         print(sys.exc_info())
         raise e
-    f = StringIO(result)
-    counter = stats.PairCounter().from_file(f)
-    counter_doubled = counter + counter
-    assert len(counter_doubled._stat["no_filter"]["chromsizes"]) == 3
-    counter_wrong_copy = copy.deepcopy(counter)
-    counter_wrong_copy._stat["no_filter"]["chromsizes"]["chr3"] = 101
-    with pytest.raises(ValueError):
-        counter_sum = counter + counter_wrong_copy
-    counter_missingchromsizes_copy = copy.deepcopy(counter)
-    counter_missingchromsizes_copy._stat["no_filter"]["chromsizes"] = {}
-    with pytest.warns():
-        counter_sum = counter + counter_missingchromsizes_copy
