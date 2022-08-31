@@ -14,7 +14,7 @@ pairs_path = os.path.join(tmpdir_name, "out.pairs")
 sam_path = os.path.join(tmpdir_name, "out.sam")
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_split():
     try:
         subprocess.check_output(
