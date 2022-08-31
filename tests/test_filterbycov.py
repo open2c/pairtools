@@ -2,7 +2,7 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises, with_setup
+import pytest
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
@@ -31,6 +31,7 @@ for p in params:
     )
 
 
+@pytest.fixture(autouse=True)
 def setup_func():
     try:
         for p in params:
@@ -59,11 +60,6 @@ def setup_func():
         raise e
 
 
-def teardown_func():
-    tmpdir.cleanup()
-
-
-@with_setup(setup_func, teardown_func)
 def test_mock_pairs():
 
     all_pairs = [
@@ -131,3 +127,5 @@ def test_mock_pairs():
             assert (coverage[pair[1]][int(pair[2])] > p["max_cov"]) or (
                 coverage[pair[3]][int(pair[4])] > p["max_cov"]
             )
+
+    tmpdir.cleanup()

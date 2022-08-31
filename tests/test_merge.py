@@ -2,7 +2,7 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises, with_setup
+import pytest
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
@@ -15,6 +15,7 @@ mock_sorted_pairsam_path_1 = os.path.join(tmpdir_name, "1.pairsam")
 mock_sorted_pairsam_path_2 = os.path.join(tmpdir_name, "2.pairsam")
 
 
+@pytest.fixture(autouse=True)
 def setup_func():
     try:
         subprocess.check_output(
@@ -46,11 +47,6 @@ def setup_func():
         raise e
 
 
-def teardown_func():
-    tmpdir.cleanup()
-
-
-@with_setup(setup_func, teardown_func)
 def test_mock_pairsam():
     try:
         result = subprocess.check_output(
@@ -133,3 +129,5 @@ def test_mock_pairsam():
     ]
 
     assert len(pairsam_header_1) + 1 == len(output_header)
+
+    tmpdir.cleanup()

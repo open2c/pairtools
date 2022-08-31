@@ -2,7 +2,7 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises, with_setup
+import pytest
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
@@ -14,6 +14,7 @@ pairs_path = os.path.join(tmpdir_name, "out.pairs")
 sam_path = os.path.join(tmpdir_name, "out.sam")
 
 
+@pytest.fixture(autouse=True)
 def setup_func():
     try:
         subprocess.check_output(
@@ -35,11 +36,6 @@ def setup_func():
         raise e
 
 
-def teardown_func():
-    tmpdir.cleanup()
-
-
-@with_setup(setup_func, teardown_func)
 def test_split():
 
     pairsam_lines = [l.strip() for l in open(mock_pairsam_path, "r") if l.strip()]
@@ -87,3 +83,5 @@ def test_split():
         and ("sam2" not in columns_pairs)
     )
     assert [c for c in columns_pairsam if c != "sam1" and c != "sam2"] == columns_pairs
+
+    tmpdir.cleanup()

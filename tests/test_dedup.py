@@ -2,7 +2,7 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises, with_setup
+import pytest
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
@@ -25,6 +25,7 @@ dups_markdups_path = os.path.join(tmpdir_name, "dups.markdups.pairsam")
 max_mismatch = 1
 
 
+@pytest.fixture(autouse=True)
 def setup_func():
     try:
         subprocess.check_output(
@@ -87,11 +88,6 @@ def setup_func():
         raise e
 
 
-def teardown_func():
-    tmpdir.cleanup()
-
-
-@with_setup(setup_func, teardown_func)
 def test_mock_pairsam():
 
     pairsam_pairs = [
@@ -162,3 +158,5 @@ def test_mock_pairsam():
                 for pair1 in dup_pairs
             ]
         )
+
+    tmpdir.cleanup()
