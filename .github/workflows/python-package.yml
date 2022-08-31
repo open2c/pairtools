@@ -24,6 +24,7 @@ jobs:
         python -m pip install --upgrade pip wheel setuptools
         pip install numpy cython
         pip install -r requirements-dev.txt
+        pip install -e .
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
