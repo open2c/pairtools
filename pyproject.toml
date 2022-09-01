@@ -8,69 +8,70 @@ requires = ["cython",
             "pysam>=0.15.0",
             "pyyaml",
             "bioframe>=0.3.3",
-            "setuptools"]
+            "setuptools >= 43.0.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = ["pairtools"]
-
-
-[tool.black]
-line-length = 127
-target-version = ['py37', 'py38', 'py39', 'py310']
-
-
-[project.scripts]
-pairtools = "pairtools.cli:cli"
-
-
-[project]
-name = "pairtools"
-version = "1.0.1"
-license = {file = "LICENSE"}
-description = "Modular tools for manipulation with Hi-C pairs"
-maintainers = [
-    {name = "Open2C", email = "open.chromosome.collective@gmail.com"},
-]
-requires-python = ">=3.7"
-dependencies = ["cython",
-            "numpy>=1.10",
-            "click>=6.6",
-            "scipy>=1.7.0",
-            "pandas>=1.3.4",
-            "pysam>=0.15.0",
-            "pyyaml",
-            "bioframe>=0.3.3"]
-
-readme = "README.md"
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-]
-
-
-[project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-cov",
-    "pytest-flake8",
-]
-doc = [
-    "sphinx-click",
-    "ipython",
-    "nbsphinx",
-    "Sphinx",
-    "sphinx_rtd_theme",
-    "docutils>0.16",
-]
-
-[project.urls]
-homepage = "https://github.com/open2c/pairtools"
-documentation = "https://pairtools.readthedocs.io/en/latest/"
-source = "https://github.com/open2c/pairtools"
+#
+# [tool.setuptools]
+# py-modules = ["pairtools"]#, "pysam"]
+#
+#
+# [tool.black]
+# line-length = 127
+# target-version = ['py37', 'py38', 'py39', 'py310']
+#
+#
+# [project.scripts]
+# pairtools = "pairtools.cli:cli"
+#
+#
+# [project]
+# name = "pairtools"
+# version = "1.0.1"
+# license = {file = "LICENSE"}
+# description = "Modular tools for manipulation with Hi-C pairs"
+# maintainers = [
+#     {name = "Open2C", email = "open.chromosome.collective@gmail.com"},
+# ]
+# requires-python = ">=3.7"
+# dependencies = ["cython",
+#             "numpy>=1.10",
+#             "click>=6.6",
+#             "scipy>=1.7.0",
+#             "pandas>=1.3.4",
+#             "pysam>=0.15.0",
+#             "pyyaml",
+#             "bioframe>=0.3.3"]
+#
+# readme = "README.md"
+# classifiers = [
+#     "Development Status :: 4 - Beta",
+#     "Operating System :: OS Independent",
+#     "Programming Language :: Python",
+#     "Programming Language :: Python :: 3",
+#     "Programming Language :: Python :: 3.7",
+#     "Programming Language :: Python :: 3.8",
+#     "Programming Language :: Python :: 3.9",
+#     "Programming Language :: Python :: 3.10",
+# ]
+#
+#
+# [project.optional-dependencies]
+# test = [
+#     "pytest",
+#     "pytest-cov",
+#     "pytest-flake8",
+# ]
+# doc = [
+#     "sphinx-click",
+#     "ipython",
+#     "nbsphinx",
+#     "Sphinx",
+#     "sphinx_rtd_theme",
+#     "docutils>0.16",
+# ]
+#
+# [project.urls]
+# homepage = "https://github.com/open2c/pairtools"
+# documentation = "https://pairtools.readthedocs.io/en/latest/"
+# source = "https://github.com/open2c/pairtools"
