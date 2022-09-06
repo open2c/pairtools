@@ -52,15 +52,9 @@ Requirements:
 
 For the full list of recommended versions, see [requirements in the the GitHub repo](https://github.com/open2c/pairtools/blob/detect_mutations/requirements.txt). 
 
-We highly recommend using the `conda` package manager to install `pairtools` together with all its dependencies. To get it, you can either install the full [Anaconda](https://www.continuum.io/downloads) Python distribution or just the standalone [conda](http://conda.pydata.org/miniconda.html) package manager.
-
-With `conda`, you can install `pairtools` and all of its dependencies from the [bioconda](https://bioconda.github.io/index.html) channel.
+Install non-Python dependencies and `pairtools` with Python-only dependencies from PyPI using pip:
 ```sh
-$ conda install -c conda-forge -c bioconda pairtools
-```
-
-Alternatively, install `pairtools` and only Python dependencies from PyPI using pip:
-```sh
+$ pip install numpy pysam cython
 $ pip install pairtools
 ```
 
