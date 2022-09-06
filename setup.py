@@ -6,7 +6,7 @@ import re
 import glob
 
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
 try:
@@ -74,7 +74,6 @@ def get_ext_modules():
             )
         else:
             import pysam
-
             ext_modules.append(
                 Extension(
                     name,
@@ -82,6 +81,7 @@ def get_ext_modules():
                     extra_link_args=pysam.get_libraries(),
                     include_dirs=pysam.get_include(),
                     define_macros=pysam.get_defines(),
+                    #extra_objects=pysam.get_libraries(),
                 )
             )
 
@@ -99,7 +99,7 @@ class build_ext(_build_ext):
         # Fix to work with bootstrapped numpy installation
         # http://stackoverflow.com/a/21621689/579416
         # Prevent numpy from thinking it is still in its setup process:
-        # __builtins__.__NUMPY_SETUP__ = False
+        __builtins__.__NUMPY_SETUP__ = False
         import numpy
 
         self.include_dirs.append(numpy.get_include())
