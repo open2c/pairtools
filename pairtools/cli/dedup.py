@@ -69,8 +69,8 @@ UTIL_NAME = "pairtools_dedup"
     " Note that the readID should be provided and contain tile information for this option. "
     " This analysis is possible when pairtools is run on a dataset with original Illumina-generated read IDs, "
     " because SRA does not store original read IDs from the sequencer. "
-    " By default, by-tile duplicate statistics are not printed."
-    " If file exists, it will be open in the append mode."
+    " By default, by-tile duplicate statistics are not printed. "
+    " If file exists, it will be open in the append mode. "
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.",
 )
 
