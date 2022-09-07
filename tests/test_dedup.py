@@ -2,14 +2,16 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises, with_setup
+import pytest
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
-mock_pairsam_path = os.path.join(testdir, "data", "mock.4dedup.pairsam")
 
 tmpdir = tempfile.TemporaryDirectory()
 tmpdir_name = tmpdir.name
+
+mock_pairsam_path_dedup = os.path.join(testdir, "data", "mock.4dedup.pairsam")
+
 dedup_path = os.path.join(tmpdir_name, "dedup.pairsam")
 unmapped_path = os.path.join(tmpdir_name, "unmapped.pairsam")
 dups_path = os.path.join(tmpdir_name, "dups.pairsam")
@@ -25,7 +27,8 @@ dups_markdups_path = os.path.join(tmpdir_name, "dups.markdups.pairsam")
 max_mismatch = 1
 
 
-def setup_func():
+@pytest.fixture
+def setup_dedup():
     try:
         subprocess.check_output(
             [
@@ -33,7 +36,7 @@ def setup_func():
                 "-m",
                 "pairtools",
                 "dedup",
-                mock_pairsam_path,
+                mock_pairsam_path_dedup,
                 "--output",
                 dedup_path,
                 "--output-dups",
@@ -50,7 +53,7 @@ def setup_func():
                 "-m",
                 "pairtools",
                 "dedup",
-                mock_pairsam_path,
+                mock_pairsam_path_dedup,
                 "--output",
                 dedup_max_path,
                 "--output-dups",
@@ -69,7 +72,7 @@ def setup_func():
                 "-m",
                 "pairtools",
                 "dedup",
-                mock_pairsam_path,
+                mock_pairsam_path_dedup,
                 "--mark-dups",
                 "--output",
                 dedup_markdups_path,
@@ -87,16 +90,11 @@ def setup_func():
         raise e
 
 
-def teardown_func():
-    tmpdir.cleanup()
-
-
-@with_setup(setup_func, teardown_func)
-def test_mock_pairsam():
+def test_mock_pairsam(setup_dedup):
 
     pairsam_pairs = [
         l.strip().split("\t")
-        for l in open(mock_pairsam_path, "r")
+        for l in open(mock_pairsam_path_dedup, "r")
         if not l.startswith("#") and l.strip()
     ]
     for (ddp, up, dp) in [
@@ -162,3 +160,5 @@ def test_mock_pairsam():
                 for pair1 in dup_pairs
             ]
         )
+
+    tmpdir.cleanup()

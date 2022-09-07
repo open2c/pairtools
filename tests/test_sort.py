@@ -2,7 +2,7 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises
+import pytest
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 

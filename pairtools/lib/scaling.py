@@ -116,7 +116,11 @@ def make_empty_cross_region_table(
         out = cartesian_df_product(out, strands_table)
 
     if drop_same_reg:
-        out = out.query("(chrom1!=chrom2) or (start1!=start2) or (end1!=end2)")
+        out = out[
+            (out["chrom1"] != out["chrom2"])
+            | (out["start1"] != out["start2"])
+            | (out["end1"] != out["end2"])
+        ]
 
     if multiindex:
         index_by = ["chrom1", "start1", "end1", "chrom2", "start2", "end2"]

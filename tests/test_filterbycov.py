@@ -2,12 +2,12 @@
 import os
 import sys
 import subprocess
-from nose.tools import assert_raises, with_setup
+import pytest
 import tempfile
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
-mock_pairs_path = os.path.join(testdir, "data", "mock.4filterbycov.pairs")
+mock_pairs_path_filterbycov = os.path.join(testdir, "data", "mock.4filterbycov.pairs")
 
 tmpdir = tempfile.TemporaryDirectory()
 tmpdir_name = tmpdir.name
@@ -31,7 +31,8 @@ for p in params:
     )
 
 
-def setup_func():
+@pytest.fixture
+def setup_filterbycov():
     try:
         for p in params:
             subprocess.check_output(
@@ -40,7 +41,7 @@ def setup_func():
                     "-m",
                     "pairtools",
                     "filterbycov",
-                    mock_pairs_path,
+                    mock_pairs_path_filterbycov,
                     "--output",
                     p["lowcov_path"],
                     "--output-highcov",
@@ -59,16 +60,11 @@ def setup_func():
         raise e
 
 
-def teardown_func():
-    tmpdir.cleanup()
-
-
-@with_setup(setup_func, teardown_func)
-def test_mock_pairs():
+def test_mock_pairs(setup_filterbycov):
 
     all_pairs = [
         l.strip().split("\t")
-        for l in open(mock_pairs_path, "r")
+        for l in open(mock_pairs_path_filterbycov, "r")
         if not l.startswith("#") and l.strip()
     ]
     for p in params:
@@ -131,3 +127,5 @@ def test_mock_pairs():
             assert (coverage[pair[1]][int(pair[2])] > p["max_cov"]) or (
                 coverage[pair[3]][int(pair[4])] > p["max_cov"]
             )
+
+    tmpdir.cleanup()

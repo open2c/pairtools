@@ -66,10 +66,12 @@ UTIL_NAME = "pairtools_dedup"
     type=str,
     default="",
     help="output file for duplicate statistics."
-    " If file exists, it will be open in the append mode."
-    " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
-    " By default, by-tile duplicate statistics are not printed."
-    " Note that the readID should be provided and contain tile information for this option. ",
+    " Note that the readID should be provided and contain tile information for this option. "
+    " This analysis is possible when pairtools is run on a dataset with original Illumina-generated read IDs, "
+    " because SRA does not store original read IDs from the sequencer. "
+    " By default, by-tile duplicate statistics are not printed. "
+    " If file exists, it will be open in the append mode. "
+    " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.",
 )
 
 ### Set the dedup method:
@@ -320,7 +322,7 @@ def dedup(
 ):
     """Find and remove PCR/optical duplicates.
 
-    Find PCR duplicates in an upper-triangular flipped sorted pairs/pairsam
+    Find PCR/optical duplicates in an upper-triangular flipped sorted pairs/pairsam
     file. Allow for a +/-N bp mismatch at each side of duplicated molecules.
 
     PAIRS_PATH : input triu-flipped sorted .pairs or .pairsam file.  If the

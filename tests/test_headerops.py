@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from pairtools.lib import headerops
 
-from nose.tools import assert_raises, with_setup, raises
+import pytest
 
 
 def test_make_standard_header():
@@ -73,10 +73,10 @@ def test_merge_pairheaders():
     assert merged_header == headers[0]
 
 
-@raises(Exception)
 def test_merge_different_pairheaders():
-    headers = [["## pairs format v1.0"], ["## pairs format v1.1"]]
-    merged_header = headerops._merge_pairheaders(headers)
+    with pytest.raises(Exception):
+        headers = [["## pairs format v1.0"], ["## pairs format v1.1"]]
+        merged_header = headerops._merge_pairheaders(headers)
 
 
 def test_force_merge_pairheaders():

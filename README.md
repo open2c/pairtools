@@ -59,8 +59,9 @@ With `conda`, you can install `pairtools` and all of its dependencies from the [
 $ conda install -c conda-forge -c bioconda pairtools
 ```
 
-Alternatively, install `pairtools` and only Python dependencies from PyPI using pip:
+Alternatively, install non-Python dependencies and `pairtools` with Python-only dependencies from PyPI using pip:
 ```sh
+$ pip install numpy pysam cython
 $ pip install pairtools
 ```
 
