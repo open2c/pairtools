@@ -1,3 +1,11 @@
+### 1.0.1 (2022-09-XX) ###
+
+- [x] Fixed issue with pysam dependencies on pip and conda
+
+- [x] pytest test engine instead of nose
+
+- [x] Small fixes in teh docs and scaling
+
 ### 1.0.0 (2022-08-XX) ###
 
 This is a major release of pairtools since last release (April 2019!)
