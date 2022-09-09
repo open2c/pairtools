@@ -99,7 +99,7 @@ def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins, **k
     summary_stats = pd.concat([cis_scalings, trans_levels])
 
     # save statistics to the file
-    summary_stats.to_csv(outstream, sep="\t")
+    summary_stats.to_csv(outstream, sep="\t", index=False)
 
     if instream != sys.stdin:
         instream.close()
