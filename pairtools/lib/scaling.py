@@ -3,6 +3,7 @@ import pandas as pd
 
 from .regions import assign_regs_c
 import bioframe
+from .utils import is_compatible_viewframe
 
 
 def geomprog(factor, start=1):
@@ -368,8 +369,19 @@ def compute_scaling(
         header, pairs_body = headerops.get_header(pairs_stream)
 
         cols = headerops.extract_column_names(header)
+        # get chromsizes from header if not provided as an argument
         if chromsizes is None:
-            chromsizes = headerops.extract_chromsizes(header)
+            try:
+                chromsizes = headerops.extract_chromsizes(header)
+            except ValueError:
+                pass
+        # If both regions and chromsizes are available, make sure they are compatible
+        elif regions is not None:
+            try:
+                _ = is_compatible_viewframe(regions, chromsizes, raise_errors=True)
+            except Exception as e:
+                raise ValueError("view_df is not compatible with the cooler") from e
+
         pairs_df = pd.read_csv(
             pairs_body,
             header=None,

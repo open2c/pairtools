@@ -5,7 +5,7 @@ import sys
 import click
 import pandas as pd
 
-from ..lib import fileio, pairsam_format, headerops
+from ..lib import fileio, pairsam_format, headerops, utils
 from . import cli, common_io_options
 
 from ..lib.scaling import compute_scaling
@@ -85,7 +85,7 @@ def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins, **k
     )
 
     if view is not None:
-        view = pd.read_table(view)
+        view = utils.read_viewframe_from_file(view)
 
     # Pass the header to the instream so that it can parse the header automatically
     cis_scalings, trans_levels = compute_scaling(

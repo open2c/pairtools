@@ -181,6 +181,8 @@ def extract_chromsizes(header):
 
     chromsizes_str = extract_fields(header, "chromsize")
     chromsizes_str = list(zip(*[s.split(SEP_CHROMS) for s in chromsizes_str]))
+    if len(chromsizes_str) == 0:
+        raise ValueError("No chromsizes available in the header")
     chromsizes = pd.Series(data=chromsizes_str[1], index=chromsizes_str[0]).astype(
         np.int64
     )
