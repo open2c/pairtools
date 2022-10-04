@@ -92,7 +92,7 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
                 header, "columns", " ".join(columns)
             )
             has_sams = True
-        elif ("sam1" in columns) != ("sam1" in columns):
+        elif ("sam1" in columns) != ("sam2" in columns):
             raise ValueError(
                 "According to the #columns header field only one sam entry is present"
             )
@@ -113,7 +113,7 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
     sam1 = None
     sam2 = None
     for line in body_stream:
-        cols = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
+        cols = line.split(pairsam_format.PAIRSAM_SEP)
         if has_sams:
             if sam1col < sam2col:
                 sam2 = cols.pop(sam2col)
