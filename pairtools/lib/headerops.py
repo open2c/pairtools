@@ -70,7 +70,7 @@ def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
         if isinstance(line, bytes):
             line = line.decode()
         # append line to header, since it does start with header
-        header.append(line.strip())
+        header.append(line.rstrip('\n'))
         # peek into the remainder of the instream
         current_peek = peek_f(1)
     # apparently, next line does not start with the comment
@@ -95,7 +95,7 @@ def extract_fields(header, field_name, save_rest=False):
     rest = []
     for l in header:
         if l.lstrip(COMMENT_CHAR).startswith(field_name + ":"):
-            fields.append(l.split(":", 1)[1].strip())
+            fields.append(l.split(":", 1)[1].rstrip('\n').lstrip())
         elif save_rest:
             rest.append(l)
 

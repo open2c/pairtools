@@ -29,7 +29,6 @@ def streaming_dedup(
     max_mismatch,
     extra_col_pairs,
     unmapped_chrom,
-    comment_char,
     outstream,
     outstream_dups,
     outstream_unmapped,
@@ -49,7 +48,6 @@ def streaming_dedup(
         max_mismatch=max_mismatch,
         extra_col_pairs=extra_col_pairs,
         keep_parent_id=keep_parent_id,
-        comment_char=comment_char,
         backend=backend,
         n_proc=n_proc,
     )
@@ -114,13 +112,12 @@ def _dedup_stream(
     max_mismatch,
     extra_col_pairs,
     keep_parent_id,
-    comment_char,
     backend,
     n_proc,
 ):
     # Stream the input dataframe:
     dfs = pd.read_table(
-        in_stream, comment=comment_char, names=colnames, chunksize=chunksize
+        in_stream, comment=None, names=colnames, chunksize=chunksize
     )
 
     # Set up the carryover dataframe:
@@ -375,7 +372,7 @@ def streaming_dedup_cython(
     read_idx = 0  # read index to mark the parent readID
     while True:
         rawline = next(instream, None)
-        stripline = rawline.strip() if rawline else None
+        stripline = rawline.strip('\n') if rawline else None
 
         # take care of empty lines not at the end of the file separately
         if rawline and (not stripline):

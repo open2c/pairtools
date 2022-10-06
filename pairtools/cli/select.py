@@ -229,7 +229,7 @@ def select_py(
     for filter_passed, line in evaluate_stream(
         body_stream, condition, column_names, type_cast, startup_code
     ):
-        COLS = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
+        COLS = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
 
         if remove_columns:
             COLS = [

@@ -55,7 +55,7 @@ def markasdup_py(pairsam_path, output, **kwargs):
     outstream.writelines((l + "\n" for l in header))
 
     for line in body_stream:
-        cols = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
         mark_split_pair_as_dup(cols)
 
         outstream.write(pairsam_format.PAIRSAM_SEP.join(cols))

@@ -172,12 +172,6 @@ UTIL_NAME = "pairtools_dedup"
     "supported, pass them in quotes). [input format option]",
 )
 @click.option(
-    "--comment-char",
-    type=str,
-    default="#",
-    help="The first character of comment lines. [input format option]",
-)
-@click.option(
     "--send-header-to",
     type=click.Choice(["dups", "dedup", "both", "none"]),
     default="both",
@@ -304,7 +298,6 @@ def dedup(
     max_mismatch,
     method,
     sep,
-    comment_char,
     send_header_to,
     c1,
     c2,
@@ -342,7 +335,6 @@ def dedup(
         max_mismatch,
         method,
         sep,
-        comment_char,
         send_header_to,
         c1,
         c2,
@@ -376,7 +368,6 @@ def dedup_py(
     max_mismatch,
     method,
     sep,
-    comment_char,
     send_header_to,
     c1,
     c2,
@@ -548,7 +539,7 @@ def dedup_py(
         )
     elif backend in ("scipy", "sklearn"):
         streaming_dedup(
-            in_stream=instream,
+            in_stream=body_stream,
             colnames=column_names,
             chunksize=chunksize,
             carryover=carryover,
@@ -558,7 +549,6 @@ def dedup_py(
             extra_col_pairs=list(extra_col_pair),
             keep_parent_id=keep_parent_id,
             unmapped_chrom=unmapped_chrom,
-            comment_char=comment_char,
             outstream=outstream,
             outstream_dups=outstream_dups,
             outstream_unmapped=outstream_unmapped,
