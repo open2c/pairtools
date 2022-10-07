@@ -101,7 +101,7 @@ def flip_py(pairs_path, chroms_path, output, **kwargs):
     ]
 
     for line in body_stream:
-        cols = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
 
         is_annotated1 = cols[chrom1_col] in chrom_enum.keys()
         is_annotated2 = cols[chrom2_col] in chrom_enum.keys()

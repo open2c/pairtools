@@ -113,7 +113,7 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
     sam1 = None
     sam2 = None
     for line in body_stream:
-        cols = line.split(pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
         if has_sams:
             if sam1col < sam2col:
                 sam2 = cols.pop(sam2col)
