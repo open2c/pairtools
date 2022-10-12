@@ -13,6 +13,10 @@ from .._logging import get_logger
 logger = get_logger()
 import time
 
+# Ignore pandas future warnings:
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 # Setting for cython deduplication:
 # you don't need to load more than 10k lines at a time b/c you get out of the
 # CPU cache, so this parameter is not adjustable
