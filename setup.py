@@ -78,8 +78,10 @@ def get_ext_modules():
                 Extension(
                     name,
                     [src_file],
-                    extra_link_args=pysam.get_libraries(),
+                    extra_link_args=['-Wl,-rpath=$ORIGIN/../../pysam'],  # Bake rpath to ensure libs are found when installed in a virtual env. or user space
                     include_dirs=pysam.get_include(),
+                    library_dirs=pysam.get_include(),
+                    libraries=[lib.split('/').pop()[3:-3] for lib in pysam.get_libraries()],
                     define_macros=pysam.get_defines(),
                     #extra_objects=pysam.get_libraries(),
                 )
