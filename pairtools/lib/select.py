@@ -66,9 +66,11 @@ def evaluate_stream(
     for i, col in enumerate(column_names):
         if col in TYPES:
             col_type = TYPES[col]
-            condition = condition.replace(col, "{}(COLS[{}])".format(col_type, i))
+            condition = re.sub(r"\b%s\b" % col , "{}(COLS[{}])".format(col_type, i), condition)
+            #condition.replace(col, "{}(COLS[{}])".format(col_type, i))
         else:
-            condition = condition.replace(col, "COLS[{}]".format(i))
+            condition = re.sub(r"\b%s\b" % col, "COLS[{}]".format(i), condition)
+            #condition = condition.replace(col, "COLS[{}]".format(i))
 
     # Compile the filtering expression:
     match_func = compile(condition, "<string>", "eval")
@@ -121,7 +123,8 @@ def evaluate_df(df, condition, type_cast=(), startup_code=None, engine="pandas")
     else:
         # Set up the columns indexing
         for i, col in enumerate(df.columns):
-            condition = condition.replace(col, "COLS[{}]".format(i))
+            condition = re.sub(r"\b%s\b" % col, "COLS[{}]".format(i), condition)
+            #condition = condition.replace(col, "COLS[{}]".format(i))
 
         filter_passed_output = []
         match_func = compile(condition, "<string>", "eval")
