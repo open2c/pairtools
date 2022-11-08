@@ -1,3 +1,17 @@
+### 1.0.2 (2022-11-XX) ###
+
+- [x] `pairtools select` regex update 
+(string substitutions failed when the column name was a substring of another)
+
+- [x] Warnings capture in dedup: pairs lines are always split after rstrip newline
+
+- [x] Important fixes of splitting schema
+
+- [x] Dedup comment removed (failed when the read qualities contained "#")
+
+- [x] Remove dbist build out of wheel
+
+
 ### 1.0.1 (2022-09-XX) ###
 
 - [x] Fixed issue with pysam dependencies on pip and conda
