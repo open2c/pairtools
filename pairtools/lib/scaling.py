@@ -136,7 +136,7 @@ def bins_pairs_by_distance(
     pairs_df, dist_bins, regions=None, chromsizes=None, ignore_trans=False
 ):
 
-    dist_bins = np.r_[dist_bins, np.inf]
+    dist_bins = np.r_[dist_bins, np.iinfo(np.int64).max]
     if regions is None:
         if chromsizes is None:
             chroms = sorted(
