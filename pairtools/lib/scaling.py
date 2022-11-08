@@ -136,6 +136,7 @@ def bins_pairs_by_distance(
     pairs_df, dist_bins, regions=None, chromsizes=None, ignore_trans=False
 ):
 
+    dist_bins = np.r_[dist_bins, np.inf]
     if regions is None:
         if chromsizes is None:
             chroms = sorted(
@@ -208,7 +209,7 @@ def bins_pairs_by_distance(
     )
 
     pairs_reduced_df["max_dist"] = np.where(
-        pairs_reduced_df["dist_bin_idx"] < len(dist_bins),
+        pairs_reduced_df["dist_bin_idx"] < len(dist_bins)-1,
         dist_bins[pairs_reduced_df["dist_bin_idx"]],
         np.iinfo(np.int64).max,
     )
@@ -220,6 +221,8 @@ def bins_pairs_by_distance(
         (pairs_reduced_df.chrom1 == pairs_reduced_df.chrom2)
         & (pairs_reduced_df.start1 == pairs_reduced_df.start2)
         & (pairs_reduced_df.end1 == pairs_reduced_df.end2)
+        & (pairs_reduced_df.min_dist > 0)
+        & (pairs_reduced_df.max_dist < np.iinfo(np.int64).max)
     )
 
     pairs_for_scaling_df = pairs_reduced_df.loc[pairs_for_scaling_mask]
