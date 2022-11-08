@@ -11,6 +11,7 @@
 
 - [x] Remove dbist build out of wheel
 
+- [x] pairtools scaling: fixed an issue with scaling maximum range value https://github.com/open2c/pairtools/issues/150#issue-1439106031 
 
 ### 1.0.1 (2022-09-XX) ###
 
