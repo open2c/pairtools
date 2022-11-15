@@ -630,6 +630,8 @@ def parse2_read(
                 report_position,
                 report_orientation,
                 dedup_max_mismatch,
+                expand=expand,
+                max_expansion_depth=max_expansion_depth,
             )
             output = [x for x in output if x[-1][-1] != "R1-2"]
             return (output, algns1, algns2)

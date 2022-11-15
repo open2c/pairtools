@@ -114,6 +114,7 @@ UTIL_NAME = "pairtools_parse2"
 @click.option(
     "--expand/--no-expand",
     is_flag=True,
+    default=False,
     help="If specified, perform combinatorial expansion on the pairs. "
     "Combinatorial expansion is a way to increase the number of contacts in you data, assuming that all DNA fragments in the same molecule (read) are in contact. "
     "Expanded pairs have modified pair type, 'E{separation}_{pair type}'",
