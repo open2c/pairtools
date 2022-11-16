@@ -11,6 +11,9 @@ tmpdir = tempfile.TemporaryDirectory()
 tmpdir_name = tmpdir.name
 
 mock_pairsam_path_dedup = os.path.join(testdir, "data", "mock.4dedup.pairsam")
+mock_pairsam_path_dedup_diff_colnames = os.path.join(
+    testdir, "data", "mock.4dedup_diffcolnames.pairsam"
+)
 
 dedup_path = os.path.join(tmpdir_name, "dedup.pairsam")
 unmapped_path = os.path.join(tmpdir_name, "unmapped.pairsam")
@@ -64,6 +67,36 @@ def setup_dedup():
                 str(max_mismatch),
                 "--method",
                 "max",
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "dedup",
+                mock_pairsam_path_dedup_diff_colnames,
+                "--mark-dups",
+                "--output",
+                dedup_markdups_path,
+                "--output-dups",
+                dups_markdups_path,
+                "--output-unmapped",
+                unmapped_markdups_path,
+                "--max-mismatch",
+                str(max_mismatch),
+                "--c1",
+                "chr1",
+                "--c2",
+                "chr2",
+                "--p1",
+                "p1",
+                "--p2",
+                "p2",
+                "--s1",
+                "str1",
+                "--s2",
+                "str2",
             ],
         )
         subprocess.check_output(

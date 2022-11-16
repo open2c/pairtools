@@ -6,7 +6,6 @@ from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 
 from . import dedup_cython, pairsam_format
-from .stats import PairCounter
 
 from .._logging import get_logger
 
@@ -15,7 +14,8 @@ import time
 
 # Ignore pandas future warnings:
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # Setting for cython deduplication:
 # you don't need to load more than 10k lines at a time b/c you get out of the
@@ -40,6 +40,12 @@ def streaming_dedup(
     out_stat,
     backend,
     n_proc,
+    c1="chrom1",
+    c2="chrom2",
+    p1="pos1",
+    p2="pos2",
+    s1="strand1",
+    s2="strand2",
 ):
 
     deduped_chunks = _dedup_stream(
@@ -54,6 +60,13 @@ def streaming_dedup(
         keep_parent_id=keep_parent_id,
         backend=backend,
         n_proc=n_proc,
+        c1=c1,
+        c2=c2,
+        p1=p1,
+        p2=p2,
+        s1=s1,
+        s2=s2,
+        unmapped_chrom=unmapped_chrom,
     )
 
     t0 = time.time()
@@ -68,8 +81,8 @@ def streaming_dedup(
 
         # Define masks of unmapped and duplicated reads:
         mask_mapped = np.logical_and(
-            (df_chunk["chrom1"] != unmapped_chrom),
-            (df_chunk["chrom2"] != unmapped_chrom),
+            (df_chunk[c1] != unmapped_chrom),
+            (df_chunk[c2] != unmapped_chrom),
         )
         mask_duplicates = df_chunk["duplicate"]
 
@@ -118,11 +131,16 @@ def _dedup_stream(
     keep_parent_id,
     backend,
     n_proc,
+    c1,
+    c2,
+    p1,
+    p2,
+    s1,
+    s2,
+    unmapped_chrom,
 ):
     # Stream the input dataframe:
-    dfs = pd.read_table(
-        in_stream, comment=None, names=colnames, chunksize=chunksize
-    )
+    dfs = pd.read_table(in_stream, comment=None, names=colnames, chunksize=chunksize)
 
     # Set up the carryover dataframe:
     df_prev_nodups = pd.DataFrame([])
@@ -140,6 +158,13 @@ def _dedup_stream(
             extra_col_pairs=extra_col_pairs,
             backend=backend,
             n_proc=n_proc,
+            c1=c1,
+            c2=c2,
+            p1=p1,
+            p2=p2,
+            s1=s1,
+            s2=s2,
+            unmapped_chrom=unmapped_chrom,
         )
         df_marked = df_marked.loc[prev_i:, :].reset_index(drop=True)
         mask_duplicated = df_marked["duplicate"]
@@ -163,8 +188,14 @@ def _dedup_chunk(
     keep_parent_id,
     extra_col_pairs,
     backend,
-    unmapped_chrom="!",
-    n_proc=1,
+    n_proc,
+    c1,
+    c2,
+    p1,
+    p2,
+    s1,
+    s2,
+    unmapped_chrom,
 ):
     """Mark duplicates in a dataframe of pairs
 
@@ -222,7 +253,7 @@ def _dedup_chunk(
     df.loc[:, "duplicate"] = False
 
     # Split mapped and unmapped reads:
-    mask_unmapped = (df["chrom1"] == unmapped_chrom) | (df["chrom2"] == unmapped_chrom)
+    mask_unmapped = (df[c1] == unmapped_chrom) | (df[c2] == unmapped_chrom)
     df_unmapped = df.loc[mask_unmapped, :].copy()
     df_mapped = df.loc[~mask_unmapped, :].copy()
     N_mapped = df_mapped.shape[0]
@@ -231,23 +262,23 @@ def _dedup_chunk(
     if N_mapped > 0:
         if backend == "sklearn":
             a = neighbors.radius_neighbors_graph(
-                df_mapped[["pos1", "pos2"]],
+                df_mapped[[p1, p2]],
                 radius=r,
                 p=p,
                 n_jobs=n_proc,
             )
             a0, a1 = a.nonzero()
         elif backend == "scipy":
-            z = scipy.spatial.cKDTree(df_mapped[["pos1", "pos2"]])
+            z = scipy.spatial.cKDTree(df_mapped[[p1, p2]])
             a = z.query_pairs(r=r, p=p, output_type="ndarray")
             a0 = a[:, 0]
             a1 = a[:, 1]
         need_to_match = np.array(
             [
-                ("chrom1", "chrom1"),
-                ("chrom2", "chrom2"),
-                ("strand1", "strand1"),
-                ("strand2", "strand2"),
+                (c1, c1),
+                (c2, c2),
+                (s1, s1),
+                (s2, s2),
             ]
             + extra_col_pairs
         )
@@ -376,7 +407,7 @@ def streaming_dedup_cython(
     read_idx = 0  # read index to mark the parent readID
     while True:
         rawline = next(instream, None)
-        stripline = rawline.strip('\n') if rawline else None
+        stripline = rawline.strip("\n") if rawline else None
 
         # take care of empty lines not at the end of the file separately
         if rawline and (not stripline):
