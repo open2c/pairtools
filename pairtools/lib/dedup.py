@@ -269,7 +269,9 @@ def _dedup_chunk(
             )
             a0, a1 = a.nonzero()
         elif backend == "scipy":
-            z = scipy.spatial.cKDTree(df_mapped[[p1, p2]])
+            z = scipy.spatial.KDTree(
+                df_mapped[[p1, p2]],
+            )
             a = z.query_pairs(r=r, p=p, output_type="ndarray")
             a0 = a[:, 0]
             a1 = a[:, 1]
@@ -284,8 +286,7 @@ def _dedup_chunk(
         )
         nonpos_matches = np.all(
             [
-                df_mapped.iloc[a0, df_mapped.columns.get_loc(lc)].values
-                == df_mapped.iloc[a1, df_mapped.columns.get_loc(rc)].values
+                df_mapped[lc].values[a0] == df_mapped[rc].values[a1]
                 for (lc, rc) in need_to_match
             ],
             axis=0,
@@ -313,7 +314,6 @@ def _dedup_chunk(
     df = df.drop(
         ["clusterid"], axis=1
     )  # Remove the information that we don't need anymore:
-
     return df
 
 
