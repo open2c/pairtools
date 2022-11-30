@@ -237,6 +237,30 @@ def _dedup_chunk(
     if backend == "sklearn":
         from sklearn import neighbors
 
+        def _find_pairs(arr, r=0, p=1, nproc=1):
+            a = neighbors.radius_neighbors_graph(
+                arr,
+                radius=r,
+                p=p,
+                n_jobs=n_proc,
+            )
+            a0, a1 = a.nonzero()
+            return a0, a1
+
+    elif backend == "scipy":
+
+        def _find_pairs(arr, r=0, p=1):
+            z = scipy.spatial.KDTree(
+                arr,
+            )
+            a = z.query_pairs(r=r, p=p, output_type="ndarray")
+            a0 = a[:, 0]
+            a1 = a[:, 1]
+            return a0, a1
+
+    else:
+        raise ValueError('Unknown backend, only "scipy" or "sklearn" allowed')
+
     if method == "sum":
         p = 1
     else:
@@ -260,21 +284,6 @@ def _dedup_chunk(
 
     # If there are some mapped reads, dedup them:
     if N_mapped > 0:
-        if backend == "sklearn":
-            a = neighbors.radius_neighbors_graph(
-                df_mapped[[p1, p2]],
-                radius=r,
-                p=p,
-                n_jobs=n_proc,
-            )
-            a0, a1 = a.nonzero()
-        elif backend == "scipy":
-            z = scipy.spatial.KDTree(
-                df_mapped[[p1, p2]],
-            )
-            a = z.query_pairs(r=r, p=p, output_type="ndarray")
-            a0 = a[:, 0]
-            a1 = a[:, 1]
         need_to_match = np.array(
             [
                 (c1, c1),
@@ -284,19 +293,43 @@ def _dedup_chunk(
             ]
             + extra_col_pairs
         )
-        nonpos_matches = np.all(
-            [
-                df_mapped[lc].values[a0] == df_mapped[rc].values[a1]
-                for (lc, rc) in need_to_match
-            ],
-            axis=0,
+        # Let's annotate each row with what combination of "need_to_match" columns it has
+        dfleft = df_mapped[need_to_match[:, 0]]
+        dfright = df_mapped[need_to_match[:, 1]]
+        optionsleft = (
+            dfleft.drop_duplicates()
+            .reset_index(drop=True)
+            .reset_index()
+            .rename(columns={"index": "group"})
         )
-        a0 = a0[nonpos_matches]
-        a1 = a1[nonpos_matches]
+        optionsright = (
+            dfright.drop_duplicates()
+            .reset_index(drop=True)
+            .reset_index()
+            .rename(columns={"index": "group"})
+        )
+        df_mapped = df_mapped.merge(optionsleft, on=list(need_to_match[:, 0])).merge(
+            optionsright, on=list(need_to_match[:, 1]), suffixes=["_left", "_right"]
+        )
+        a0 = []
+        a1 = []
+        for name, group in df_mapped.groupby("group_left"):
+            a0_, a1_ = _find_pairs(
+                group[group["group_right"] == name][[p1, p2]],
+                r=r,
+                p=p,
+            )
+            a0.append(a0_ + group.index[0])
+            a1.append(a1_ + group.index[0])
+        # python list and np.concatenate is a tiny bit faster than np.append in every step
+        a0 = np.concatenate(a0)
+        a1 = np.concatenate(a1)
+
         a_mat = coo_matrix((np.ones_like(a0), (a0, a1)), shape=(N_mapped, N_mapped))
 
         # Set up inferred clusterIDs:
         df_mapped.loc[:, "clusterid"] = connected_components(a_mat, directed=False)[1]
+        df_mapped.drop(columns=["group_left", "group_right"], inplace=True)
 
     mask_dups = df_mapped["clusterid"].duplicated()
     df_mapped.loc[mask_dups, "duplicate"] = True
