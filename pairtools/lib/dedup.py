@@ -237,26 +237,31 @@ def _dedup_chunk(
     if backend == "sklearn":
         from sklearn import neighbors
 
-        def _find_pairs(arr, r=0, p=1, nproc=1):
-            a = neighbors.radius_neighbors_graph(
+        def _make_adj_mat(arr, size=None, r=0, p=1, n_proc=1):
+            a_mat = neighbors.radius_neighbors_graph(
                 arr,
                 radius=r,
                 p=p,
                 n_jobs=n_proc,
             )
-            a0, a1 = a.nonzero()
-            return a0, a1
+            return a_mat
 
     elif backend == "scipy":
 
-        def _find_pairs(arr, r=0, p=1):
+        def _make_adj_mat(
+            arr,
+            size,
+            r=0,
+            p=1,
+        ):
             z = scipy.spatial.KDTree(
                 arr,
             )
             a = z.query_pairs(r=r, p=p, output_type="ndarray")
             a0 = a[:, 0]
             a1 = a[:, 1]
-            return a0, a1
+            a_mat = coo_matrix((np.ones_like(a0), (a0, a1)), shape=(size, size))
+            return a_mat
 
     else:
         raise ValueError('Unknown backend, only "scipy" or "sklearn" allowed')
@@ -303,8 +308,8 @@ def _dedup_chunk(
         )
 
         df_mapped = df_mapped.merge(optionsleft, on=list(need_to_match[:, 0]))
-        a0 = []
-        a1 = []
+        components = []
+        maxclusterid = 0
         if (need_to_match[:, 0] != need_to_match[:, 1]).all():
             dfright = df_mapped[need_to_match[:, 1]]
             optionsright = (
@@ -318,30 +323,31 @@ def _dedup_chunk(
             )
 
             for name, group in df_mapped.groupby("group_left"):
-                a0_, a1_ = _find_pairs(
+                a_mat = _make_adj_mat(
                     group[group["group_right"] == name][[p1, p2]],
+                    size=group.shape[0],
                     r=r,
                     p=p,
                 )
-                a0.append(a0_ + group.index[0])
-                a1.append(a1_ + group.index[0])
+                components.append(
+                    connected_components(a_mat, directed=False)[1] + maxclusterid
+                )
+                maxclusterid = components[-1].max()
         else:
             for name, group in df_mapped.groupby("group"):
-                a0_, a1_ = _find_pairs(
+                a_mat = _make_adj_mat(
                     group[[p1, p2]],
+                    size=group.shape[0],
                     r=r,
                     p=p,
                 )
-                a0.append(a0_ + group.index[0])
-                a1.append(a1_ + group.index[0])
+                components.append(
+                    connected_components(a_mat, directed=False)[1] + maxclusterid
+                )
+                maxclusterid = components[-1].max()
         # python list and np.concatenate is a tiny bit faster than np.append in every step
-        a0 = np.concatenate(a0)
-        a1 = np.concatenate(a1)
-
-        a_mat = coo_matrix((np.ones_like(a0), (a0, a1)), shape=(N_mapped, N_mapped))
-
         # Set up inferred clusterIDs:
-        df_mapped.loc[:, "clusterid"] = connected_components(a_mat, directed=False)[1]
+        df_mapped.loc[:, "clusterid"] = np.concatenate(components)
         try:
             df_mapped.drop(columns=["group"], inplace=True)
         except IndexError:
