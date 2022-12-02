@@ -166,7 +166,7 @@ def _dedup_stream(
             s2=s2,
             unmapped_chrom=unmapped_chrom,
         )
-        df_marked = df_marked.loc[prev_i:, :].reset_index(drop=True)
+        df_marked = df_marked.iloc[prev_i:, :].reset_index(drop=True)
         mask_duplicated = df_marked["duplicate"]
         if mark_dups:
             df_marked.loc[mask_duplicated, "pair_type"] = "DD"
@@ -177,7 +177,6 @@ def _dedup_stream(
         # Re-define carryover pairs:
         df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
         prev_i = len(df_prev_nodups)
-
         yield df_marked
 
 
