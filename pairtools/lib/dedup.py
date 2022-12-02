@@ -303,7 +303,9 @@ def _dedup_chunk(
             .rename(columns={"index": "group"})
         )
 
-        df_mapped = df_mapped.merge(optionsleft, on=list(need_to_match[:, 0]))
+        df_mapped = df_mapped.merge(
+            optionsleft, how="left", on=list(need_to_match[:, 0])
+        )
         components = []
         maxclusterid = 0
         if (need_to_match[:, 0] != need_to_match[:, 1]).all():
@@ -327,7 +329,12 @@ def _dedup_chunk(
                     p=p,
                 )
                 components.append(
-                    connected_components(a_mat, directed=False)[1] + maxclusterid
+                    pd.Series(
+                        name="clusterid",
+                        index=group.index,
+                        data=connected_components(a_mat, directed=False)[1]
+                        + maxclusterid,
+                    )
                 )
                 maxclusterid = components[-1].max()
         else:
@@ -338,13 +345,18 @@ def _dedup_chunk(
                     r=r,
                     p=p,
                 )
+                comp = connected_components(a_mat, directed=False)[1] + maxclusterid + 1
                 components.append(
-                    connected_components(a_mat, directed=False)[1] + maxclusterid
+                    pd.Series(
+                        name="clusterid",
+                        index=group.index,
+                        data=comp,
+                    )
                 )
                 maxclusterid = components[-1].max()
         # python list and np.concatenate is a tiny bit faster than np.append in every step
         # Set up inferred clusterIDs:
-        df_mapped.loc[:, "clusterid"] = np.concatenate(components)
+        df_mapped = df_mapped.assign(clusterid=pd.concat(components))
         try:
             df_mapped.drop(columns=["group"], inplace=True)
         except IndexError:

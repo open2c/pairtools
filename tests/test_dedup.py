@@ -19,6 +19,10 @@ dedup_path = os.path.join(tmpdir_name, "dedup.pairsam")
 unmapped_path = os.path.join(tmpdir_name, "unmapped.pairsam")
 dups_path = os.path.join(tmpdir_name, "dups.pairsam")
 
+dedup_path_cython = os.path.join(tmpdir_name, "dedup.cython.pairsam")
+unmapped_path_cython = os.path.join(tmpdir_name, "unmapped.cython.pairsam")
+dups_path_cython = os.path.join(tmpdir_name, "dups.cython.pairsam")
+
 dedup_max_path = os.path.join(tmpdir_name, "dedup_max.pairsam")
 unmapped_max_path = os.path.join(tmpdir_name, "unmapped_max.pairsam")
 dups_max_path = os.path.join(tmpdir_name, "dups_max.pairsam")
@@ -26,6 +30,12 @@ dups_max_path = os.path.join(tmpdir_name, "dups_max.pairsam")
 dedup_markdups_path = os.path.join(tmpdir_name, "dedup.markdups.pairsam")
 unmapped_markdups_path = os.path.join(tmpdir_name, "unmapped.markdups.pairsam")
 dups_markdups_path = os.path.join(tmpdir_name, "dups.markdups.pairsam")
+
+dedup_path_diff_colnames = os.path.join(tmpdir_name, "dedup.diff_colnames.pairsam")
+unmapped_path_diff_colnames = os.path.join(
+    tmpdir_name, "unmapped.diff_colnames.pairsam"
+)
+dups_path_diff_colnames = os.path.join(tmpdir_name, "dups.diff_colnames.pairsam")
 
 max_mismatch = 1
 
@@ -58,6 +68,25 @@ def setup_dedup():
                 "dedup",
                 mock_pairsam_path_dedup,
                 "--output",
+                dedup_path_cython,
+                "--output-dups",
+                dups_path_cython,
+                "--output-unmapped",
+                unmapped_path_cython,
+                "--max-mismatch",
+                str(max_mismatch),
+                "--backend",
+                "cython",
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "dedup",
+                mock_pairsam_path_dedup,
+                "--output",
                 dedup_max_path,
                 "--output-dups",
                 dups_max_path,
@@ -67,36 +96,6 @@ def setup_dedup():
                 str(max_mismatch),
                 "--method",
                 "max",
-            ],
-        )
-        subprocess.check_output(
-            [
-                "python",
-                "-m",
-                "pairtools",
-                "dedup",
-                mock_pairsam_path_dedup_diff_colnames,
-                "--mark-dups",
-                "--output",
-                dedup_markdups_path,
-                "--output-dups",
-                dups_markdups_path,
-                "--output-unmapped",
-                unmapped_markdups_path,
-                "--max-mismatch",
-                str(max_mismatch),
-                "--c1",
-                "chr1",
-                "--c2",
-                "chr2",
-                "--p1",
-                "p1",
-                "--p2",
-                "p2",
-                "--s1",
-                "str1",
-                "--s2",
-                "str2",
             ],
         )
         subprocess.check_output(
@@ -117,6 +116,36 @@ def setup_dedup():
                 str(max_mismatch),
             ],
         )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "dedup",
+                mock_pairsam_path_dedup_diff_colnames,
+                "--mark-dups",
+                "--output",
+                dedup_path_diff_colnames,
+                "--output-dups",
+                dups_path_diff_colnames,
+                "--output-unmapped",
+                unmapped_path_diff_colnames,
+                "--max-mismatch",
+                str(max_mismatch),
+                "--c1",
+                "chr1",
+                "--c2",
+                "chr2",
+                "--p1",
+                "p1",
+                "--p2",
+                "p2",
+                "--s1",
+                "str1",
+                "--s2",
+                "str2",
+            ],
+        )
     except subprocess.CalledProcessError as e:
         print(e.output)
         print(sys.exc_info())
@@ -134,6 +163,11 @@ def test_mock_pairsam(setup_dedup):
         (dedup_path, unmapped_path, dups_path),
         (dedup_max_path, unmapped_max_path, dups_max_path),
         (dedup_markdups_path, unmapped_markdups_path, dups_markdups_path),
+        (
+            dedup_path_diff_colnames,
+            unmapped_path_diff_colnames,
+            dups_path_diff_colnames,
+        ),
     ]:
 
         dedup_pairs = [
