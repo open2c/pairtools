@@ -234,10 +234,16 @@ def _dedup_chunk(
     """
     if method not in ("max", "sum"):
         raise ValueError('Unknown method, only "sum" or "max" allowed')
+
+    if method == "sum":
+        p = 1
+    else:
+        p = np.inf
+
     if backend == "sklearn":
         from sklearn import neighbors
 
-        def _make_adj_mat(arr, size=None, r=0, p=1, n_proc=1):
+        def _make_adj_mat(arr, size=None, r=r, p=p, n_proc=1):
             a_mat = neighbors.radius_neighbors_graph(
                 arr,
                 radius=r,
@@ -248,12 +254,7 @@ def _dedup_chunk(
 
     elif backend == "scipy":
 
-        def _make_adj_mat(
-            arr,
-            size,
-            r=0,
-            p=1,
-        ):
+        def _make_adj_mat(arr, size, r=r, p=p, n_proc=None):
             z = scipy.spatial.KDTree(
                 arr,
             )
@@ -265,11 +266,6 @@ def _dedup_chunk(
 
     else:
         raise ValueError('Unknown backend, only "scipy" or "sklearn" allowed')
-
-    if method == "sum":
-        p = 1
-    else:
-        p = np.inf
 
     # Store the index of the dataframe:
     index_colname = df.index.name
