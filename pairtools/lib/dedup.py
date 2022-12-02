@@ -323,8 +323,9 @@ def _dedup_chunk(
             )
 
             for name, group in df_mapped.groupby("group_left"):
+                group = group[group["group_right"] == name]
                 a_mat = _make_adj_mat(
-                    group[group["group_right"] == name][[p1, p2]],
+                    group[[p1, p2]],
                     size=group.shape[0],
                     r=r,
                     p=p,
