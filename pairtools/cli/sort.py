@@ -212,7 +212,6 @@ def sort_py(
         """.replace(
         "\n", " "
     )
-    print(command)
     with subprocess.Popen(
         command, stdin=subprocess.PIPE, bufsize=-1, shell=True, stdout=outstream
     ) as process:
