@@ -504,8 +504,8 @@ def dedup_py(
     extra_cols2 = []
     if extra_col_pair is not None:
         for col1, col2 in extra_col_pair:
-            extra_cols1.append(column_names[col1] if col1.isdigit() else col1)
-            extra_cols2.append(column_names[col2] if col2.isdigit() else col2)
+            extra_cols1.append(column_names[col1] if col1.isnumeric() else col1)
+            extra_cols2.append(column_names[col2] if col2.isnumeric() else col2)
 
     if backend == "cython":
         # warnings.warn(

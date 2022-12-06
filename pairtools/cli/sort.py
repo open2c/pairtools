@@ -201,7 +201,7 @@ def sort_py(
         for col in extra_col:
             extra_cols.append(
                 f"-k {col},{col}"
-                if col.isdigit()
+                if col.isnumeric()
                 else f"-k {column_names.index(col)+1},{column_names.index(col)+1}"
             )
     extra_cols = " ".join(extra_cols) if extra_cols else ""
