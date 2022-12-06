@@ -402,6 +402,7 @@ class PairCounter(Mapping):
         pos2,
         strand2,
         pair_type,
+        unmapped_chrom="!",
         filter="no_filter",
     ):
         """Gather statistics for a Hi-C pair and add to the PairCounter.
@@ -421,6 +422,10 @@ class PairCounter(Mapping):
             strand of the first read
         pair_type: str
             type of the mapped pair of reads
+        unmapped_chrom: str
+            what string denotes chromosomes in unmapped pairs (default: "!")
+        filter: str
+            name of the filter toward which the pair should count (default: "no_filter")
         """
 
         self._stat[filter]["total"] += 1
@@ -428,9 +433,9 @@ class PairCounter(Mapping):
         self._stat[filter]["pair_types"][pair_type] = (
             self._stat[filter]["pair_types"].get(pair_type, 0) + 1
         )
-        if chrom1 == "!" and chrom2 == "!":
+        if chrom1 == unmapped_chrom and chrom2 == unmapped_chrom:
             self._stat[filter]["total_unmapped"] += 1
-        elif chrom1 != "!" and chrom2 != "!":
+        elif chrom1 != unmapped_chrom and chrom2 != unmapped_chrom:
             self._stat[filter]["total_mapped"] += 1
             # only mapped ones can be duplicates:
             if pair_type == "DD":

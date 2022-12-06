@@ -502,6 +502,7 @@ def streaming_dedup_cython(
                         int(cols[p2ind]),
                         cols[s2ind],
                         cols[ptind],
+                        unmapped_chrom=unmapped_chrom,
                     )
             else:
                 line_buffer.append(stripline)
@@ -571,6 +572,7 @@ def streaming_dedup_cython(
                             int(cols_buffer[i][p2ind]),
                             cols_buffer[i][s2ind],
                             cols_buffer[i][ptind],
+                            unmapped_chrom=unmapped_chrom,
                         )
                 # duplicated pair:
                 else:
@@ -583,6 +585,7 @@ def streaming_dedup_cython(
                             int(cols_buffer[i][p2ind]),
                             cols_buffer[i][s2ind],
                             "DD",
+                            unmapped_chrom=unmapped_chrom,
                         )
                     if outstream_dups:
                         if mark_dups:  # DD-marked pair:
