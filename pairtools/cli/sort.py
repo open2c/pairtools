@@ -25,6 +25,41 @@ UTIL_NAME = "pairtools_sort"
     "or lz4, correspondingly. By default, the output is printed into stdout.",
 )
 @click.option(
+    "--c1",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[1],
+    help=f"Chrom 1 column; default {pairsam_format.COLUMNS_PAIRS[1]}"
+    "[input format option]",
+)
+@click.option(
+    "--c2",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[3],
+    help=f"Chrom 2 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
+    "[input format option]",
+)
+@click.option(
+    "--p1",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[2],
+    help=f"Position 1 column; default {pairsam_format.COLUMNS_PAIRS[2]}"
+    "[input format option]",
+)
+@click.option(
+    "--p2",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[4],
+    help=f"Position 2 column; default {pairsam_format.COLUMNS_PAIRS[4]}"
+    "[input format option]",
+)
+@click.option(
+    "--pt",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[4],
+    help=f"Pair type column; default {pairsam_format.COLUMNS_PAIRS[7]}"
+    "[input format option]",
+)
+@click.option(
     "--nproc",
     type=int,
     default=8,
@@ -56,7 +91,20 @@ UTIL_NAME = "pairtools_sort"
     "otherwise.",
 )
 @common_io_options
-def sort(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
+def sort(
+    pairs_path,
+    output,
+    c1,
+    c2,
+    p1,
+    p2,
+    pt,
+    nproc,
+    tmpdir,
+    memory,
+    compress_program,
+    **kwargs,
+):
     """Sort a .pairs/.pairsam file.
 
     Sort pairs in the lexicographic order along chrom1 and chrom2, in the
@@ -67,10 +115,36 @@ def sort(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
     input is decompressed by bgzip or lz4c, correspondingly. By default, the
     input is read as text from stdin.
     """
-    sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs)
+    sort_py(
+        pairs_path,
+        output,
+        c1,
+        c2,
+        p1,
+        p2,
+        pt,
+        nproc,
+        tmpdir,
+        memory,
+        compress_program,
+        **kwargs,
+    )
 
 
-def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
+def sort_py(
+    pairs_path,
+    output,
+    c1,
+    c2,
+    p1,
+    p2,
+    pt,
+    nproc,
+    tmpdir,
+    memory,
+    compress_program,
+    **kwargs,
+):
 
     instream = fileio.auto_open(
         pairs_path,
@@ -104,6 +178,13 @@ def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwarg
             )
             compress_program = "gzip"
 
+    column_names = headerops.extract_column_names(header)
+    c1 = column_names.index(c1)
+    c2 = column_names.index(c2)
+    p1 = column_names.index(p1)
+    p2 = column_names.index(p2)
+    pt = column_names.index(pt)
+
     command = r"""
         /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort 
         -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
@@ -116,11 +197,11 @@ def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwarg
         """.replace(
         "\n", " "
     ).format(
-        pairsam_format.COL_C1 + 1,
-        pairsam_format.COL_C2 + 1,
-        pairsam_format.COL_P1 + 1,
-        pairsam_format.COL_P2 + 1,
-        pairsam_format.COL_PTYPE + 1,
+        c1 + 1,
+        c2 + 1,
+        p1 + 1,
+        p2 + 1,
+        pt + 1,
         pairsam_format.PAIRSAM_SEP_ESCAPE,
         " --parallel={} ".format(nproc) if nproc > 0 else " ",
         " --temporary-directory={} ".format(tmpdir) if tmpdir else " ",
