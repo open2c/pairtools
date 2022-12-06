@@ -60,6 +60,15 @@ UTIL_NAME = "pairtools_sort"
     "[input format option]",
 )
 @click.option(
+    "--extra-col",
+    nargs=1,
+    # type=str,
+    multiple=True,
+    help="Extra column (name or numerical index) that is also used for sorting."
+    "The option can be provided multiple times."
+    'Example: --extra-col "phase1" --extra-col "phase2". [output format option]',
+)
+@click.option(
     "--nproc",
     type=int,
     default=8,
@@ -99,6 +108,7 @@ def sort(
     p1,
     p2,
     pt,
+    extra_col,
     nproc,
     tmpdir,
     memory,
@@ -123,6 +133,7 @@ def sort(
         p1,
         p2,
         pt,
+        extra_col,
         nproc,
         tmpdir,
         memory,
@@ -139,6 +150,7 @@ def sort_py(
     p1,
     p2,
     pt,
+    extra_col,
     nproc,
     tmpdir,
     memory,
@@ -184,33 +196,27 @@ def sort_py(
     p1 = column_names.index(p1)
     p2 = column_names.index(p2)
     pt = column_names.index(pt)
-
-    command = r"""
+    extra_cols = []
+    if extra_col is not None:
+        for col in extra_col:
+            extra_cols.append(
+                f"-k {col},{col}"
+                if col.isdigit()
+                else f"-k {column_names.index(col)+1},{column_names.index(col)+1}"
+            )
+    extra_cols = " ".join(extra_cols) if extra_cols else ""
+    command = rf"""
         /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort 
-        -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
+        -k {c1 + 1},{c1 + 1} -k {c2 + 1},{c2 + 1} -k {p1 + 1},{p1 + 1}n
+        -k {p2 + 1},{p2 + 1}n -k {pt + 1},{pt + 1} {extra_cols}
         --stable
-        --field-separator=$'\''{5}'\'' 
-        {6}
-        {7}
-        -S {8}
-        {9}
+        --field-separator={pairsam_format.PAIRSAM_SEP_ESCAPE}
+        --parallel={nproc}
+        {f'--temporary-directory={tmpdir}' if tmpdir else ''}
+        -S {memory}
+        {f'--compress-program={compress_program}' if compress_program else ''}
         """.replace(
         "\n", " "
-    ).format(
-        c1 + 1,
-        c2 + 1,
-        p1 + 1,
-        p2 + 1,
-        pt + 1,
-        pairsam_format.PAIRSAM_SEP_ESCAPE,
-        " --parallel={} ".format(nproc) if nproc > 0 else " ",
-        " --temporary-directory={} ".format(tmpdir) if tmpdir else " ",
-        memory,
-        (
-            " --compress-program={} ".format(compress_program)
-            if compress_program
-            else " "
-        ),
     )
     command += "'"
 
