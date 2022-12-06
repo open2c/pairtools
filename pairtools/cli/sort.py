@@ -55,14 +55,14 @@ UTIL_NAME = "pairtools_sort"
 @click.option(
     "--pt",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[4],
+    default=pairsam_format.COLUMNS_PAIRS[7],
     help=f"Pair type column; default {pairsam_format.COLUMNS_PAIRS[7]}"
     "[input format option]",
 )
 @click.option(
     "--extra-col",
     nargs=1,
-    # type=str,
+    type=str,
     multiple=True,
     help="Extra column (name or numerical index) that is also used for sorting."
     "The option can be provided multiple times."
@@ -191,35 +191,28 @@ def sort_py(
             compress_program = "gzip"
 
     column_names = headerops.extract_column_names(header)
-    c1 = column_names.index(c1)
-    c2 = column_names.index(c2)
-    p1 = column_names.index(p1)
-    p2 = column_names.index(p2)
-    pt = column_names.index(pt)
-    extra_cols = []
-    if extra_col is not None:
-        for col in extra_col:
-            extra_cols.append(
-                f"-k {col},{col}"
-                if col.isnumeric()
-                else f"-k {column_names.index(col)+1},{column_names.index(col)+1}"
-            )
-    extra_cols = " ".join(extra_cols) if extra_cols else ""
+    columns = [c1, c2, p1, p2, pt] + list(extra_col)
+    cols = []
+    for i, col in enumerate(columns):
+        cols.append(
+            f"-k {col},{col}{'n' if i in (2,3) else ''}"
+            if col.isnumeric()
+            else f"-k {column_names.index(col)+1},{column_names.index(col)+1}{'n'if i in (2,3) else ''}"
+        )
+    cols = " ".join(cols)
     command = rf"""
         /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort 
-        -k {c1 + 1},{c1 + 1} -k {c2 + 1},{c2 + 1} -k {p1 + 1},{p1 + 1}n
-        -k {p2 + 1},{p2 + 1}n -k {pt + 1},{pt + 1} {extra_cols}
+        {cols}
         --stable
-        --field-separator={pairsam_format.PAIRSAM_SEP_ESCAPE}
+        --field-separator=$'\''{pairsam_format.PAIRSAM_SEP_ESCAPE}'\''
         --parallel={nproc}
         {f'--temporary-directory={tmpdir}' if tmpdir else ''}
         -S {memory}
-        {f'--compress-program={compress_program}' if compress_program else ''}
+        {f'--compress-program={compress_program}' if compress_program else ''}'
         """.replace(
         "\n", " "
     )
-    command += "'"
-
+    print(command)
     with subprocess.Popen(
         command, stdin=subprocess.PIPE, bufsize=-1, shell=True, stdout=outstream
     ) as process:
