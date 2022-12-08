@@ -192,12 +192,13 @@ def sort_py(
 
     column_names = headerops.extract_column_names(header)
     columns = [c1, c2, p1, p2, pt] + list(extra_col)
+    # Now generating the "-k <i>,<i><mode>" expressions for all columns.
+    # If column name is in the default pairsam format and has an integer dtype there, do numerical sorting
     cols = []
-    for i, col in enumerate(columns):
+    for col in columns:
+        colindex = int(col) if col.isnumeric() else column_names.index(col) + 1
         cols.append(
-            f"-k {col},{col}{'n' if i in (2,3) else ''}"
-            if col.isnumeric()
-            else f"-k {column_names.index(col)+1},{column_names.index(col)+1}{'n'if i in (2,3) else ''}"
+            f"-k {colindex},{colindex}{'n' if isinstance(pairsam_format.DTYPES_PAIRSAM.get(column_names[colindex-1], str), int) else ''}"
         )
     cols = " ".join(cols)
     command = rf"""
