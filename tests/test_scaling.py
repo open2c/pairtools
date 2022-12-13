@@ -22,5 +22,4 @@ def test_scaling():
 
     output = pd.read_csv(io.StringIO(result), sep="\t", header=0)
 
-    # All the pairs, even "!" are counted as present because we don't provide regions
-    assert output["n_pairs"].sum() == 8
+    assert output["n_pairs"].sum() == 5

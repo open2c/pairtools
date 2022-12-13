@@ -150,9 +150,10 @@ def bins_pairs_by_distance(
             region_ends1, region_ends2 = -1, -1
 
         else:
-            region_starts1, region_starts2 = 0, 0
-            region_ends1 = pairs_df.chrom1.map(chromsizes).fillna(1).astype(np.int64)
-            region_ends2 = pairs_df.chrom2.map(chromsizes).fillna(1).astype(np.int64)
+            region_ends1 = pairs_df.chrom1.map(chromsizes).fillna(-1).astype(np.int64)
+            region_ends2 = pairs_df.chrom2.map(chromsizes).fillna(-1).astype(np.int64)
+            region_starts1 = np.where(region_ends1 > 0, 0, -1)
+            region_starts2 = np.where(region_ends2 > 0, 0, -1)
             regions = pd.DataFrame(
                 [
                     {"chrom": chrom, "start": 0, "end": length}
@@ -185,6 +186,7 @@ def bins_pairs_by_distance(
             pairs_df.chrom2.values, pairs_df.pos2.values, regions
         ).T
 
+
     pairs_reduced_df = pd.DataFrame(
         {
             "chrom1": pairs_df.chrom1.values,
@@ -205,7 +207,7 @@ def bins_pairs_by_distance(
 
     if not keep_unassigned:
         pairs_reduced_df = (pairs_reduced_df
-            .query('(start1 > 0) and (end1 > 0) and (start2 > 0) and (end2 > 0)')
+            .query('(start1 >= 0) and (end1 > 0) and (start2 >= 0) and (end2 > 0)')
             .reset_index(drop=True))
 
     pairs_reduced_df["min_dist"] = np.where(
@@ -379,8 +381,10 @@ def compute_scaling(
         header, pairs_body = headerops.get_header(pairs_stream)
 
         cols = headerops.extract_column_names(header)
+
         if chromsizes is None:
             chromsizes = headerops.extract_chromsizes(header)
+
         pairs_df = pd.read_csv(
             pairs_body,
             header=None,
@@ -425,7 +429,7 @@ def compute_scaling(
 
     if not ignore_trans:
         trans_counts.reset_index(inplace=True)
-        trans_counts["np_bp2"] = (trans_counts["end1"] - trans_counts["start1"]) * (
+        trans_counts["n_bp2"] = (trans_counts["end1"] - trans_counts["start1"]) * (
             trans_counts["end2"] - trans_counts["start2"]
         )
 
