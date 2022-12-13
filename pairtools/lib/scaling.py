@@ -133,7 +133,8 @@ def make_empty_cross_region_table(
 
 
 def bins_pairs_by_distance(
-    pairs_df, dist_bins, regions=None, chromsizes=None, ignore_trans=False
+    pairs_df, dist_bins, regions=None, chromsizes=None, ignore_trans=False,
+    keep_unassigned=False,
 ):
 
     dist_bins = np.r_[dist_bins, np.iinfo(np.int64).max]
@@ -201,6 +202,11 @@ def bins_pairs_by_distance(
         },
         copy=False,
     )
+
+    if not keep_unassigned:
+        pairs_reduced_df = (pairs_reduced_df
+            .query('(start1 > 0) and (end1 > 0) and (start2 > 0) and (end2 > 0)')
+            .reset_index(drop=True))
 
     pairs_reduced_df["min_dist"] = np.where(
         pairs_reduced_df["dist_bin_idx"] > 0,
@@ -324,6 +330,7 @@ def compute_scaling(
     n_dist_bins=8 * 8,
     chunksize=int(1e7),
     ignore_trans=False,
+    keep_unassigned=False,
     filter_f=None,
     nproc_in=1,
     cmd_in=None,
@@ -340,6 +347,7 @@ def compute_scaling(
     n_dist_bins: number of logarithmic bins
     chunksize: size of chunks for calculations
     ignore_trans: bool, ignore trans or not
+    keep_unassigned: bool, keep pairs that are not assigned to any region
     filter_f: filter function that can be applied to each chunk
     nproc_in
     cmd_in
@@ -396,6 +404,7 @@ def compute_scaling(
             regions=regions,
             chromsizes=chromsizes,
             ignore_trans=ignore_trans,
+            keep_unassigned=keep_unassigned
         )
 
         sc = sc_chunk if sc is None else sc.add(sc_chunk, fill_value=0)
