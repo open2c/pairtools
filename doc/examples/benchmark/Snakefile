@@ -1,4 +1,4 @@
-cores_choices = [1] #, 2, 4]
+cores_choices = [1, 2, 4]
 
 chromap = expand(
     "output/result.chromap.{cores}.pairs",
@@ -24,6 +24,14 @@ hicpro = expand(
     "output/result.hicpro.{cores}.pairs",
     cores=cores_choices,
 )
+tadbit = expand(
+    "output/result.tadbit.{cores}.reads",
+    cores=cores_choices,
+)
+tadbit_bowtie = expand(
+    "output/result.tadbit_bowtie2.{cores}.reads",
+    cores=cores_choices,
+)
 pairtools = expand(
     "output/result.pairtools.{cores}.pairs",
     cores=cores_choices,
@@ -33,13 +41,29 @@ pairtools_bwamem2 = expand(
     cores=cores_choices,
 )
 
+# mapping only:
+bowtie = expand(
+    "output/result.bowtie.{cores}.sam",
+    cores=cores_choices,
+)
+bwamem = expand(
+    "output/result.bwamem.{cores}.sam",
+    cores=cores_choices,
+)
+bwamem2 = expand(
+    "output/result.bwamem2.{cores}.sam",
+    cores=cores_choices,
+)
+
 rule all:
     input:
-        lambda wildcards: juicer #pairtools + pairtools_bwamem2 + chromap + hicpro + fanc_bowtie + fanc_bwa + hicexplorer
+        lambda wildcards: tadbit + tadbit_bowtie + bowtie + bwamem2 + pairtools + pairtools_bwamem2 + chromap + hicpro + fanc_bowtie + fanc_bwa + hicexplorer
+    # + bowtie + bwamem + bwamem2
+    # + juicer
+    # + pairtools + pairtools_bwamem2 + chromap + hicpro + fanc_bowtie + fanc_bwa + hicexplorer
 
-# juicer #
 # hicexplorer # heavy because it creates coolers
-# juicer # run separately with the number of cores equal to tested!
+# juicer # run separately with the number of cores equal to tested, b/c multiplw juicers cannot be run with the same path
 
 rule test:
     input:
@@ -51,6 +75,7 @@ rule test:
         genome_index_chromap="data/hg38/index/chromap/hg38",
         genome_index_bwamem2="data/hg38/index/bwa-mem2/hg38",
         genome_index_bowtie2="data/hg38/index/bowtie2/hg38",
+        genome_index_gem="data/hg38/index/gem/hg38.gem",
         genome_rsites="data/hg38/hg38.DpnII.bed",
     threads: lambda wildcards: int(wildcards.cores),
     output:
@@ -64,17 +89,17 @@ rule test:
         if wildcards.mode == "pairtools_bwamem2":
             shell("""
                 soft/bwa-mem2/bwa-mem2 mem -t {wildcards.cores} -SP {input.genome_index_bwamem2} {input.fastq1} {input.fastq2} | \
-                    soft/pairtools1.0.0/bin/pairtools parse --nproc-in {wildcards.cores} --nproc-out {wildcards.cores} --drop-sam --drop-seq -c {input.chromsizes} | \
-                    soft/pairtools1.0.0/bin/pairtools sort --nproc {wildcards.cores} | \
-                    soft/pairtools1.0.0/bin/pairtools dedup -p {wildcards.cores} --chunksize 1000000 \
+                    soft/pairtools1.0.2/bin/pairtools parse --nproc-in {wildcards.cores} --nproc-out {wildcards.cores} --drop-sam --drop-seq -c {input.chromsizes} | \
+                    soft/pairtools1.0.2/bin/pairtools sort --nproc {wildcards.cores} | \
+                    soft/pairtools1.0.2/bin/pairtools dedup -p {wildcards.cores} --chunksize 1000000 \
                     -o {output.file}
                 """)
         elif wildcards.mode == "pairtools":
             shell("""
-                soft/pairtools1.0.0/bin/bwa mem -t {wildcards.cores} -SP {input.genome_index_bwa} {input.fastq1} {input.fastq2} | \
-                    soft/pairtools1.0.0/bin/pairtools parse --nproc-in {wildcards.cores} --nproc-out {wildcards.cores} --drop-sam --drop-seq -c {input.chromsizes} | \
-                    soft/pairtools1.0.0/bin/pairtools sort --nproc {wildcards.cores} | \
-                    soft/pairtools1.0.0/bin/pairtools dedup -p {wildcards.cores} --chunksize 1000000 \
+                soft/pairtools1.0.2/bin/bwa mem -t {wildcards.cores} -SP {input.genome_index_bwa} {input.fastq1} {input.fastq2} | \
+                    soft/pairtools1.0.2/bin/pairtools parse --nproc-in {wildcards.cores} --nproc-out {wildcards.cores} --drop-sam --drop-seq -c {input.chromsizes} | \
+                    soft/pairtools1.0.2/bin/pairtools sort --nproc {wildcards.cores} | \
+                    soft/pairtools1.0.2/bin/pairtools dedup -p {wildcards.cores} --chunksize 1000000 \
                     -o {output.file}
                 """)
 
@@ -109,8 +134,9 @@ rule test:
         elif wildcards.mode == "hicpro":
             shell("""
                 cd soft/HiC-Pro_env/HiC-Pro/
-                TMP_CONFIG=$(mktemp -u output/tmp.XXXXXXXX)
+		mkdir -p output
                 TMP_DIR=$(mktemp -d -u output/tmp.XXXXXXXX)
+                TMP_CONFIG=$(mktemp -u output/tmp.XXXXXXXX.config)
                 cp config-hicpro.txt $TMP_CONFIG
                 
                 sed -i 's/N_CPU = 4/N_CPU = {wildcards.cores}/' $TMP_CONFIG
@@ -118,7 +144,7 @@ rule test:
                 
                 # Cleanup:
                 cp $TMP_DIR/hic_results/data/sample1/sample1.allValidPairs ../../../{output.file}
-                rm -r $TMP_DIR $TMP_CONFIG
+                rm -r $TMP_DIR; rm $TMP_CONFIG
                 """)
         elif wildcards.mode == "juicer":
             # Note that this process is not guaranteed to work well in parallel mode;
@@ -136,16 +162,54 @@ rule test:
                 TMP_DIR=$(mktemp -d -u output/tmp.XXXXXXXX)
                 
                 soft/hicexplorer/bin/hicBuildMatrix --samFiles \
-                                <(bwa mem -A1 -B4 -E50 -L0 {input.genome_index_bwa} -t {wildcards.cores} data/SRR6107789_1.fastq.gz | samtools view -@ {wildcards.cores} -Shb -) \
-                                <(bwa mem -A1 -B4 -E50 -L0 {input.genome_index_bwa} -t {wildcards.cores} data/SRR6107789_2.fastq.gz | samtools view -@ {wildcards.cores} -Shb -) \
-                                 --restrictionSequence GATC \
-                                 --danglingSequence GATC \
-                                 --restrictionCutFile {input.genome_rsites}  \
-                                 --threads {wildcards.cores} \
-                                 --inputBufferSize 1000000 \
-                                 --QCfolder $TMP_DIR \
-                                 -o {output.file}
+                    <(bwa mem -A1 -B4 -E50 -L0 {input.genome_index_bwa} -t {wildcards.cores} {input.fastq1} | samtools view -@ {wildcards.cores} -Shb -) \
+                    <(bwa mem -A1 -B4 -E50 -L0 {input.genome_index_bwa} -t {wildcards.cores} {input.fastq2} | samtools view -@ {wildcards.cores} -Shb -) \
+                     --restrictionSequence GATC \
+                     --danglingSequence GATC \
+                     --restrictionCutFile {input.genome_rsites}  \
+                     --threads {wildcards.cores} \
+                     --inputBufferSize 1000000 \
+                     --QCfolder $TMP_DIR \
+                     -o {output.file}
 
                 # Cleanup:
                 rm -r $TMP_DIR
+                """)
+        elif wildcards.mode == "tadbit":
+            shell("""
+            
+                TMP_DIR=$(mktemp -d -u tadbit_output/tmp.XXXXXXXX)
+                
+                soft/tadbit/bin/tadbit map $TMP_DIR -C {wildcards.cores} --mapper_binary soft/tadbit/bin/gem-mapper --fastq {input.fastq1} --read 1 --index {input.genome_index_gem} --renz DpnII || true 
+                soft/tadbit/bin/tadbit map $TMP_DIR -C {wildcards.cores} --mapper_binary soft/tadbit/bin/gem-mapper --fastq {input.fastq2} --read 2 --index {input.genome_index_gem} --renz DpnII || true
+                soft/tadbit/bin/tadbit parse $TMP_DIR --genome data/hg38/hg38.fa || true
+                soft/tadbit/bin/tadbit filter $TMP_DIR -C {wildcards.cores} --format mid || true
+                
+                mv $TMP_DIR/03_filtered_reads/valid_r1-r2_intersection_*.tsv {output.file}
+                rm -r $TMP_DIR
+                """)
+        elif wildcards.mode == "tadbit_bowtie2":
+            shell("""
+            
+                TMP_DIR=$(mktemp -d -u tadbit_output/tmp.XXXXXXXX)
+                
+                soft/tadbit/bin/tadbit map $TMP_DIR -C {wildcards.cores} --mapper bowtie2 --mapper_binary soft/tadbit/bin/bowtie2 --fastq {input.fastq1} --read 1 --index {input.genome_index_bowtie2} --renz DpnII || true 
+                soft/tadbit/bin/tadbit map $TMP_DIR -C {wildcards.cores} --mapper bowtie2 --mapper_binary soft/tadbit/bin/bowtie2 --fastq {input.fastq2} --read 2 --index {input.genome_index_bowtie2} --renz DpnII || true
+                soft/tadbit/bin/tadbit parse $TMP_DIR --genome data/hg38/hg38.fa || true
+                soft/tadbit/bin/tadbit filter $TMP_DIR -C {wildcards.cores} --format mid || true
+                
+                mv $TMP_DIR/03_filtered_reads/valid_r1-r2_intersection_*.tsv {output.file}
+                rm -r $TMP_DIR
+                """)
+        elif wildcards.mode == "bowtie":
+            shell("""
+                soft/tadbit/bin/bowtie2 -p 4 -x {input.genome_index_bowtie2} -1 {input.fastq1} -2 {input.fastq2} -S {output.file}
+                """)
+        elif wildcards.mode == "bwamem":
+            shell("""
+                soft/pairtools0.3.0/bin/bwa mem -t 4 -SP {input.genome_index_bwa} {input.fastq1} {input.fastq2} > {output.file}
+                """)
+        elif wildcards.mode == "bwamem2":
+            shell("""
+                soft/bwa-mem2/bwa-mem2 mem -t 4 -SP {input.genome_index_bwamem2} {input.fastq1} {input.fastq2} > {output.file}
                 """)
