@@ -7,10 +7,10 @@ Overview
 `pairtools stats` produces a human-readable nested dictionary of statistics stored in
 a YAML file or a tab-separated text table (specified through the parameters).
 
-- ** Summary statistics ** include the total number of pairs based on their type, and the number of trans contacts.
+- *Summary statistics* include the total number of pairs based on their type, and the number of trans contacts.
 More trans interactions can be a sign of Hi-C of protocol problems and lower signal-to-noise ratio.
 
-- ** P(s), or scaling. **  The dependence of contact frequency on the genomic
+- *P(s), or scaling.*  The dependence of contact frequency on the genomic
 distance referred to as the P(s) curve or scaling, which is a rich source of information of information and quality of 3C+ experiments.
 The shape of P(s) is often used to characterize mechanisms of genome folding and reveal issues with QC.
 
@@ -19,14 +19,14 @@ Interactive visualization of stats with MultiQC
 
 Install `multiqc`:
 
-``
-pip install --upgrade --force-reinstall git+https://github.com/open2c/MultiQC.git
-``
+.. code-block:: bash
+    pip install --upgrade --force-reinstall git+https://github.com/open2c/MultiQC.git
+
 
 Run MultiQC in a folder with one or multiple .stats files:
-``
-multiqc .
-``
+.. code-block:: bash
+    multiqc .
+
 
 This will produce nice .html file with interactive graphical summaries of the stats.
 
@@ -59,7 +59,7 @@ Optical duplicates
 -----------------
 
 Importantly, researchers can estimate the complexity of Hi-C libraries using only small QC
-samples to decide if their quality permits deeper sequencing [library complexity papers].
+samples to decide if their quality permits deeper sequencing [3]_.
 These estimates, however, can be significantly biased by the presence of “optical” or
 “clustering” duplicates. Such duplicates occur when a DNA sequencer erroneously splits
 a signal from a single sequenced molecule into two; alternatively, a molecule located between
@@ -91,3 +91,4 @@ with original Illumina-generated read IDs.
 
 .. [2] Thread: [Samtools-help] Pickard estimate for the size of a library - wrong or non-transparent? https://sourceforge.net/p/samtools/mailman/samtools-help/thread/DUB405-EAS154589A1ACEF2BE4C573D4592180@phx.gbl/
 
+.. [3] Rao, S. S. P. et al. A 3D map of the human genome at kilobase resolution reveals principles of chromatin looping. Cell 159, 1665–1680 (2014).
