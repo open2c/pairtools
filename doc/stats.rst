@@ -7,10 +7,10 @@ Overview
 `pairtools stats` produces a human-readable nested dictionary of statistics stored in
 a YAML file or a tab-separated text table (specified through the parameters).
 
-- *Summary statistics* include the total number of pairs based on their type, and the number of trans contacts.
+- **Summary statistics** include the total number of pairs based on their type, and the number of trans contacts.
 More trans interactions can be a sign of Hi-C of protocol problems and lower signal-to-noise ratio.
 
-- *P(s), or scaling.*  The dependence of contact frequency on the genomic
+- **P(s), or scaling.**  The dependence of contact frequency on the genomic
 distance referred to as the P(s) curve or scaling, which is a rich source of information of information and quality of 3C+ experiments.
 The shape of P(s) is often used to characterize mechanisms of genome folding and reveal issues with QC.
 
@@ -20,11 +20,13 @@ Interactive visualization of stats with MultiQC
 Install `multiqc`:
 
 .. code-block:: bash
+
     pip install --upgrade --force-reinstall git+https://github.com/open2c/MultiQC.git
 
-
 Run MultiQC in a folder with one or multiple .stats files:
+
 .. code-block:: bash
+
     multiqc .
 
 
