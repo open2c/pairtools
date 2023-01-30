@@ -70,7 +70,8 @@ Contents:
    installation
    parsing
    sorting
-   formats 
+   formats
+   stats
    technotes
    cli_tools
 
