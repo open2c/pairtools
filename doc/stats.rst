@@ -19,14 +19,14 @@ Interactive visualization of stats with MultiQC
 
 Install `multiqc`:
 
-```
+``
 pip install --upgrade --force-reinstall git+https://github.com/open2c/MultiQC.git
-```
+``
 
 Run MultiQC in a folder with one or multiple .stats files:
-```
+``
 multiqc .
-```
+``
 
 This will produce nice .html file with interactive graphical summaries of the stats.
 
@@ -49,7 +49,7 @@ $$ {U(N) \\over C} = 1 - exp( - {N \\over C}), $$
 
 which can be solved as
 
-$$ C = \Re(lambert W( - { \exp( - {1 \\over u} ) \\over u}) + {1 \\over u} $$
+$$ C = \Re(lambert W( - { \exp( - {1 \\over u} ) \\over u} ) ) + {1 \\over u} $$
 
 Library complexity can guide in the choice of sequencing depth of the library
 and provide an estimate of library quality.
