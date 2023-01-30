@@ -4,7 +4,31 @@
 Overview
 --------
 
+`pairtools stats` produces a human-readable nested dictionary of statistics stored in
+a YAML file or a tab-separated text table (specified through the parameters).
 
+- ** Summary statistics ** include the total number of pairs based on their type, and the number of trans contacts.
+More trans interactions can be a sign of Hi-C of protocol problems and lower signal-to-noise ratio.
+
+- ** P(s), or scaling. **  The dependence of contact frequency on the genomic
+distance referred to as the P(s) curve or scaling, which is a rich source of information of information and quality of 3C+ experiments.
+The shape of P(s) is often used to characterize mechanisms of genome folding and reveal issues with QC.
+
+Interactive visualization of stats with MultiQC
+---------
+
+Install `multiqc`:
+
+```
+pip install --upgrade --force-reinstall git+https://github.com/open2c/MultiQC.git
+```
+
+Run MultiQC in a folder with one or multiple .stats files:
+```
+multiqc .
+```
+
+This will produce nice .html file with interactive graphical summaries of the stats.
 
 
 Estimating library complexity
@@ -15,17 +39,19 @@ replacement from a finite pool of fragments in DNA library [1]_ [2]_.
 With each new sequenced molecule, the expected number of observed unique molecules
 increases according to a simple equation:
 
-$$ U(N+1) = U(N) + (1-\frac{U(N)}{C}), $$
+$$ U(N+1) = U(N) + (1 - \frac{U(N)}{C}), $$
+
+$ \frac{a}{b} $
 
 where $N$ is the number of sequenced molecules, $U(N)$ is the expected number
 of observed unique molecules after sequencing $N$ molecules, and C is the library complexity.
 This differential equation yields [1, 2]:
 
-$$ \frac{U(N)}{C} = 1 - exp(-\frac{N}{C}), $$
+$$ \frac{U(N)}{C} = 1 - exp( - \frac{N}{C}), $$
 
 which can be solved as
 
-$$ C = \Re(lambert W(-\frac{exp(-\frac{1}{u})}{u}) + \frac{1}{u} $$
+$$ C = \Re(lambert W( - \frac{ \exp( - \frac{1}{u} ) }{u}) + \frac{1}{u} $$
 
 Library complexity can guide in the choice of sequencing depth of the library
 and provide an estimate of library quality.
@@ -66,3 +92,4 @@ with original Illumina-generated read IDs.
 .. [1] Picard. http://broadinstitute.github.io/picard/
 
 .. [2] Thread: [Samtools-help] Pickard estimate for the size of a library - wrong or non-transparent? https://sourceforge.net/p/samtools/mailman/samtools-help/thread/DUB405-EAS154589A1ACEF2BE4C573D4592180@phx.gbl/
+
