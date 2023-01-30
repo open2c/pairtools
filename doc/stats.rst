@@ -65,7 +65,7 @@ samples to decide if their quality permits deeper sequencing [3]_.
 These estimates, however, can be significantly biased by the presence of “optical” or
 “clustering” duplicates. Such duplicates occur when a DNA sequencer erroneously splits
 a signal from a single sequenced molecule into two; alternatively, a molecule located between
-two adjacent tiles of a flowcell can be imaged twice, in both of the tiles [ref].
+two adjacent tiles of a flowcell can be imaged twice, in both of the tiles [4]_.
 
 The rate of optical duplication depends on the technology and the operating conditions,
 but not on the library complexity and sequencing depth. Thus, in small sequencing samples
@@ -94,3 +94,5 @@ with original Illumina-generated read IDs.
 .. [2] Thread: [Samtools-help] Pickard estimate for the size of a library - wrong or non-transparent? https://sourceforge.net/p/samtools/mailman/samtools-help/thread/DUB405-EAS154589A1ACEF2BE4C573D4592180@phx.gbl/
 
 .. [3] Rao, S. S. P. et al. A 3D map of the human genome at kilobase resolution reveals principles of chromatin looping. Cell 159, 1665–1680 (2014).
+
+.. [4] Duplicates on Illumina. BioStars. https://www.biostars.org/p/229842/
