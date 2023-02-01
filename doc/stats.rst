@@ -7,8 +7,16 @@ Overview
 `pairtools stats` produces a human-readable nested dictionary of statistics stored in
 a YAML file or a tab-separated text table (specified through the parameters).
 
-- **Summary statistics** include the total number of pairs based on their type, and the number of trans contacts.
-More trans interactions can be a sign of Hi-C of protocol problems and lower signal-to-noise ratio.
+- **Summary statistics** include:
+    - number of pairs (total, unmapped, single-side mapped, etc.),
+    - total number of different pair types (UU, NN, NU, and others, see ` Pair types in pairtools docs <https://pairtools.readthedocs.io/en/latest/formats.html#pair-types>`_),
+    - fraction of duplicates
+    - fraction of cis interactions out of total
+    - fraction of contacts between certain chromosomes
+
+Summary statistics can inform you about the quality of the data.
+For example, more trans interactions can be a sign of Hi-C of protocol problems and lower signal-to-noise ratio.
+Substantial mapping to mitochondrial chromosome (chrM) might be a sign of random ligation.
 
 - **P(s), or scaling.**  The dependence of contact frequency on the genomic
 distance referred to as the P(s) curve or scaling, which is a rich source of information of information and quality of 3C+ experiments.
@@ -57,10 +65,10 @@ Library complexity can guide in the choice of sequencing depth of the library
 and provide an estimate of library quality.
 
 
-Optical duplicates
+Illumina sequencing duplicates
 -----------------
 
-Importantly, researchers can estimate the complexity of Hi-C libraries using only small QC
+Importantly, you can estimate the complexity of Hi-C libraries using only small QC
 samples to decide if their quality permits deeper sequencing [3]_.
 These estimates, however, can be significantly biased by the presence of “optical” or
 “clustering” duplicates. Such duplicates occur when a DNA sequencer erroneously splits
