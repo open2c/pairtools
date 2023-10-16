@@ -236,6 +236,16 @@ UTIL_NAME = "pairtools_dedup"
     help="Output stats in yaml format instead of table. [output stats format option]",
 )
 
+# Add column with the number of duplicates
+@click.option(
+    "--count-dups/--no-count-dups",
+    is_flag=True,
+    default=False,
+    help="Add column to the output pairs with the number of duplicates. "
+    "Comparible with sklearn and scipy backends only. "
+    "Is not counted by default. [output dedup pairs format option]",
+)
+
 # Filtering options for reporting stats:
 @click.option(
     "--filter",
@@ -388,6 +398,11 @@ def dedup_py(
     send_header_to_dedup = send_header_to in ["both", "dedup"]
     send_header_to_dup = send_header_to in ["both", "dups"]
 
+    count_dups = kwargs.get("count_dups", False)
+    if backend=="cython" and count_dups:
+        logger.warning("Not countin number of duplicates with Cython backend.")
+        count_dups = False
+
     instream = fileio.auto_open(
         pairs_path,
         mode="r",
@@ -486,6 +501,8 @@ def dedup_py(
             "Pairs file appears not to be sorted, dedup might produce wrong results."
         )
     header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    if count_dups:
+        header = headerops.append_columns(header, ["n_dups"])
     if send_header_to_dedup:
         outstream.writelines((l + "\n" for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
@@ -555,6 +572,7 @@ def dedup_py(
             out_stat=out_stat,
             backend=backend,
             n_proc=n_proc,
+            count_dups=count_dups,
         )
     else:
         raise ValueError("Unknown backend")
