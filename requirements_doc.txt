@@ -9,6 +9,6 @@ click>=7.0
 git+https://github.com/golobor/sphinx-click
 ipython
 nbsphinx
-Sphinx
+Sphinx>=7.0
 sphinx_rtd_theme
 docutils>0.16
