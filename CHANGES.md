@@ -1,3 +1,6 @@
+### 1.0.3 (2023-11-20) ###
+- [x] `pairtools dedup`: update default chunksize to 10,000 to prevent memory overflow on datasets with high duplication rate 
+
 ### 1.0.2 (2022-11-XX) ###
 
 - [x] `pairtools select` regex update 
