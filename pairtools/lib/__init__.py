@@ -1,6 +1,5 @@
 from . import fileio
 from . import dedup
-from . import dedup_cython
 from . import filterbycov
 from . import headerops
 from . import pairsam_format

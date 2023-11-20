@@ -338,7 +338,7 @@ def streaming_dedup_cython(
     Returns
     -------
 
-    """
+    """    
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
     if bool(extra_cols1) and bool(extra_cols2):
         maxind = max(maxind, max(extra_cols1), max(extra_cols2))
