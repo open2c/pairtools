@@ -38,7 +38,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     "sphinx_click.ext",
-    "recommonmark",
     "nbsphinx",
     "sphinx_rtd_theme",
 ]
