@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.spatial
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
+from csv import QUOTE_NONE
 
 from . import dedup_cython, pairsam_format
 from .stats import PairCounter
@@ -79,7 +80,7 @@ def streaming_dedup(
         # Stream the dups:
         if outstream_dups:
             df_chunk.loc[mask_mapped & mask_duplicates, :].to_csv(
-                outstream_dups, index=False, header=False, sep="\t"
+                outstream_dups, index=False, header=False, sep="\t", quoting=QUOTE_NONE
             )
 
         # Drop readID if it was created (not needed for nodup and unmapped pairs):
@@ -89,12 +90,12 @@ def streaming_dedup(
         # Stream unmapped:
         if outstream_unmapped:
             df_chunk.loc[~mask_mapped, :].to_csv(
-                outstream_unmapped, index=False, header=False, sep="\t"
+                outstream_unmapped, index=False, header=False, sep="\t", quoting=QUOTE_NONE
             )
 
         # Stream unique pairs:
         df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
-            outstream, index=False, header=False, sep="\t"
+            outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
         )
 
     t1 = time.time()
