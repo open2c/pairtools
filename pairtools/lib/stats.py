@@ -380,9 +380,11 @@ class PairCounter(Mapping):
             new PairCounter filled with the contents of the input file
         """
         # fill in from file - file_handle:
-        stat_from_file = cls()
-
         stat = yaml.safe_load(file_handle)
+        stat_from_file = cls(
+            filters={key: val.get("filter_expression", "") for key, val in stat.items()}
+        )
+
         for key, filter in stat.items():
             chromdict = {}
             for chroms in stat[key]["chrom_freq"].keys():
@@ -637,7 +639,6 @@ class PairCounter(Mapping):
                         ].get(union_key, 0) + other._stat[filter][k].get(union_key, 0)
                 elif k == "dist_freq":
                     for dirs in sum_stat[k]:
-
                         from functools import reduce
 
                         def reducer(accumulator, element):
