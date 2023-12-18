@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from .regions import assign_regs_c
+from . import pairsio
 import bioframe
 
 
@@ -329,70 +330,60 @@ def compute_scaling(
     regions=None,
     chromsizes=None,
     dist_range=(int(1e1), int(1e9)),
-    n_dist_bins=8 * 8,
+    n_dist_bins_decade=8 * 8,
     chunksize=int(1e7),
     ignore_trans=False,
     keep_unassigned=False,
     filter_f=None,
     nproc_in=1,
-    cmd_in=None,
 ):
     """
-    Main function for computing scaling.
+    Compute the contact-frequency-vs-distance (aka "scaling") curve from a table of contacts.
 
     Parameters
     ----------
-    pairs: pd.DataFrame, stream of fiel paht with pairs.
-    regions: bioframe viewframe, anything that can serve as input to bioframe.from_any, or None
-    chromsizes: additional dataframe with chromosome sizes, if different from regions
-    dist_range: (int, int) tuple with distance ranges that will be split into windows
-    n_dist_bins: number of logarithmic bins
-    chunksize: size of chunks for calculations
-    ignore_trans: bool, ignore trans or not
-    keep_unassigned: bool, keep pairs that are not assigned to any region
-    filter_f: filter function that can be applied to each chunk
-    nproc_in
-    cmd_in
+    pairs : pd.DataFrame or str or file-like object
+        A table with pairs of genomic coordinates representing contacts. 
+        It can be a pandas DataFrame, a path to a pairs file, or a file-like object.
+    regions : bioframe viewframe or None, optional
+        Genomic regions of interest. It can be anything that can serve as input to bioframe.from_any,
+        or None if not applicable.
+    chromsizes : pd.DataFrame or None, optional
+        Additional dataframe with chromosome sizes, if different from regions.
+    dist_range : tuple of int, optional
+        The range of distances to calculate the scaling curve. Default is (10, 1000000000).
+    n_dist_bins : int, optional
+        The number of distance bins per order of magnitude in a log10-space. Default is 8.
+    chunksize : int, optional
+        Size of chunks for calculations. Default is 10000000.
+    ignore_trans : bool, optional
+        Ignore trans interactions or not. Default is False.
+    keep_unassigned : bool, optional
+        Keep pairs that are not assigned to any region or not. Default is False.
+    filter_f : function or None, optional
+        A function that to filter contacts. Default is None.
+    nproc_in : int, optional
+        Number of processes to use for reading pairs file. Default is 1.
 
     Returns
     -------
-
+    sc : pd.DataFrame
+        Scaling information for each distance bin.
+    trans_counts : pd.DataFrame or None
+        Trans interaction counts for each distance bin. None if ignore_trans is True.
     """
 
-    dist_bins = geomspace(dist_range[0], dist_range[1], n_dist_bins)
+    dist_bins = geomspace(
+        dist_range[0], 
+        dist_range[1],
+        int(np.round(np.log10(dist_range[1]/dist_range[0])*n_dist_bins_decade))
+    )
 
     if isinstance(pairs, pd.DataFrame):
         pairs_df = pairs
 
     elif isinstance(pairs, str) or hasattr(pairs, "buffer") or hasattr(pairs, "peek"):
-        from . import fileio, headerops
-
-        pairs_stream = (
-            fileio.auto_open(
-                pairs,
-                mode="r",
-                nproc=nproc_in,
-                command=cmd_in,
-            )
-            if isinstance(pairs, str)
-            else pairs
-        )
-
-        header, pairs_body = headerops.get_header(pairs_stream)
-
-        cols = headerops.extract_column_names(header)
-
-        if chromsizes is None:
-            chromsizes = headerops.extract_chromsizes(header)
-
-        pairs_df = pd.read_csv(
-            pairs_body,
-            header=None,
-            names=cols,
-            chunksize=chunksize,
-            sep="\t",
-            dtype={"chrom1": str, "chrom2": str},
-        )
+        pairs_df, _, _ = pairsio.read_pairs(pairs, nproc=nproc_in, chunksize=chunksize)
     else:
         raise ValueError(
             "pairs must be either a path to a pairs file or a pd.DataFrame"
