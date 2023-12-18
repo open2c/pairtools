@@ -436,15 +436,46 @@ def compute_scaling(
     return sc, trans_counts
 
 
-def norm_scaling_factor(bins, cfreqs, anchor=1.0, binwindow=(0, 3)):
-    i = np.searchsorted(bins, anchor)
-    return cfreqs[i + binwindow[0] : i + binwindow[1]].mean()
+def norm_scaling_factor(bins, cfreqs, norm_window):
+    """
+    Calculate the normalization factor for a contact-frequency-vs-distance curve,
+    by setting the average contact frequency in a specified range of distances to 1.0.
+
+    Args:
+        bins (array-like): The distance bins.
+        cfreqs (array-like): The contact frequencies.
+        norm_window (tuple of float): A tuple with the range of distances to use for normalization.
+
+    Returns:
+        float: The normalization scaling factor.
+    """
+
+    lo, hi = np.searchsorted(bins, norm_window)
+    return cfreqs[lo:hi+1].mean()
 
 
-def norm_scaling(bins, cfreqs, anchor=1.0, binwindow=(0, 3)):
-    return cfreqs / norm_scaling_factor(bins, cfreqs, anchor, binwindow)
+def norm_scaling(bins, cfreqs, norm_window, log_input=False):
+    """
+    Normalize a contact-frequency-vs-distance curve, by setting the average contact frequency 
+    in a given window to 1.0.
 
+    Args:
+        bins (array-like): The distance bins.
+        cfreqs (array-like): The contact frequencies.
+        norm_window (tuple of float): A tuple with the range of distances to use for normalization.
+        log_input (bool, optional): Whether the input contact frequencies were log-transformed. Defaults to False.
 
+    Returns:
+        float or array-like: The normalized contact frequencies.
+    """
+    
+    norm = norm_scaling_factor(bins, cfreqs, norm_window)
+    if log_input:
+        return cfreqs - norm
+    else:
+        return cfreqs / norm
+
+    
 def unity_norm_scaling(bins, cfreqs, norm_range=(1e4, 1e9)):
     bin_lens = np.diff(bins)
     bin_mids = np.sqrt(bins[1:] * bins[:-1])
