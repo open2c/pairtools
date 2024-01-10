@@ -16,7 +16,8 @@ import time
 
 # Ignore pandas future warnings:
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # Setting for cython deduplication:
 # you don't need to load more than 10k lines at a time b/c you get out of the
@@ -42,7 +43,6 @@ def streaming_dedup(
     backend,
     n_proc,
 ):
-
     deduped_chunks = _dedup_stream(
         in_stream=in_stream,
         colnames=colnames,
@@ -90,7 +90,11 @@ def streaming_dedup(
         # Stream unmapped:
         if outstream_unmapped:
             df_chunk.loc[~mask_mapped, :].to_csv(
-                outstream_unmapped, index=False, header=False, sep="\t", quoting=QUOTE_NONE
+                outstream_unmapped,
+                index=False,
+                header=False,
+                sep="\t",
+                quoting=QUOTE_NONE,
             )
 
         # Stream unique pairs:
@@ -121,9 +125,7 @@ def _dedup_stream(
     n_proc,
 ):
     # Stream the input dataframe:
-    dfs = pd.read_table(
-        in_stream, comment=None, names=colnames, chunksize=chunksize
-    )
+    dfs = pd.read_table(in_stream, comment=None, names=colnames, chunksize=chunksize)
 
     # Set up the carryover dataframe:
     df_prev_nodups = pd.DataFrame([])
@@ -219,8 +221,8 @@ def _dedup_chunk(
     df = df.reset_index()  # Remove the index temporarily
 
     # Set up columns to store the dedup info:
-    df.loc[:, "clusterid"] = np.nan
-    df.loc[:, "duplicate"] = False
+    df["clusterid"] = np.nan
+    df["duplicate"] = False
 
     # Split mapped and unmapped reads:
     mask_unmapped = (df["chrom1"] == unmapped_chrom) | (df["chrom2"] == unmapped_chrom)
@@ -339,7 +341,7 @@ def streaming_dedup_cython(
     Returns
     -------
 
-    """    
+    """
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
     if bool(extra_cols1) and bool(extra_cols2):
         maxind = max(maxind, max(extra_cols1), max(extra_cols2))
@@ -377,7 +379,7 @@ def streaming_dedup_cython(
     read_idx = 0  # read index to mark the parent readID
     while True:
         rawline = next(instream, None)
-        stripline = rawline.strip('\n') if rawline else None
+        stripline = rawline.strip("\n") if rawline else None
 
         # take care of empty lines not at the end of the file separately
         if rawline and (not stripline):
@@ -393,7 +395,6 @@ def streaming_dedup_cython(
                 )
 
             if (cols[c1ind] == unmapped_chrom) or (cols[c2ind] == unmapped_chrom):
-
                 if outstream_unmapped:
                     outstream_unmapped.write(stripline)
                     # don't forget terminal newline
@@ -559,7 +560,6 @@ def mark_split_pair_as_dup(cols):
 
     if (len(cols) > pairsam_format.COL_SAM1) and (len(cols) > pairsam_format.COL_SAM2):
         for i in (pairsam_format.COL_SAM1, pairsam_format.COL_SAM2):
-
             # split each sam column into sam entries, tag and assemble back
             cols[i] = pairsam_format.INTER_SAM_SEP.join(
                 [
