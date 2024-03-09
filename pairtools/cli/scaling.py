@@ -39,7 +39,7 @@ UTIL_NAME = "pairtools_scaling"
 @click.option(
     "--dist-range",
     type=click.Tuple([int, int]),
-    default=(10, 1_000_000_000),
+    default=(1, 1_000_000_000),
     show_default=True,
     required=False,
     help="Distance range. ",
@@ -99,7 +99,7 @@ def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins_deca
     summary_stats = pd.concat([cis_scalings, trans_levels])
 
     # save statistics to the file
-    summary_stats.to_csv(outstream, sep="\t")
+    summary_stats.to_csv(outstream, sep="\t", index=False)
 
     if instream != sys.stdin:
         instream.close()
