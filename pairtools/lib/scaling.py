@@ -330,12 +330,12 @@ def compute_scaling(
     regions=None,
     chromsizes=None,
     dist_range=(int(1e1), int(1e9)),
-    n_dist_bins_decade=8 * 8,
+    n_dist_bins_decade=8,
     chunksize=int(1e7),
     ignore_trans=False,
     keep_unassigned=False,
     filter_f=None,
-    nproc_in=1,
+    nproc_in=4,
 ):
     """
     Compute the contact-frequency-vs-distance (aka "scaling") curve from a table of contacts.
