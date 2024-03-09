@@ -22,6 +22,6 @@ readid11	!	0	!	0	+	-	WW
 readid12	chr1	1	chrU	1	+	+	UU
 readid13	chrU	1	chr1	1	+	+	UU
 readid14	chrU	100	chrU	1	+	+	UU
-readid15	chrU1	100	chrU	100	+	+	UU
+readid15	chrU	100	chrU	100	+	+	UU
 readid16	!	0	chrU	100	+	+	NU
 readid17	chrU	0	!	0	+	+	UN
