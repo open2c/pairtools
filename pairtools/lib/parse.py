@@ -38,6 +38,35 @@ from . import pairsam_format
 from .parse_pysam import get_mismatches_c
 
 
+def group_alignments_by_side(sams):
+    return [sam for sam in sams if sam.is_read1], [sam for sam in sams if sam.is_read2]
+
+
+def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
+    sams = []
+
+    prev_readID = None
+    while True:
+        sam_entry = next(instream, None)
+        readID = sam_entry.query_name if sam_entry else None
+
+        # Read is fully populated, then parse and write:
+        if not (sam_entry) or ((readID != prev_readID) and prev_readID):
+            if sort:
+                sams = sorted(sams, key=lambda a: (a.is_read2, a.query_alignment_start))
+            out = sams if not group_by_side else group_alignments_by_side(sams)
+            out = out if not return_readID else (prev_readID, out)
+            yield out
+            
+            sams.clear()
+            
+        if sam_entry is None:
+            break
+        else:
+            sams.append(sam_entry)
+            prev_readID = readID
+
+
 def streaming_classify(
     instream, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
 ):
@@ -105,102 +134,94 @@ def streaming_classify(
 
     ### Iterate over input pysam:
     instream = iter(instream)
-    while sam_entry is not None:
-        sam_entry = next(instream, None)
-
-        readID = sam_entry.query_name if sam_entry else None
-        if readID_transform is not None and readID is not None:
+    for (readID, (sams1, sams2)) in read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
+        if readID_transform is not None:
             readID = eval(readID_transform)
 
-        # Read is fully populated, then parse and write:
-        if not (sam_entry) or ((readID != prev_readID) and prev_readID):
+        ### Parse
+        if not parse2:  # regular parser:
+            pairstream, all_algns1, all_algns2 = parse_read(
+                sams1,
+                sams2,
+                min_mapq=kwargs["min_mapq"],
+                max_molecule_size=kwargs["max_molecule_size"],
+                max_inter_align_gap=kwargs["max_inter_align_gap"],
+                walks_policy=kwargs["walks_policy"],
+                sam_tags=sam_tags,
+                store_seq=store_seq,
+                report_mismatches=True if "mismatches" in add_columns else False,
+            )
+        else:  # parse2 parser:
+            pairstream, all_algns1, all_algns2 = parse2_read(
+                sams1,
+                sams2,
+                min_mapq=kwargs["min_mapq"],
+                max_inter_align_gap=kwargs["max_inter_align_gap"],
+                max_insert_size=kwargs.get("max_insert_size", 500),
+                single_end=kwargs["single_end"],
+                report_position=kwargs["report_position"],
+                report_orientation=kwargs["report_orientation"],
+                sam_tags=sam_tags,
+                dedup_max_mismatch=kwargs["dedup_max_mismatch"],
+                store_seq=store_seq,
+                expand=kwargs["expand"],
+                max_expansion_depth=kwargs["max_expansion_depth"],
+                report_mismatches=True if "mismatches" in add_columns else False,
+            )
 
-            ### Parse
-            if not parse2:  # regular parser:
-                pairstream, all_algns1, all_algns2 = parse_read(
-                    sams1,
-                    sams2,
-                    min_mapq=kwargs["min_mapq"],
-                    max_molecule_size=kwargs["max_molecule_size"],
-                    max_inter_align_gap=kwargs["max_inter_align_gap"],
-                    walks_policy=kwargs["walks_policy"],
-                    sam_tags=sam_tags,
-                    store_seq=store_seq,
-                    report_mismatches=True if "mismatches" in add_columns else False,
-                )
-            else:  # parse2 parser:
-                pairstream, all_algns1, all_algns2 = parse2_read(
-                    sams1,
-                    sams2,
-                    min_mapq=kwargs["min_mapq"],
-                    max_inter_align_gap=kwargs["max_inter_align_gap"],
-                    max_insert_size=kwargs.get("max_insert_size", 500),
-                    single_end=kwargs["single_end"],
-                    report_position=kwargs["report_position"],
-                    report_orientation=kwargs["report_orientation"],
-                    sam_tags=sam_tags,
-                    dedup_max_mismatch=kwargs["dedup_max_mismatch"],
-                    store_seq=store_seq,
-                    expand=kwargs["expand"],
-                    max_expansion_depth=kwargs["max_expansion_depth"],
-                    report_mismatches=True if "mismatches" in add_columns else False,
-                )
+        ### Write:
+        read_has_alignments = False
+        for (algn1, algn2, pair_index) in pairstream:
+            read_has_alignments = True
 
-            ### Write:
-            read_has_alignments = False
-            for (algn1, algn2, pair_index) in pairstream:
-                read_has_alignments = True
+            # Alignment end defaults to 5' if report_alignment_end is unspecified:
+            if kwargs.get("report_alignment_end", "5") == "5":
+                algn1["pos"] = algn1["pos5"]
+                algn2["pos"] = algn2["pos5"]
+            else:
+                algn1["pos"] = algn1["pos3"]
+                algn2["pos"] = algn2["pos3"]
 
-                # Alignment end defaults to 5' if report_alignment_end is unspecified:
-                if kwargs.get("report_alignment_end", "5") == "5":
-                    algn1["pos"] = algn1["pos5"]
-                    algn2["pos"] = algn2["pos5"]
-                else:
-                    algn1["pos"] = algn1["pos3"]
-                    algn2["pos"] = algn2["pos3"]
+            if kwargs["flip"]:
+                flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
+                if flip_pair:
+                    algn1, algn2 = algn2, algn1
+                    sams1, sams2 = sams2, sams1
 
-                if kwargs["flip"]:
-                    flip_pair = not check_pair_order(algn1, algn2, chrom_enum)
-                    if flip_pair:
-                        algn1, algn2 = algn2, algn1
-                        sams1, sams2 = sams2, sams1
+            write_pairsam(
+                algn1,
+                algn2,
+                readID=prev_readID,
+                pair_index=pair_index,
+                sams1=sams1,
+                sams2=sams2,
+                out_file=outstream,
+                drop_readid=kwargs["drop_readid"],
+                drop_seq=kwargs["drop_seq"],
+                drop_sam=kwargs["drop_sam"],
+                add_pair_index=kwargs["add_pair_index"],
+                add_columns=add_columns,
+            )
 
-                write_pairsam(
-                    algn1,
-                    algn2,
-                    readID=prev_readID,
-                    pair_index=pair_index,
-                    sams1=sams1,
-                    sams2=sams2,
-                    out_file=outstream,
-                    drop_readid=kwargs["drop_readid"],
-                    drop_seq=kwargs["drop_seq"],
-                    drop_sam=kwargs["drop_sam"],
-                    add_pair_index=kwargs["add_pair_index"],
-                    add_columns=add_columns,
-                )
-
-                # add a pair to PairCounter for stats output:
-                if out_stat:
-                    out_stat.add_pair(
-                        algn1["chrom"],
-                        int(algn1["pos"]),
-                        algn1["strand"],
-                        algn2["chrom"],
-                        int(algn2["pos"]),
-                        algn2["strand"],
-                        algn1["type"] + algn2["type"],
-                    )
-
-            # write all alignments:
-            if out_alignments_stream and read_has_alignments:
-                write_all_algnments(
-                    prev_readID, all_algns1, all_algns2, out_alignments_stream
+            # add a pair to PairCounter for stats output:
+            if out_stat:
+                out_stat.add_pair(
+                    algn1["chrom"],
+                    int(algn1["pos"]),
+                    algn1["strand"],
+                    algn2["chrom"],
+                    int(algn2["pos"]),
+                    algn2["strand"],
+                    algn1["type"] + algn2["type"],
                 )
 
-            # Empty read after writing:
-            sams1.clear()
-            sams2.clear()
+        # write all alignments:
+        if out_alignments_stream and read_has_alignments:
+            write_all_algnments(
+                prev_readID, all_algns1, all_algns2, out_alignments_stream
+            )
+
+
 
         if sam_entry is not None:
             push_pysam(sam_entry, sams1, sams2)
