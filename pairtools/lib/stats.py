@@ -176,17 +176,13 @@ class PairCounter(Mapping):
                 # there is only genomic distance range of the bin that's left:
                 (bin_range,) = k_fields
                 # extract left border of the bin "1000000+" or "1500-6000":
-                dist_bin_left = (
+                dist_bin_left = int(
                     bin_range.strip("+")
                     if bin_range.endswith("+")
                     else bin_range.split("-")[0]
                 )
-                # get the index of that bin:
-                bin_idx = (
-                    np.searchsorted(self._dist_bins, int(dist_bin_left), "right") - 1
-                )
                 # store corresponding value:
-                return self._stat[filter]["dist_freq"][dirs][bin_idx]
+                return self._stat[filter]["dist_freq"][dirs][dist_bin_left]
             else:
                 raise ValueError(
                     "{} is not a valid key: {} section implies 2 identifiers".format(
@@ -337,20 +333,13 @@ class PairCounter(Mapping):
                         # there is only genomic distance range of the bin that's left:
                         (bin_range,) = key_fields
                         # extract left border of the bin "1000000+" or "1500-6000":
-                        dist_bin_left = (
+                        dist_bin_left = int(
                             bin_range.strip("+")
                             if bin_range.endswith("+")
                             else bin_range.split("-")[0]
                         )
-                        # get the index of that bin:
-                        bin_idx = (
-                            np.searchsorted(
-                                stat_from_file._dist_bins, int(dist_bin_left), "right"
-                            )
-                            - 1
-                        )
                         # store corresponding value:
-                        stat_from_file._stat[default_filter][key][dirs][bin_idx] = int(
+                        stat_from_file._stat[default_filter][key][dirs][dist_bin_left] = int(
                             fields[1]
                         )
                     else:
@@ -380,9 +369,11 @@ class PairCounter(Mapping):
             new PairCounter filled with the contents of the input file
         """
         # fill in from file - file_handle:
-        stat_from_file = cls()
-
         stat = yaml.safe_load(file_handle)
+        stat_from_file = cls(
+            filters={key: val.get("filter_expression", "") for key, val in stat.items()}
+        )
+
         for key, filter in stat.items():
             chromdict = {}
             for chroms in stat[key]["chrom_freq"].keys():
@@ -444,10 +435,10 @@ class PairCounter(Mapping):
                 if chrom1 == chrom2:
                     self._stat[filter]["cis"] += 1
                     dist = np.abs(pos2 - pos1)
-                    bin = self._dist_bins[
+                    dist_bin = self._dist_bins[
                         np.searchsorted(self._dist_bins, dist, "right") - 1
                     ]
-                    self._stat[filter]["dist_freq"][strand1 + strand2][bin] += 1
+                    self._stat[filter]["dist_freq"][strand1 + strand2][dist_bin] += 1
                     if dist >= 1000:
                         self._stat[filter]["cis_1kb+"] += 1
                     if dist >= 2000:
@@ -637,7 +628,6 @@ class PairCounter(Mapping):
                         ].get(union_key, 0) + other._stat[filter][k].get(union_key, 0)
                 elif k == "dist_freq":
                     for dirs in sum_stat[k]:
-
                         from functools import reduce
 
                         def reducer(accumulator, element):
@@ -701,17 +691,19 @@ class PairCounter(Mapping):
                 if (k == "dist_freq") and v:
                     for i in range(len(self._dist_bins)):
                         for dirs, freqs in v.items():
+                            dist = self._dist_bins[i]
                             # last bin is treated differently: "100000+" vs "1200-3000":
-                            if i != len(self._dist_bins) - 1:
-                                dist = self._dist_bins[i]
+                            if i < len(self._dist_bins) - 1:
                                 dist_next = self._dist_bins[i + 1]
                                 formatted_key = self._KEY_SEP.join(
                                     ["{}", "{}-{}", "{}"]
                                 ).format(k, dist, dist_next, dirs)
-                            else:
+                            elif i == len(self._dist_bins) - 1:
                                 formatted_key = self._KEY_SEP.join(
                                     ["{}", "{}+", "{}"]
                                 ).format(k, dist, dirs)
+                            else:
+                                raise ValueError("There is a mismatch between dist_freq bins in the instance")
                             # store key,value pair:
                             flat_stat[formatted_key] = freqs[dist]
                 elif (k in ["pair_types", "dedup", "chromsizes"]) and v:

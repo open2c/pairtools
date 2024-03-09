@@ -113,7 +113,7 @@ UTIL_NAME = "pairtools_dedup"
 @click.option(
     "--chunksize",
     type=int,
-    default=100_000,
+    default=10_000,
     show_default=True,
     help="Number of pairs in each chunk. Reduce for lower memory footprint."
     " Below 10,000 performance starts suffering significantly and the algorithm might"
