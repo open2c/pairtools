@@ -9,7 +9,7 @@ import pandas as pd
 
 from .. import __version__
 from . import pairsam_format
-from .fileio import ParseError
+from .fileio import ParseError, get_stream_handlers
 
 from .._logging import get_logger
 
@@ -20,19 +20,6 @@ SEP_COLS = " "
 SEP_CHROMS = " "
 COMMENT_CHAR = "#"
 
-
-def get_stream_handlers(instream):
-    # get peekable buffer for the instream
-    readline_f, peek_f = None, None
-    if hasattr(instream, "buffer"):
-        peek_f = instream.buffer.peek
-        readline_f = instream.buffer.readline
-    elif hasattr(instream, "peek"):
-        peek_f = instream.peek
-        readline_f = instream.readline
-    else:
-        raise ValueError("Cannot find the peek() function of the provided stream!")
-    return readline_f, peek_f
 
 
 def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):

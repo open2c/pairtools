@@ -2,6 +2,7 @@ from . import fileio
 from . import dedup
 from . import filterbycov
 from . import headerops
+from . import pairsio
 from . import pairsam_format
 from . import parse
 from . import parse_pysam
