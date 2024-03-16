@@ -188,7 +188,15 @@ def _dedup_stream(
         prev_i = len(df_prev_nodups)
 
 
-def _make_adj_mat(arr, size, r, p, n_proc=None, backend=None):
+def _make_adj_mat(arr, size, r, method, n_proc=None, backend=None):
+    if method not in ("max", "sum"):
+        raise ValueError('Unknown method, only "sum" or "max" allowed')
+
+    if method == "sum":
+        p = 1
+    else:
+        p = np.inf
+
     if backend == "sklearn":
         from sklearn import neighbors
 
@@ -215,6 +223,123 @@ def _make_adj_mat(arr, size, r, p, n_proc=None, backend=None):
 
     else:
         raise ValueError('Unknown backend, only "scipy" or "sklearn" allowed')
+
+
+def _cluster_pairs(
+        df_mapped, 
+        cols,
+        p1,
+        p2,
+        r,
+        method,
+        n_proc,
+        backend,
+):
+    groups = (
+        df_mapped[cols]
+        .drop_duplicates()
+        .reset_index(drop=True)
+        .reset_index()
+        .rename(columns={"index": "group"})
+    )
+
+    df_mapped = df_mapped.merge(
+        groups, how="left", on=list(cols)
+    )
+
+    components = []
+    maxcluster_id = 0
+
+    for name, group in df_mapped.groupby("group"):
+        a_mat = _make_adj_mat(
+            group[[p1, p2]],
+            size=group.shape[0],
+            r=r,
+            method=method,
+            n_proc=n_proc,
+            backend=backend,
+        )
+        comp = connected_components(a_mat, directed=False)[1] + maxcluster_id + 1
+        components.append(
+            pd.Series(
+                name="cluster_id",
+                index=group.index,
+                data=comp,
+            )
+        )
+        maxcluster_id = components[-1].max()
+    
+    df_mapped['cluster_id'] = pd.concat(components)        
+    df_mapped.drop(columns=["group"], inplace=True)
+
+    return df_mapped
+        
+
+def _cluster_pairs_nonmatching_col_pairs(
+        df_mapped, 
+        col_pairs,
+        p1,
+        p2,
+        r,
+        method,
+        n_proc,
+        backend,
+):
+        groups_left = (
+            df_mapped[col_pairs[:, 0]]
+            .drop_duplicates()
+            .reset_index(drop=True)
+            .reset_index()
+            .rename(columns={"index": "group"})
+        )
+
+        df_mapped = df_mapped.merge(
+            groups_left, how="left", on=list(col_pairs[:, 0])
+        )
+
+        groups_right = (
+            df_mapped[col_pairs[:, 1]]
+            .drop_duplicates()
+            .reset_index(drop=True)
+            .reset_index()
+            .rename(columns={"index": "group"})
+        )
+
+        df_mapped = df_mapped.merge(
+            groups_right, 
+            on=list(col_pairs[:, 1]), 
+            suffixes=["_left", "_right"]
+        )
+
+        components = []
+        maxcluster_id = 0
+
+        for name, group in df_mapped.groupby("group_left"):
+            group = group[group["group_right"] == name]
+            a_mat = _make_adj_mat(
+                group[[p1, p2]],
+                size=group.shape[0],
+                r=r,
+                method=method,
+                n_proc=n_proc,
+                backend=backend,
+            )
+            components.append(
+                pd.Series(
+                    name="cluster_id",
+                    index=group.index,
+                    data=connected_components(a_mat, directed=False)[1]
+                    + maxcluster_id,
+                )
+            )
+            maxcluster_id = components[-1].max()
+
+
+        df_mapped['cluster_id'] = pd.concat(components)
+        df_mapped.drop(columns=["group_left", "group_right"], inplace=True)
+
+        return df_mapped
+        
 
 
 def _dedup_chunk(
@@ -268,13 +393,6 @@ def _dedup_chunk(
         optionally recorded 'parent_readID'
 
     """
-    if method not in ("max", "sum"):
-        raise ValueError('Unknown method, only "sum" or "max" allowed')
-
-    if method == "sum":
-        p = 1
-    else:
-        p = np.inf
 
     # Store the index of the dataframe:
     index_colname = df.index.name
@@ -283,7 +401,7 @@ def _dedup_chunk(
     df = df.reset_index()  # Remove the index temporarily
 
     # Set up columns to store the dedup info:
-    df["clusterid"] = np.nan
+    df["cluster_id"] = -1
     df["duplicate"] = False
 
     # Split mapped and unmapped reads:
@@ -303,90 +421,38 @@ def _dedup_chunk(
             ]
             + extra_col_pairs
         )
-        # Let's annotate each row with what combination of "need_to_match" columns it has
-        df_left = df_mapped[col_pairs[:, 0]]
-        options_left = (
-            df_left.drop_duplicates()
-            .reset_index(drop=True)
-            .reset_index()
-            .rename(columns={"index": "group"})
-        )
-
-        df_mapped = df_mapped.merge(
-            options_left, how="left", on=list(col_pairs[:, 0])
-        )
-
-        components = []
-        maxclusterid = 0
+        
         if (col_pairs[:, 0] == col_pairs[:, 1]).all():
-            for name, group in df_mapped.groupby("group"):
-                a_mat = _make_adj_mat(
-                    group[[p1, p2]],
-                    size=group.shape[0],
-                    r=r,
-                    p=p,
-                    n_proc=n_proc,
-                    backend=backend,
-                )
-                comp = connected_components(a_mat, directed=False)[1] + maxclusterid + 1
-                components.append(
-                    pd.Series(
-                        name="clusterid",
-                        index=group.index,
-                        data=comp,
-                    )
-                )
-                maxclusterid = components[-1].max()
+            df_mapped = _cluster_pairs(
+                df_mapped, 
+                col_pairs[:, 0],
+                p1,
+                p2,
+                r,
+                method,
+                n_proc,
+                backend,
+            )
             
         else:
-            df_right = df_mapped[col_pairs[:, 1]]
-            options_right = (
-                df_right.drop_duplicates()
-                .reset_index(drop=True)
-                .reset_index()
-                .rename(columns={"index": "group"})
+            df_mapped = _cluster_pairs_nonmatching_col_pairs(
+                df_mapped, 
+                col_pairs,
+                p1,
+                p2,
+                r,
+                method,
+                n_proc,
+                backend,
             )
-            df_mapped = df_mapped.merge(
-                options_right, 
-                on=list(col_pairs[:, 1]), 
-                suffixes=["_left", "_right"]
-            )
-
-            for name, group in df_mapped.groupby("group_left"):
-                group = group[group["group_right"] == name]
-                a_mat = _make_adj_mat(
-                    group[[p1, p2]],
-                    size=group.shape[0],
-                    r=r,
-                    p=p,
-                    n_proc=n_proc,
-                    backend=backend,
-                )
-                components.append(
-                    pd.Series(
-                        name="clusterid",
-                        index=group.index,
-                        data=connected_components(a_mat, directed=False)[1]
-                        + maxclusterid,
-                    )
-                )
-                maxclusterid = components[-1].max()
-            
-        # python list and np.concatenate is a tiny bit faster than np.append in every step
-        # Set up inferred clusterIDs:
-        df_mapped = df_mapped.assign(clusterid=pd.concat(components))
-        try:
-            df_mapped.drop(columns=["group"], inplace=True)
-        except IndexError:
-            df_mapped.drop(columns=["group_left", "group_right"], inplace=True)
-
-    mask_dups = df_mapped["clusterid"].duplicated()
+        
+    mask_dups = df_mapped["cluster_id"].duplicated()
     df_mapped.loc[mask_dups, "duplicate"] = True
 
     # Mark parent IDs if requested:
     if keep_parent_id:
-        df_mapped.loc[:, "parent_readID"] = df_mapped["clusterid"].map(
-            df_mapped[~mask_dups].set_index("clusterid")["readID"]
+        df_mapped.loc[:, "parent_readID"] = df_mapped["cluster_id"].map(
+            df_mapped[~mask_dups].set_index("cluster_id")["readID"]
         )
         df_unmapped.loc[:, "parent_readID"] = ""
 
@@ -395,7 +461,7 @@ def _dedup_chunk(
     df = pd.concat([df_unmapped, df_mapped]).reset_index(drop=True)
     df = df.set_index(index_colname)  # Set up the original index
     df = df.drop(
-        ["clusterid"], axis=1
+        ["cluster_id"], axis=1
     )  # Remove the information that we don't need anymore:
     return df
 
