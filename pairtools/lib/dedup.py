@@ -152,10 +152,12 @@ def _dedup_stream(
 
     # Iterate over chunks:
     for df in dfs:
+        input_chunk = (pd
+            .concat([df_prev_nodups, df], axis=0, ignore_index=True)
+            .reset_index(drop=True)
+        )
         df_marked = _dedup_chunk(
-            pd.concat([df_prev_nodups, df], axis=0, ignore_index=True).reset_index(
-                drop=True
-            ),
+            input_chunk,
             r=max_mismatch,
             method=method,
             keep_parent_id=keep_parent_id,
@@ -176,13 +178,14 @@ def _dedup_stream(
         if mark_dups:
             df_marked.loc[mask_duplicated, "pair_type"] = "DD"
 
+        yield df_marked
+
         # Filter out duplicates and store specific columns:
         df_nodups = df_marked.loc[~mask_duplicated, colnames]
 
         # Re-define carryover pairs:
         df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
         prev_i = len(df_prev_nodups)
-        yield df_marked
 
 
 def _make_adj_mat(arr, size, r, p, n_proc=None, backend=None):
@@ -291,7 +294,7 @@ def _dedup_chunk(
 
     # If there are some mapped reads, dedup them:
     if N_mapped > 0:
-        need_to_match = np.array(
+        col_pairs = np.array(
             [
                 (c1, c1),
                 (c2, c2),
@@ -301,29 +304,32 @@ def _dedup_chunk(
             + extra_col_pairs
         )
         # Let's annotate each row with what combination of "need_to_match" columns it has
-        dfleft = df_mapped[need_to_match[:, 0]]
-        optionsleft = (
-            dfleft.drop_duplicates()
+        df_left = df_mapped[col_pairs[:, 0]]
+        options_left = (
+            df_left.drop_duplicates()
             .reset_index(drop=True)
             .reset_index()
             .rename(columns={"index": "group"})
         )
 
         df_mapped = df_mapped.merge(
-            optionsleft, how="left", on=list(need_to_match[:, 0])
+            options_left, how="left", on=list(col_pairs[:, 0])
         )
+
         components = []
         maxclusterid = 0
-        if (need_to_match[:, 0] != need_to_match[:, 1]).all():
-            dfright = df_mapped[need_to_match[:, 1]]
-            optionsright = (
-                dfright.drop_duplicates()
+        if (col_pairs[:, 0] != col_pairs[:, 1]).any():
+            df_right = df_mapped[col_pairs[:, 1]]
+            options_right = (
+                df_right.drop_duplicates()
                 .reset_index(drop=True)
                 .reset_index()
                 .rename(columns={"index": "group"})
             )
             df_mapped = df_mapped.merge(
-                optionsright, on=list(need_to_match[:, 1]), suffixes=["_left", "_right"]
+                options_right, 
+                on=list(col_pairs[:, 1]), 
+                suffixes=["_left", "_right"]
             )
 
             for name, group in df_mapped.groupby("group_left"):
@@ -382,7 +388,8 @@ def _dedup_chunk(
         )
         df_unmapped.loc[:, "parent_readID"] = ""
 
-    # Reconstruct original dataframe with removed duplicated reads:
+    # Reconstruct original dataframe with removed duplicated reads 
+    # (here, we rely on the sorting order that puts unmapped reads first):
     df = pd.concat([df_unmapped, df_mapped]).reset_index(drop=True)
     df = df.set_index(index_colname)  # Set up the original index
     df = df.drop(
