@@ -170,6 +170,7 @@ def _dedup_stream(
             s2=s2,
             unmapped_chrom=unmapped_chrom,
         )
+        
         df_marked = df_marked.iloc[prev_i:, :].reset_index(drop=True)
         mask_duplicated = df_marked["duplicate"]
         if mark_dups:
@@ -182,6 +183,35 @@ def _dedup_stream(
         df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
         prev_i = len(df_prev_nodups)
         yield df_marked
+
+
+def _make_adj_mat(arr, size, r, p, n_proc=None, backend=None):
+    if backend == "sklearn":
+        from sklearn import neighbors
+
+        a_mat = neighbors.radius_neighbors_graph(
+            arr,
+            radius=r,
+            p=p,
+            n_jobs=n_proc,
+        )
+        return a_mat
+
+    elif backend == "scipy":
+        import scipy.spatial
+        from scipy.sparse import coo_matrix
+
+        z = scipy.spatial.KDTree(
+            arr,
+        )
+        a = z.query_pairs(r=r, p=p, output_type="ndarray")
+        a0 = a[:, 0]
+        a1 = a[:, 1]
+        a_mat = coo_matrix((np.ones_like(a0), (a0, a1)), shape=(size, size))
+        return a_mat
+
+    else:
+        raise ValueError('Unknown backend, only "scipy" or "sklearn" allowed')
 
 
 def _dedup_chunk(
@@ -243,33 +273,6 @@ def _dedup_chunk(
     else:
         p = np.inf
 
-    if backend == "sklearn":
-        from sklearn import neighbors
-
-        def _make_adj_mat(arr, size=None, r=r, p=p, n_proc=1):
-            a_mat = neighbors.radius_neighbors_graph(
-                arr,
-                radius=r,
-                p=p,
-                n_jobs=n_proc,
-            )
-            return a_mat
-
-    elif backend == "scipy":
-
-        def _make_adj_mat(arr, size, r=r, p=p, n_proc=None):
-            z = scipy.spatial.KDTree(
-                arr,
-            )
-            a = z.query_pairs(r=r, p=p, output_type="ndarray")
-            a0 = a[:, 0]
-            a1 = a[:, 1]
-            a_mat = coo_matrix((np.ones_like(a0), (a0, a1)), shape=(size, size))
-            return a_mat
-
-    else:
-        raise ValueError('Unknown backend, only "scipy" or "sklearn" allowed')
-
     # Store the index of the dataframe:
     index_colname = df.index.name
     if index_colname is None:
@@ -330,6 +333,8 @@ def _dedup_chunk(
                     size=group.shape[0],
                     r=r,
                     p=p,
+                    n_proc=n_proc,
+                    backend=backend,
                 )
                 components.append(
                     pd.Series(
@@ -347,6 +352,8 @@ def _dedup_chunk(
                     size=group.shape[0],
                     r=r,
                     p=p,
+                    n_proc=n_proc,
+                    backend=backend,
                 )
                 comp = connected_components(a_mat, directed=False)[1] + maxclusterid + 1
                 components.append(
@@ -382,6 +389,7 @@ def _dedup_chunk(
         ["clusterid"], axis=1
     )  # Remove the information that we don't need anymore:
     return df
+
 
 
 ### Cython deduplication ####
