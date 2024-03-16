@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.spatial
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
+from csv import QUOTE_NONE
 
 from . import dedup_cython, pairsam_format
 
@@ -47,7 +48,6 @@ def streaming_dedup(
     s1="strand1",
     s2="strand2",
 ):
-
     deduped_chunks = _dedup_stream(
         in_stream=in_stream,
         colnames=colnames,
@@ -92,7 +92,7 @@ def streaming_dedup(
         # Stream the dups:
         if outstream_dups:
             df_chunk.loc[mask_mapped & mask_duplicates, :].to_csv(
-                outstream_dups, index=False, header=False, sep="\t"
+                outstream_dups, index=False, header=False, sep="\t", quoting=QUOTE_NONE
             )
 
         # Drop readID if it was created (not needed for nodup and unmapped pairs):
@@ -102,12 +102,16 @@ def streaming_dedup(
         # Stream unmapped:
         if outstream_unmapped:
             df_chunk.loc[~mask_mapped, :].to_csv(
-                outstream_unmapped, index=False, header=False, sep="\t"
+                outstream_unmapped,
+                index=False,
+                header=False,
+                sep="\t",
+                quoting=QUOTE_NONE,
             )
 
         # Stream unique pairs:
         df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
-            outstream, index=False, header=False, sep="\t"
+            outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
         )
 
     t1 = time.time()
@@ -273,8 +277,8 @@ def _dedup_chunk(
     df = df.reset_index()  # Remove the index temporarily
 
     # Set up columns to store the dedup info:
-    df.loc[:, "clusterid"] = np.nan
-    df.loc[:, "duplicate"] = False
+    df["clusterid"] = np.nan
+    df["duplicate"] = False
 
     # Split mapped and unmapped reads:
     mask_unmapped = (df[c1] == unmapped_chrom) | (df[c2] == unmapped_chrom)
@@ -486,7 +490,6 @@ def streaming_dedup_cython(
                 )
 
             if (cols[c1ind] == unmapped_chrom) or (cols[c2ind] == unmapped_chrom):
-
                 if outstream_unmapped:
                     outstream_unmapped.write(stripline)
                     # don't forget terminal newline
@@ -655,7 +658,6 @@ def mark_split_pair_as_dup(cols):
 
     if (len(cols) > pairsam_format.COL_SAM1) and (len(cols) > pairsam_format.COL_SAM2):
         for i in (pairsam_format.COL_SAM1, pairsam_format.COL_SAM2):
-
             # split each sam column into sam entries, tag and assemble back
             cols[i] = pairsam_format.INTER_SAM_SEP.join(
                 [

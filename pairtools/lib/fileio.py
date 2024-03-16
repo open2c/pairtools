@@ -3,7 +3,6 @@ import pipes
 import subprocess
 import sys
 
-
 class ParseError(Exception):
     pass
 
@@ -235,3 +234,32 @@ class PipedIO:
         self._stream.close()
         retcode = self._proc.wait(timeout=timeout)
         return retcode
+
+
+def get_stream_handlers(instream):
+    """
+    Get the readline and peek functions for the provided input stream.
+
+    Parameters:
+        instream (file-like object): The input stream to get the handlers for.
+
+    Returns:
+        tuple: A tuple containing the following elements:
+            - readline_f (function): The readline function for the input stream.
+            - peek_f (function): The peek function for the input stream.
+
+    Raises:
+        ValueError: If the peek function cannot be found for the provided stream.
+    """
+    readline_f, peek_f = None, None
+    if hasattr(instream, "buffer"):
+        peek_f = instream.buffer.peek
+        readline_f = instream.buffer.readline
+    elif hasattr(instream, "peek"):
+        peek_f = instream.peek
+        readline_f = instream.readline
+    else:
+        raise ValueError("Cannot find the peek() function of the provided stream!")
+    return readline_f, peek_f
+
+
