@@ -152,6 +152,7 @@ def _dedup_stream(
 
     # Iterate over chunks:
     for df in dfs:
+        df['carryover'] = False
         input_chunk = (pd
             .concat([df_prev_nodups, df], axis=0, ignore_index=True)
             .reset_index(drop=True)
@@ -173,7 +174,12 @@ def _dedup_stream(
             unmapped_chrom=unmapped_chrom,
         )
         
-        df_marked = df_marked.iloc[prev_i:, :].reset_index(drop=True)
+        df_marked = (
+            df_marked[~df_marked['carryover']]
+            .drop(columns=["carryover"])
+            .reset_index(drop=True)
+        )
+
         mask_duplicated = df_marked["duplicate"]
         if mark_dups:
             df_marked.loc[mask_duplicated, "pair_type"] = "DD"
@@ -185,6 +191,7 @@ def _dedup_stream(
 
         # Re-define carryover pairs:
         df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
+        df_prev_nodups['carryover'] = True
         prev_i = len(df_prev_nodups)
 
 
