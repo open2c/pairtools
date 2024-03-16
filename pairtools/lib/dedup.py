@@ -318,7 +318,27 @@ def _dedup_chunk(
 
         components = []
         maxclusterid = 0
-        if (col_pairs[:, 0] != col_pairs[:, 1]).any():
+        if (col_pairs[:, 0] == col_pairs[:, 1]).all():
+            for name, group in df_mapped.groupby("group"):
+                a_mat = _make_adj_mat(
+                    group[[p1, p2]],
+                    size=group.shape[0],
+                    r=r,
+                    p=p,
+                    n_proc=n_proc,
+                    backend=backend,
+                )
+                comp = connected_components(a_mat, directed=False)[1] + maxclusterid + 1
+                components.append(
+                    pd.Series(
+                        name="clusterid",
+                        index=group.index,
+                        data=comp,
+                    )
+                )
+                maxclusterid = components[-1].max()
+            
+        else:
             df_right = df_mapped[col_pairs[:, 1]]
             options_right = (
                 df_right.drop_duplicates()
@@ -351,25 +371,7 @@ def _dedup_chunk(
                     )
                 )
                 maxclusterid = components[-1].max()
-        else:
-            for name, group in df_mapped.groupby("group"):
-                a_mat = _make_adj_mat(
-                    group[[p1, p2]],
-                    size=group.shape[0],
-                    r=r,
-                    p=p,
-                    n_proc=n_proc,
-                    backend=backend,
-                )
-                comp = connected_components(a_mat, directed=False)[1] + maxclusterid + 1
-                components.append(
-                    pd.Series(
-                        name="clusterid",
-                        index=group.index,
-                        data=comp,
-                    )
-                )
-                maxclusterid = components[-1].max()
+            
         # python list and np.concatenate is a tiny bit faster than np.append in every step
         # Set up inferred clusterIDs:
         df_mapped = df_mapped.assign(clusterid=pd.concat(components))
