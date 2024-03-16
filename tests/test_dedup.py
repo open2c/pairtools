@@ -40,7 +40,6 @@ dups_path_diff_colnames = os.path.join(tmpdir_name, "dups.diff_colnames.pairsam"
 max_mismatch = 1
 
 mock_empty_pairsam_path_dedup = os.path.join(testdir, "data", "mock_empty.4dedup.pairsam")
-empty_dedup_path = os.path.join(tmpdir_name, "empty_dedup.pairsam")
 
 
 @pytest.fixture
@@ -232,7 +231,7 @@ def test_mock_pairsam(setup_dedup):
         )
         empty_dedup_pairs = [
             l.strip().split("\t")
-            for l in open(empty_dedup_path, "r")
+            for l in open(mock_empty_pairsam_path_dedup, "r")
             if not l.startswith("#") and l.strip()
         ]
         assert len(empty_dedup_pairs) == 0
