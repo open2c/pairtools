@@ -179,6 +179,18 @@ $ cd pairtools
 $ pip install -e .
 ```
 
+## Testing
+
+Before running the tests, ensure you have pytest installed. If not, you can install it using pip:
+```sh
+$ pip install pytest
+```
+
+To run the tests, use the following command:
+```sh
+pytest
+```
+
 ## Citing `pairtools`
 
 Open2C*, Nezar Abdennur, Geoffrey Fudenberg, Ilya M. Flyamer, Aleksandra A. Galitsyna*, Anton Goloborodko*, Maxim Imakaev, Sergey V. Venev. "Pairtools: from sequencing data to chromosome contacts" bioRxiv, February 13, 2023. ; doi: https://doi.org/10.1101/2023.02.13.528389
