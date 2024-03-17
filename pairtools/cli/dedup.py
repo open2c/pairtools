@@ -9,13 +9,12 @@ from .._logging import get_logger
 
 logger = get_logger()
 
-from ..lib import fileio, pairsam_format, headerops
-from . import cli, common_io_options
-
 import click
 
+from ..lib import fileio, headerops, pairsam_format
 from ..lib.dedup import streaming_dedup, streaming_dedup_cython
 from ..lib.stats import PairCounter
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_dedup"
 
@@ -179,45 +178,45 @@ UTIL_NAME = "pairtools_dedup"
 )
 @click.option(
     "--c1",
-    type=int,
-    default=pairsam_format.COL_C1,
-    help=f"Chrom 1 column; default {pairsam_format.COL_C1}"
-    " Only works with '--backend cython'. [input format option]",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[1],
+    help=f"Chrom 1 column; default {pairsam_format.COLUMNS_PAIRS[1]}"
+    "[input format option]",
 )
 @click.option(
     "--c2",
-    type=int,
-    default=pairsam_format.COL_C2,
-    help=f"Chrom 2 column; default {pairsam_format.COL_C2}"
-    " Only works with '--backend cython'. [input format option]",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[3],
+    help=f"Chrom 2 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
+    "[input format option]",
 )
 @click.option(
     "--p1",
-    type=int,
-    default=pairsam_format.COL_P1,
-    help=f"Position 1 column; default {pairsam_format.COL_P1}"
-    " Only works with '--backend cython'. [input format option]",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[2],
+    help=f"Position 1 column; default {pairsam_format.COLUMNS_PAIRS[2]}"
+    "[input format option]",
 )
 @click.option(
     "--p2",
-    type=int,
-    default=pairsam_format.COL_P2,
-    help=f"Position 2 column; default {pairsam_format.COL_P2}"
-    " Only works with '--backend cython'. [input format option]",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[4],
+    help=f"Position 2 column; default {pairsam_format.COLUMNS_PAIRS[4]}"
+    "[input format option]",
 )
 @click.option(
     "--s1",
-    type=int,
-    default=pairsam_format.COL_S1,
-    help=f"Strand 1 column; default {pairsam_format.COL_S1}"
-    " Only works with '--backend cython'. [input format option]",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[5],
+    help=f"Strand 1 column; default {pairsam_format.COLUMNS_PAIRS[5]}"
+    "[input format option]",
 )
 @click.option(
     "--s2",
-    type=int,
-    default=pairsam_format.COL_S2,
-    help=f"Strand 2 column; default {pairsam_format.COL_S2}"
-    " Only works with '--backend cython'. [input format option]",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[6],
+    help=f"Strand 2 column; default {pairsam_format.COLUMNS_PAIRS[6]}"
+    "[input format option]",
 )
 @click.option(
     "--unmapped-chrom",
@@ -505,8 +504,8 @@ def dedup_py(
     extra_cols2 = []
     if extra_col_pair is not None:
         for col1, col2 in extra_col_pair:
-            extra_cols1.append(column_names[col1] if col1.isdigit() else col1)
-            extra_cols2.append(column_names[col2] if col2.isdigit() else col2)
+            extra_cols1.append(column_names[col1] if col1.isnumeric() else col1)
+            extra_cols2.append(column_names[col2] if col2.isnumeric() else col2)
 
     if backend == "cython":
         # warnings.warn(
@@ -516,6 +515,12 @@ def dedup_py(
         # )
         extra_cols1 = [column_names.index(col) for col in extra_cols1]
         extra_cols2 = [column_names.index(col) for col in extra_cols2]
+        c1 = column_names.index(c1)
+        c2 = column_names.index(c2)
+        p1 = column_names.index(p1)
+        p2 = column_names.index(p2)
+        s1 = column_names.index(s1)
+        s2 = column_names.index(s2)
         streaming_dedup_cython(
             method,
             max_mismatch,
@@ -555,6 +560,12 @@ def dedup_py(
             out_stat=out_stat,
             backend=backend,
             n_proc=n_proc,
+            c1=c1,
+            c2=c2,
+            p1=p1,
+            p2=p2,
+            s1=s1,
+            s2=s2,
         )
     else:
         raise ValueError("Unknown backend")

@@ -11,10 +11,17 @@ tmpdir = tempfile.TemporaryDirectory()
 tmpdir_name = tmpdir.name
 
 mock_pairsam_path_dedup = os.path.join(testdir, "data", "mock.4dedup.pairsam")
+mock_pairsam_path_dedup_diff_colnames = os.path.join(
+    testdir, "data", "mock.4dedup_diffcolnames.pairsam"
+)
 
 dedup_path = os.path.join(tmpdir_name, "dedup.pairsam")
 unmapped_path = os.path.join(tmpdir_name, "unmapped.pairsam")
 dups_path = os.path.join(tmpdir_name, "dups.pairsam")
+
+dedup_path_cython = os.path.join(tmpdir_name, "dedup.cython.pairsam")
+unmapped_path_cython = os.path.join(tmpdir_name, "unmapped.cython.pairsam")
+dups_path_cython = os.path.join(tmpdir_name, "dups.cython.pairsam")
 
 dedup_max_path = os.path.join(tmpdir_name, "dedup_max.pairsam")
 unmapped_max_path = os.path.join(tmpdir_name, "unmapped_max.pairsam")
@@ -24,10 +31,15 @@ dedup_markdups_path = os.path.join(tmpdir_name, "dedup.markdups.pairsam")
 unmapped_markdups_path = os.path.join(tmpdir_name, "unmapped.markdups.pairsam")
 dups_markdups_path = os.path.join(tmpdir_name, "dups.markdups.pairsam")
 
+dedup_path_diff_colnames = os.path.join(tmpdir_name, "dedup.diff_colnames.pairsam")
+unmapped_path_diff_colnames = os.path.join(
+    tmpdir_name, "unmapped.diff_colnames.pairsam"
+)
+dups_path_diff_colnames = os.path.join(tmpdir_name, "dups.diff_colnames.pairsam")
+
 max_mismatch = 1
 
 mock_empty_pairsam_path_dedup = os.path.join(testdir, "data", "mock_empty.4dedup.pairsam")
-empty_dedup_path = os.path.join(tmpdir_name, "empty_dedup.pairsam")
 
 
 @pytest.fixture
@@ -48,6 +60,25 @@ def setup_dedup():
                 unmapped_path,
                 "--max-mismatch",
                 str(max_mismatch),
+            ],
+        )
+        subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "dedup",
+                mock_pairsam_path_dedup,
+                "--output",
+                dedup_path_cython,
+                "--output-dups",
+                dups_path_cython,
+                "--output-unmapped",
+                unmapped_path_cython,
+                "--max-mismatch",
+                str(max_mismatch),
+                "--backend",
+                "cython",
             ],
         )
         subprocess.check_output(
@@ -93,9 +124,28 @@ def setup_dedup():
                 "-m",
                 "pairtools",
                 "dedup",
-                mock_empty_pairsam_path_dedup,
+                mock_pairsam_path_dedup_diff_colnames,
+                "--mark-dups",
                 "--output",
-                empty_dedup_path,
+                dedup_path_diff_colnames,
+                "--output-dups",
+                dups_path_diff_colnames,
+                "--output-unmapped",
+                unmapped_path_diff_colnames,
+                "--max-mismatch",
+                str(max_mismatch),
+                "--c1",
+                "chr1",
+                "--c2",
+                "chr2",
+                "--p1",
+                "p1",
+                "--p2",
+                "p2",
+                "--s1",
+                "str1",
+                "--s2",
+                "str2",
             ],
         )
     except subprocess.CalledProcessError as e:
@@ -115,6 +165,11 @@ def test_mock_pairsam(setup_dedup):
         (dedup_path, unmapped_path, dups_path),
         (dedup_max_path, unmapped_max_path, dups_max_path),
         (dedup_markdups_path, unmapped_markdups_path, dups_markdups_path),
+        (
+            dedup_path_diff_colnames,
+            unmapped_path_diff_colnames,
+            dups_path_diff_colnames,
+        ),
     ]:
 
         dedup_pairs = [
@@ -176,7 +231,7 @@ def test_mock_pairsam(setup_dedup):
         )
         empty_dedup_pairs = [
             l.strip().split("\t")
-            for l in open(empty_dedup_path, "r")
+            for l in open(mock_empty_pairsam_path_dedup, "r")
             if not l.startswith("#") and l.strip()
         ]
         assert len(empty_dedup_pairs) == 0
