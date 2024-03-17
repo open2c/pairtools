@@ -140,10 +140,11 @@ UTIL_NAME = "pairtools_dedup"
 
 ### Output options:
 @click.option(
-    "--mark-dups",
+    "--mark-dups/--no-mark-dups",
+    default=True,
     is_flag=True,
-    help='If specified, duplicate pairs are marked as DD in "pair_type" and '
-    "as a duplicate in the sam entries. [output format option]",
+    help='Specify if duplicate pairs should be marked as DD in "pair_type" and '
+    "as a duplicate in the sam entries. True by default. [output format option]",
 )
 @click.option(
     "--keep-parent-id",
