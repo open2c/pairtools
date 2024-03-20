@@ -152,11 +152,10 @@ def _dedup_stream(
 
     # Iterate over chunks:
     for df in dfs:
-        df['carryover'] = False
-        input_chunk = (pd
-            .concat([df_prev_nodups, df], axis=0, ignore_index=True)
-            .reset_index(drop=True)
-        )
+        df["carryover"] = False
+        input_chunk = pd.concat(
+            [df_prev_nodups, df], axis=0, ignore_index=True
+        ).reset_index(drop=True)
         df_marked = _dedup_chunk(
             input_chunk,
             r=max_mismatch,
@@ -173,9 +172,9 @@ def _dedup_stream(
             s2=s2,
             unmapped_chrom=unmapped_chrom,
         )
-        
+
         df_marked = (
-            df_marked[~df_marked['carryover']]
+            df_marked[~df_marked["carryover"]]
             .drop(columns=["carryover"])
             .reset_index(drop=True)
         )
@@ -191,7 +190,7 @@ def _dedup_stream(
 
         # Re-define carryover pairs:
         df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
-        df_prev_nodups['carryover'] = True
+        df_prev_nodups["carryover"] = True
         prev_i = len(df_prev_nodups)
 
 
@@ -233,14 +232,14 @@ def _make_adj_mat(arr, size, r, method, n_proc=None, backend=None):
 
 
 def _cluster_pairs(
-        df_mapped, 
-        cols,
-        p1,
-        p2,
-        r,
-        method,
-        n_proc,
-        backend,
+    df_mapped,
+    cols,
+    p1,
+    p2,
+    r,
+    method,
+    n_proc,
+    backend,
 ):
     groups = (
         df_mapped[cols]
@@ -250,9 +249,7 @@ def _cluster_pairs(
         .rename(columns={"index": "group"})
     )
 
-    df_mapped = df_mapped.merge(
-        groups, how="left", on=list(cols)
-    )
+    df_mapped = df_mapped.merge(groups, how="left", on=list(cols))
 
     components = []
     maxcluster_id = 0
@@ -275,78 +272,71 @@ def _cluster_pairs(
             )
         )
         maxcluster_id = components[-1].max()
-    
-    df_mapped['cluster_id'] = pd.concat(components)        
+
+    df_mapped["cluster_id"] = pd.concat(components)
     df_mapped.drop(columns=["group"], inplace=True)
 
     return df_mapped
-        
+
 
 def _cluster_pairs_nonmatching_col_pairs(
-        df_mapped, 
-        col_pairs,
-        p1,
-        p2,
-        r,
-        method,
-        n_proc,
-        backend,
+    df_mapped,
+    col_pairs,
+    p1,
+    p2,
+    r,
+    method,
+    n_proc,
+    backend,
 ):
-        groups_left = (
-            df_mapped[col_pairs[:, 0]]
-            .drop_duplicates()
-            .reset_index(drop=True)
-            .reset_index()
-            .rename(columns={"index": "group"})
+    groups_left = (
+        df_mapped[col_pairs[:, 0]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+        .reset_index()
+        .rename(columns={"index": "group"})
+    )
+
+    df_mapped = df_mapped.merge(groups_left, how="left", on=list(col_pairs[:, 0]))
+
+    groups_right = (
+        df_mapped[col_pairs[:, 1]]
+        .drop_duplicates()
+        .reset_index(drop=True)
+        .reset_index()
+        .rename(columns={"index": "group"})
+    )
+
+    df_mapped = df_mapped.merge(
+        groups_right, on=list(col_pairs[:, 1]), suffixes=["_left", "_right"]
+    )
+
+    components = []
+    maxcluster_id = 0
+
+    for name, group in df_mapped.groupby("group_left"):
+        group = group[group["group_right"] == name]
+        a_mat = _make_adj_mat(
+            group[[p1, p2]],
+            size=group.shape[0],
+            r=r,
+            method=method,
+            n_proc=n_proc,
+            backend=backend,
         )
-
-        df_mapped = df_mapped.merge(
-            groups_left, how="left", on=list(col_pairs[:, 0])
-        )
-
-        groups_right = (
-            df_mapped[col_pairs[:, 1]]
-            .drop_duplicates()
-            .reset_index(drop=True)
-            .reset_index()
-            .rename(columns={"index": "group"})
-        )
-
-        df_mapped = df_mapped.merge(
-            groups_right, 
-            on=list(col_pairs[:, 1]), 
-            suffixes=["_left", "_right"]
-        )
-
-        components = []
-        maxcluster_id = 0
-
-        for name, group in df_mapped.groupby("group_left"):
-            group = group[group["group_right"] == name]
-            a_mat = _make_adj_mat(
-                group[[p1, p2]],
-                size=group.shape[0],
-                r=r,
-                method=method,
-                n_proc=n_proc,
-                backend=backend,
+        components.append(
+            pd.Series(
+                name="cluster_id",
+                index=group.index,
+                data=connected_components(a_mat, directed=False)[1] + maxcluster_id,
             )
-            components.append(
-                pd.Series(
-                    name="cluster_id",
-                    index=group.index,
-                    data=connected_components(a_mat, directed=False)[1]
-                    + maxcluster_id,
-                )
-            )
-            maxcluster_id = components[-1].max()
+        )
+        maxcluster_id = components[-1].max()
 
+    df_mapped["cluster_id"] = pd.concat(components)
+    df_mapped.drop(columns=["group_left", "group_right"], inplace=True)
 
-        df_mapped['cluster_id'] = pd.concat(components)
-        df_mapped.drop(columns=["group_left", "group_right"], inplace=True)
-
-        return df_mapped
-        
+    return df_mapped
 
 
 def _dedup_chunk(
@@ -428,10 +418,10 @@ def _dedup_chunk(
             ]
             + extra_col_pairs
         )
-        
+
         if (col_pairs[:, 0] == col_pairs[:, 1]).all():
             df_mapped = _cluster_pairs(
-                df_mapped, 
+                df_mapped,
                 col_pairs[:, 0],
                 p1,
                 p2,
@@ -440,10 +430,10 @@ def _dedup_chunk(
                 n_proc,
                 backend,
             )
-            
+
         else:
             df_mapped = _cluster_pairs_nonmatching_col_pairs(
-                df_mapped, 
+                df_mapped,
                 col_pairs,
                 p1,
                 p2,
@@ -452,7 +442,7 @@ def _dedup_chunk(
                 n_proc,
                 backend,
             )
-        
+
     mask_dups = df_mapped["cluster_id"].duplicated()
     df_mapped.loc[mask_dups, "duplicate"] = True
 
@@ -461,9 +451,9 @@ def _dedup_chunk(
         df_mapped.loc[:, "parent_readID"] = df_mapped["cluster_id"].map(
             df_mapped[~mask_dups].set_index("cluster_id")["readID"]
         )
-        df_unmapped.loc[:, "parent_readID"] = ""
+        df_unmapped["parent_readID"] = ""
 
-    # Reconstruct original dataframe with removed duplicated reads 
+    # Reconstruct original dataframe with removed duplicated reads
     # (here, we rely on the sorting order that puts unmapped reads first):
     df = pd.concat([df_unmapped, df_mapped]).reset_index(drop=True)
     df = df.set_index(index_colname)  # Set up the original index
@@ -471,7 +461,6 @@ def _dedup_chunk(
         ["cluster_id"], axis=1
     )  # Remove the information that we don't need anymore:
     return df
-
 
 
 ### Cython deduplication ####
