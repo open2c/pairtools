@@ -89,15 +89,32 @@ def streaming_dedup(
         # Clean up dataframe:
         df_chunk = df_chunk.drop(columns=["duplicate"])
 
-        # Stream the dups:
-        if outstream_dups:
-            df_chunk.loc[mask_mapped & mask_duplicates, :].to_csv(
-                outstream_dups, index=False, header=False, sep="\t", quoting=QUOTE_NONE
-            )
+        # Stream the pairs:
+        # If outstream_dups is the same as outstream, we save all mapped pairs to the same file
 
-        # Drop readID if it was created (not needed for nodup and unmapped pairs):
-        if keep_parent_id:
-            df_chunk = df_chunk.drop(columns=["parent_readID"])
+        if outstream_dups == outstream:
+            df_chunk.loc[mask_mapped, :].to_csv(
+                outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
+            )
+        else:
+            # Save the dups:
+            if outstream_dups:
+                df_chunk.loc[mask_duplicates, :].to_csv(
+                    outstream_dups,
+                    index=False,
+                    header=False,
+                    sep="\t",
+                    quoting=QUOTE_NONE,
+                )
+            # Drop readID if it was created (not needed for nodup and unmapped pairs):
+            if keep_parent_id:
+                df_chunk = df_chunk.drop(columns=["parent_readID"])
+
+            # Save unique:
+            if outstream:
+                df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
+                    outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
+                )
 
         # Stream unmapped:
         if outstream_unmapped:
@@ -108,11 +125,6 @@ def streaming_dedup(
                 sep="\t",
                 quoting=QUOTE_NONE,
             )
-
-        # Stream unique pairs:
-        df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
-            outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
-        )
 
     t1 = time.time()
     t = t1 - t0
@@ -144,7 +156,14 @@ def _dedup_stream(
     unmapped_chrom,
 ):
     # Stream the input dataframe:
-    dfs = pd.read_table(in_stream, comment=None, names=colnames, chunksize=chunksize)
+    dfs = pd.read_table(
+        in_stream,
+        comment=None,
+        names=colnames,
+        chunksize=chunksize,
+        dtype=pairsam_format.DTYPES_PAIRSAM,
+        sep="\t",
+    )
 
     # Set up the carryover dataframe:
     df_prev_nodups = pd.DataFrame([])

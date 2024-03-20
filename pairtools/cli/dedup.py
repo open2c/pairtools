@@ -104,7 +104,7 @@ UTIL_NAME = "pairtools_dedup"
     " It is available for backwards compatibility and to allow specification of the"
     " column order."
     " Now the default scipy backend is generally the fastest, and with chunksize below"
-    " 1 mln has the lowest memory requirements. [dedup option]"
+    " 1 mln has the lowest memory requirements. [dedup option]",
     # " 'cython' is deprecated and provided for backwards compatibility",
 )
 
@@ -486,12 +486,14 @@ def dedup_py(
             "Pairs file appears not to be sorted, dedup might produce wrong results."
         )
     header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
+    dups_header = header.copy()
+    if keep_parent_id and len(dups_header) > 0:
+        dups_header = headerops.append_columns(dups_header, ["parent_readID"])
+    if outstream == outstream_dups:
+        header = dups_header
     if send_header_to_dedup:
         outstream.writelines((l + "\n" for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
-        dups_header = header
-        if keep_parent_id and len(dups_header) > 0:
-            dups_header = headerops.append_columns(dups_header, ["parent_readID"])
         outstream_dups.writelines((l + "\n" for l in dups_header))
     if (
         outstream_unmapped
@@ -576,9 +578,9 @@ def dedup_py(
         out_stat.save(
             out_stats_stream,
             yaml=kwargs.get("yaml", False),  # format as yaml
-            filter=first_filter_name
-            if not kwargs.get("yaml", False)
-            else None,  # output only the first filter if non-YAML output
+            filter=(
+                first_filter_name if not kwargs.get("yaml", False) else None
+            ),  # output only the first filter if non-YAML output
         )
 
     if bytile_dups:
