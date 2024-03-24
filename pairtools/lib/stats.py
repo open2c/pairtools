@@ -12,6 +12,31 @@ from .._logging import get_logger
 logger = get_logger()
 
 
+def flatten_dict(d, parent_key='', sep='/'):
+    """Flatten a nested dictionary to a flat dictionary.
+    Parameters
+    ----------
+    d: dict
+        A nested dictionary to flatten.
+    parent_key: str
+        The parent key to be added to the key.
+    sep: str
+        The separator to use between the parent key and the key.
+    Returns
+    -------
+    dict
+        A flat dictionary.
+    """
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
 class PairCounter(Mapping):
     """
     A Counter for Hi-C pairs that accumulates various statistics.
@@ -25,6 +50,7 @@ class PairCounter(Mapping):
 
     _SEP = "\t"
     _KEY_SEP = "/"
+    DIST_FREQ_REL_DIFF_THRESHOLD = 0.05
 
     def __init__(
         self,
@@ -198,18 +224,110 @@ class PairCounter(Mapping):
     def __len__(self):
         return len(self._stat)
 
+
+    def find_dist_freq_divergence_distance(self, rel_threshold):
+        """Finds the largest distance at which the frequency of pairs of reads 
+        with different strands deviates from their average by the specified 
+        relative threshold."""
+        
+        out = {}
+        all_strands = ["++", "--", "-+", "+-"]
+
+        for filter in self.filters:
+            out[filter] = {}
+            
+            dist_freqs_by_strands = {
+                strands: np.array(list(self._stat[filter]["dist_freq"][strands].values()))
+                for strands in all_strands}
+            
+            # Calculate the average frequency of pairs with different strands
+            avg_freq_all_strands = np.mean(np.vstack(list(dist_freqs_by_strands.values())), axis=0)
+
+            # Calculate the largest distance at which the frequency of pairs of at least one strand combination deviates from the average by the given threshold
+            rel_deviations = {strands: np.nan_to_num(
+                np.abs(dist_freqs_by_strands[strands] - avg_freq_all_strands) 
+                / avg_freq_all_strands)
+                  for strands in all_strands}
+            
+            idx_maxs = {strand:0 for strand in all_strands}
+            for strands in all_strands:
+                bin_exceeds = rel_deviations[strands] > rel_threshold
+                if np.any(bin_exceeds):
+                    idx_maxs[strands] = np.max(np.nonzero(bin_exceeds))
+
+            # Find the largest distance and the strand combination where frequency of pairs deviates from the average by the given threshold:
+            divergence_bin_idx = 0
+            divergence_strands = '??'
+            divergence_bin = '0-0'
+
+            for strands in all_strands:
+                if (idx_maxs[strands] > divergence_bin_idx):
+                    divergence_bin_idx = idx_maxs[strands]
+                    divergence_strands = strands
+
+                    if idx_maxs[strands] < len(self._dist_bins):
+                        divergence_bin = f'{self._dist_bins[divergence_bin_idx]}-{self._dist_bins[divergence_bin_idx+1]}'
+                    else:
+                        divergence_bin = f'{self._dist_bins[divergence_bin_idx]}+'
+                    
+            
+            out[filter]["dist_bin"] = divergence_bin
+            out[filter]["strands"] = divergence_strands
+            out[filter]['rel_diff_threshold'] = rel_threshold
+
+            out[filter]['n_cis_pairs_below_divergence_dist'] = {
+                strands:dist_freqs_by_strands[strands][:divergence_bin_idx+1].sum() for strands in all_strands
+                for strands in all_strands
+            }
+
+            out[filter]['n_cis_pairs_below_divergence_dist_all_strands'] = sum(
+                list(out[filter]['n_cis_pairs_below_divergence_dist'].values())) 
+
+            out[filter]['n_cis_pairs_above_divergence_dist'] = {
+                strands:dist_freqs_by_strands[strands][divergence_bin_idx+1:].sum() for strands in all_strands
+                for strands in all_strands
+            }
+            
+            out[filter]['n_cis_pairs_above_divergence_dist_all_strands'] = sum(
+                list(out[filter]['n_cis_pairs_above_divergence_dist'].values())) 
+
+            norms = dict(
+                cis=self._stat[filter]['cis'],
+                total_mapped = self._stat[filter]['total_mapped']
+            )
+            if 'total_nodups' in self._stat[filter]:
+                norms['total_nodups'] = self._stat[filter]['total_nodups']
+
+            for key, norm_factor in norms.items():
+                out[filter][f'frac_{key}_in_cis_below_divergence_dist'] = {
+                    strands: n_cis_pairs / norm_factor 
+                    for strands, n_cis_pairs in out[filter]['n_cis_pairs_below_divergence_dist'].items()
+                }
+
+                out[filter][f'frac_{key}_in_cis_below_divergence_dist_all_strands'] = sum(
+                    list(out[filter][f'frac_{key}_in_cis_below_divergence_dist'].values()))
+
+
+                out[filter][f'frac_{key}_in_cis_above_divergence_dist'] = {
+                    strands: n_cis_pairs / norm_factor 
+                    for strands, n_cis_pairs in out[filter]['n_cis_pairs_above_divergence_dist'].items()
+                }
+
+                out[filter][f'frac_{key}_in_cis_above_divergence_dist_all_strands'] = sum(
+                    list(out[filter][f'frac_{key}_in_cis_above_divergence_dist'].values()))
+
+        return out
+
+
     def calculate_summaries(self):
         """calculate summary statistics (fraction of cis pairs at different cutoffs,
         complexity estimate) based on accumulated counts. Results are saved into
         self._stat["filter_name"]['summary"]
         """
-        for key in self.filters.keys():
-            self._stat[key]["summary"]["frac_dups"] = (
-                (self._stat[key]["total_dups"] / self._stat[key]["total_mapped"])
-                if self._stat[key]["total_mapped"] > 0
-                else 0
-            )
+        divergence_stats = self.find_dist_freq_divergence_distance(
+            self.DIST_FREQ_REL_DIFF_THRESHOLD)
 
+        for filter_name in self.filters.keys():
             for cis_count in (
                 "cis",
                 "cis_1kb+",
@@ -219,34 +337,43 @@ class PairCounter(Mapping):
                 "cis_20kb+",
                 "cis_40kb+",
             ):
-                self._stat[key]["summary"][f"frac_{cis_count}"] = (
-                    (self._stat[key][cis_count] / self._stat[key]["total_nodups"])
-                    if self._stat[key]["total_nodups"] > 0
+                self._stat[filter_name]["summary"][f"frac_{cis_count}"] = (
+                    (self._stat[filter_name][cis_count] / self._stat[filter_name]["total_nodups"])
+                    if self._stat[filter_name]["total_nodups"] > 0
                     else 0
                 )
 
-            self._stat[key]["summary"][
+            self._stat[filter_name]["summary"]["dist_freq_divergence"] = divergence_stats[filter_name]
+
+            self._stat[filter_name]["summary"]["frac_dups"] = (
+                (self._stat[filter_name]["total_dups"] / self._stat[filter_name]["total_mapped"])
+                if self._stat[filter_name]["total_mapped"] > 0
+                else 0
+            )
+
+            self._stat[filter_name]["summary"][
                 "complexity_naive"
             ] = estimate_library_complexity(
-                self._stat[key]["total_mapped"], self._stat[key]["total_dups"], 0
+                self._stat[filter_name]["total_mapped"], self._stat[filter_name]["total_dups"], 0
             )
-            if key == "no_filter" and self._save_bytile_dups:
+
+            if filter_name == "no_filter" and self._save_bytile_dups:
                 # Estimate library complexity with information by tile, if provided:
                 if self._bytile_dups.shape[0] > 0:
-                    self._stat[key]["dups_by_tile_median"] = int(
+                    self._stat[filter_name]["dups_by_tile_median"] = int(
                         round(
                             self._bytile_dups["dup_count"].median()
                             * self._bytile_dups.shape[0]
                         )
                     )
-                if "dups_by_tile_median" in self._stat[key].keys():
-                    self._stat[key]["summary"][
+                if "dups_by_tile_median" in self._stat[filter_name].keys():
+                    self._stat[filter_name]["summary"][
                         "complexity_dups_by_tile_median"
                     ] = estimate_library_complexity(
-                        self._stat[key]["total_mapped"],
-                        self._stat[key]["total_dups"],
-                        self._stat[key]["total_dups"]
-                        - self._stat[key]["dups_by_tile_median"],
+                        self._stat[filter_name]["total_mapped"],
+                        self._stat[filter_name]["total_dups"],
+                        self._stat[filter_name]["total_dups"]
+                        - self._stat[filter_name]["dups_by_tile_median"],
                     )
 
             self._summaries_calculated = True
@@ -444,23 +571,17 @@ class PairCounter(Mapping):
                         np.searchsorted(self._dist_bins, dist, "right") - 1
                     ]
                     self._stat[filter]["dist_freq"][strand1 + strand2][dist_bin] += 1
-                    if dist >= 1000:
-                        self._stat[filter]["cis_1kb+"] += 1
-                    if dist >= 2000:
-                        self._stat[filter]["cis_2kb+"] += 1
-                    if dist >= 4000:
-                        self._stat[filter]["cis_4kb+"] += 1
-                    if dist >= 10000:
-                        self._stat[filter]["cis_10kb+"] += 1
-                    if dist >= 20000:
-                        self._stat[filter]["cis_20kb+"] += 1
-                    if dist >= 40000:
-                        self._stat[filter]["cis_40kb+"] += 1
+
+                    for dist_kb in [1, 2, 4, 10, 20, 40]:
+                        if dist >= dist_kb * 1000:
+                            self._stat[filter][f"cis_{dist_kb}kb+"] += 1
+                        
 
                 else:
                     self._stat[filter]["trans"] += 1
         else:
             self._stat[filter]["total_single_sided_mapped"] += 1
+
 
     def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
@@ -541,17 +662,21 @@ class PairCounter(Mapping):
 
             self._stat[key]["cis"] += df_cis.shape[0]
             self._stat[key]["trans"] += df_nodups.shape[0] - df_cis.shape[0]
+
+            # Count cis distance frequencies:
             dist = np.abs(df_cis["pos2"].values - df_cis["pos1"].values)
 
             df_cis.loc[:, "bin_idx"] = (
                 np.searchsorted(self._dist_bins, dist, "right") - 1
             )
+
             for (strand1, strand2, bin_id), strand_bin_count in (
                 df_cis[["strand1", "strand2", "bin_idx"]].value_counts().items()
             ):
                 self._stat[key]["dist_freq"][strand1 + strand2][
                     self._dist_bins[bin_id].item()
                 ] += strand_bin_count
+
             self._stat[key]["cis_1kb+"] += int(np.sum(dist >= 1000))
             self._stat[key]["cis_2kb+"] += int(np.sum(dist >= 2000))
             self._stat[key]["cis_4kb+"] += int(np.sum(dist >= 4000))
@@ -690,7 +815,7 @@ class PairCounter(Mapping):
         for k, v in self._stat[filter].items():
             if isinstance(v, int):
                 flat_stat[k] = v
-            # store nested dicts/arrays in a context dependet manner:
+            # store nested dicts/arrays in a context dependent manner:
             # nested categories are stored only if they are non-trivial
             else:
                 if (k == "dist_freq") and v:
@@ -711,15 +836,10 @@ class PairCounter(Mapping):
                                 raise ValueError("There is a mismatch between dist_freq bins in the instance")
                             # store key,value pair:
                             flat_stat[formatted_key] = freqs[dist]
-                elif (k in ["pair_types", "dedup", "chromsizes"]) and v:
+                elif (k in ["pair_types", "dedup", "chromsizes", 'summary']) and v:
                     # 'pair_types' and 'dedup' are simple dicts inside,
                     # treat them the exact same way:
-                    for k_item, freq in v.items():
-                        formatted_key = self._KEY_SEP.join(["{}", "{}"]).format(
-                            k, k_item
-                        )
-                        # store key,value pair:
-                        flat_stat[formatted_key] = freq
+                    flat_stat.update(flatten_dict(v, k, self._KEY_SEP))
                 elif (k == "chrom_freq") and v:
                     for (chrom1, chrom2), freq in v.items():
                         formatted_key = self._KEY_SEP.join(["{}", "{}", "{}"]).format(
@@ -727,11 +847,6 @@ class PairCounter(Mapping):
                         )
                         # store key,value pair:
                         flat_stat[formatted_key] = freq
-                elif (k == "summary") and v:
-                    for key, frac in v.items():
-                        formatted_key = self._KEY_SEP.join(["{}", "{}"]).format(k, key)
-                        # store key,value pair:
-                        flat_stat[formatted_key] = frac
 
         # return flattened dict
         return flat_stat
