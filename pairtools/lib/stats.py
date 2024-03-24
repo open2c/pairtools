@@ -12,30 +12,182 @@ from .._logging import get_logger
 logger = get_logger()
 
 
-def flatten_dict(d, parent_key='', sep='/'):
+def parse_number(s):
+    if s.isdigit():
+        return int(s)
+    elif s.replace(".", "", 1).isdigit():
+        return float(s)
+    else:
+        return s   
+
+
+def flat_dict_to_nested(input_dict, sep='/'):
+    output_dict = {}
+
+    for key, value in input_dict.items():
+        if type(key) == tuple:
+            key_parts = key
+        elif type(key) == str:
+            key_parts = key.split(sep)
+        else:
+            raise ValueError(f"Key type can be either str or tuple. Found key {key} of type {type(key)}.")
+        
+        current_dict = output_dict
+        for key_part in key_parts[:-1]:
+            current_dict = current_dict.setdefault(key_part, {})
+        current_dict[key_parts[-1]] = value
+
+    return output_dict
+
+
+def nested_dict_to_flat(d, tuple_keys=False, sep='/'):
     """Flatten a nested dictionary to a flat dictionary.
+
     Parameters
     ----------
     d: dict
         A nested dictionary to flatten.
-    parent_key: str
-        The parent key to be added to the key.
+    tuple_keys: bool
+        If True, keys will be joined into tuples. Otherwise, they will be joined into strings.
     sep: str
-        The separator to use between the parent key and the key.
+        The separator to use between the parent key and the key if tuple_keys==False.
     Returns
     -------
     dict
         A flat dictionary.
     """
-    items = []
-    for k, v in d.items():
-        new_key = f"{parent_key}{sep}{k}" if parent_key else k
-        if isinstance(v, dict):
-            items.extend(flatten_dict(v, new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
-    return dict(items)
+    
+    if tuple_keys:
+        join_keys = lambda k1,k2: (k1,) + k2
+    else:
+        join_keys = lambda k1,k2: (k1+sep+k2) if k2 else k1
 
+    out = {}
+
+    for k1, v1 in d.items():
+        if isinstance(v1, dict):
+            out.update({
+                join_keys(k1,k2): v2
+                for k2, v2 in nested_dict_to_flat(v1, tuple_keys, sep).items()
+            })
+        else:
+            if tuple_keys:
+                out[(k1,)] = v1
+            else:
+                out[k1] = v1
+    
+    return out
+
+def is_nested_dict(d):
+    """Check if a dictionary is nested.
+
+    Parameters
+    ----------
+    d: dict
+        A dictionary to check.
+    Returns
+    -------
+    bool
+        True if the dictionary is nested, False otherwise.
+    """
+
+    if not isinstance(d, dict):
+        return False
+
+    for v in d.values():
+        if isinstance(v, dict):
+            return True
+
+    return False
+
+def is_tuple_keyed_dict(d):
+    """Check if a dictionary is tuple-keyed.
+
+    Parameters
+    ----------
+    d: dict
+        A dictionary to check.
+    Returns
+    -------
+    bool
+        True if the dictionary is tuple-keyed, False otherwise.
+    """
+
+    if not isinstance(d, dict):
+        return False
+
+    for k,v in d.items():
+        if not isinstance(k, tuple):
+            return False
+        if isinstance(v, dict):
+            return False
+
+    return True
+
+def is_str_keyed_dict(d):
+    """Check if a dictionary is string-keyed.
+
+    Parameters
+    ----------
+    d: dict
+        A dictionary to check.
+    Returns
+    -------
+    bool
+        True if the dictionary is string-keyed, False otherwise.
+    """
+
+    if not isinstance(d, dict):
+        return False
+
+    for k,v in d.keys():
+        if not isinstance(k, str):
+            return False
+        if isinstance(v, dict):
+            return False
+
+    return True
+
+
+def swap_levels_nested_dict(nested_dict, level1, level2, sep='/'):
+    """Swap the order of two levels in a nested dictionary.
+
+    Parameters
+    ----------
+    nested_dict: dict
+        A nested dictionary.
+    level1: int
+        The index of the first level to swap.
+    level2: int
+        The index of the second level to swap.
+    Returns
+    -------
+    dict
+        A nested dictionary with the levels swapped.
+    """
+
+    if is_tuple_keyed_dict(nested_dict):
+        out = {}
+        for k1, v1 in nested_dict.items():
+            k1_list = list(k1)
+            k1_list[level1], k1_list[level2] = k1_list[level2], k1_list[level1]
+            out[tuple(k1_list)] = v1        
+        return out
+    
+    elif is_nested_dict(nested_dict):
+        out = nested_dict_to_flat(nested_dict, tuple_keys=True)
+        out = swap_levels_nested_dict(out, level1, level2)
+        out = flat_dict_to_nested(out)
+        return out
+    
+    elif is_str_keyed_dict(nested_dict):
+        out = nested_dict_to_flat(nested_dict, sep=sep)
+        out = swap_levels_nested_dict(out, level1, level2)
+        out = {sep.join(k):v for k,v in out.items()}
+        return out
+    
+    else:
+        raise ValueError("Input dictionary must be either nested, string-keyed or tuple-keyed")
 
 class PairCounter(Mapping):
     """
@@ -103,8 +255,9 @@ class PairCounter(Mapping):
             self._stat[key]["cis"] = 0
             self._stat[key]["trans"] = 0
             self._stat[key]["pair_types"] = {}
+            
             # to be removed:
-            self._stat[key]["dedup"] = {}
+            # self._stat[key]["dedup"] = {}
 
             self._stat[key]["cis_1kb+"] = 0
             self._stat[key]["cis_2kb+"] = 0
@@ -378,6 +531,7 @@ class PairCounter(Mapping):
 
             self._summaries_calculated = True
 
+
     @classmethod
     def from_file(cls, file_handle):
         """create instance of PairCounter from file
@@ -392,96 +546,40 @@ class PairCounter(Mapping):
         # fill in from file - file_handle:
         default_filter = "no_filter"
         stat_from_file = cls()
+        raw_stat = {}
         for l in file_handle:
-            fields = l.strip().split(cls._SEP)
-            if len(fields) == 0:
+            key_val_pair = l.strip().split(cls._SEP)
+            if len(key_val_pair) == 0:
                 # skip empty lines:
                 continue
-            if len(fields) != 2:
+            if len(key_val_pair) != 2:
                 # expect two _SEP separated values per line:
                 raise fileio.ParseError(
                     "{} is not a valid stats file".format(file_handle.name)
                 )
-            # extract key and value, then split the key:
-            putative_key, putative_val = fields[0], fields[1]
-            key_fields = putative_key.split(cls._KEY_SEP)
-            # we should impose a rigid structure of .stats or redo it:
-            if len(key_fields) == 1:
-                key = key_fields[0]
-                if key in stat_from_file._stat[default_filter]:
-                    stat_from_file._stat[default_filter][key] = int(fields[1])
-                else:
-                    raise fileio.ParseError(
-                        "{} is not a valid stats file: unknown field {} detected".format(
-                            file_handle.name, key
-                        )
-                    )
-            else:
-                # in this case key must be in ['pair_types','chrom_freq','dist_freq','dedup', 'summary']
-                # get the first 'key' and keep the remainders in 'key_fields'
-                key = key_fields.pop(0)
-                if key in ["pair_types", "dedup", "summary", "chromsizes"]:
-                    # assert there is only one element in key_fields left:
-                    # 'pair_types', 'dedup', 'summary' and 'chromsizes' treated the same
-                    if len(key_fields) == 1:
-                        try:
-                            stat_from_file._stat[default_filter][key][
-                                key_fields[0]
-                            ] = int(fields[1])
-                        except ValueError:
-                            stat_from_file._stat[default_filter][key][
-                                key_fields[0]
-                            ] = float(fields[1])
-                    else:
-                        raise fileio.ParseError(
-                            "{} is not a valid stats file: {} section implies 1 identifier".format(
-                                file_handle.name, key
-                            )
-                        )
+            raw_stat[key_val_pair[0]] = parse_number(key_val_pair[1])
+        
 
-                elif key == "chrom_freq":
-                    # assert remaining key_fields == [chr1, chr2]:
-                    if len(key_fields) == 2:
-                        stat_from_file._stat[default_filter][key][
-                            tuple(key_fields)
-                        ] = int(fields[1])
-                    else:
-                        raise fileio.ParseError(
-                            "{} is not a valid stats file: {} section implies 2 identifiers".format(
-                                file_handle.name, key
-                            )
-                        )
+        ## TODO: check if raw_stat does not contain any unknown keys 
 
-                elif key == "dist_freq":
-                    # assert that last element of key_fields is the 'directions'
-                    if len(key_fields) == 2:
-                        # assert 'dirs' in ['++','--','+-','-+']
-                        dirs = key_fields.pop()
-                        # there is only genomic distance range of the bin that's left:
-                        (bin_range,) = key_fields
-                        # extract left border of the bin "1000000+" or "1500-6000":
-                        dist_bin_left = int(
-                            bin_range.strip("+")
-                            if bin_range.endswith("+")
-                            else bin_range.split("-")[0]
-                        )
-                        # store corresponding value:
-                        stat_from_file._stat[default_filter][key][dirs][dist_bin_left] = int(
-                            fields[1]
-                        )
-                    else:
-                        raise fileio.ParseError(
-                            "{} is not a valid stats file: {} section implies 2 identifiers".format(
-                                file_handle.name, key
-                            )
-                        )
-                else:
-                    raise fileio.ParseError(
-                        "{} is not a valid stats file: unknown field {} detected".format(
-                            file_handle.name, key
-                        )
-                    )
-        # return PairCounter from a non-empty dict:
+        # Convert flat dict to nested dict
+        stat_from_file._stat[default_filter].update(flat_dict_to_nested(raw_stat, sep=cls._KEY_SEP))
+
+        stat_from_file._stat[default_filter]['chrom_freq'] = nested_dict_to_flat(
+            stat_from_file._stat[default_filter]['chrom_freq'], tuple_keys=True)   
+
+        bin_to_left_val = lambda bin: int(bin.rstrip('+') if ('+' in bin) else bin.split('-')[0])
+
+        stat_from_file._stat[default_filter]['dist_freq'] = {
+            bin_to_left_val(k): v
+            for k,v in stat_from_file._stat[default_filter]['dist_freq'].items()
+        }  
+
+        stat_from_file._stat[default_filter]['dist_freq'] = swap_levels_nested_dict(
+            stat_from_file._stat[default_filter]['dist_freq'], 0, 1
+        )
+
+            
         return stat_from_file
 
     @classmethod
@@ -717,21 +815,23 @@ class PairCounter(Mapping):
         # use the empty PairCounter to iterate over:
         for k, v in sum_stat._stat[filter].items():
             if k != "chromsizes" and (
-                k not in self._stat[filter] or k not in other._stat[filter]
+                (k not in self._stat[filter]) or (k not in other._stat[filter])
             ):
                 # Skip any missing fields and warn
                 logger.warning(
                     f"{k} not found in at least one of the input stats, skipping"
                 )
                 continue
+
             # not nested fields are summed trivially:
             if isinstance(v, int):
                 sum_stat._stat[filter][k] = (
                     self._stat[filter][k] + other._stat[filter][k]
                 )
+            
             # sum nested dicts/arrays in a context dependet manner:
             else:
-                if k in ["pair_types", "dedup", "summary"]:
+                if k in ["pair_types", "dedup"]:
                     # handy function for summation of a pair of dicts:
                     # https://stackoverflow.com/questions/10461531/merge-and-sum-of-two-dictionaries
                     sum_dicts = lambda dict_x, dict_y: {
@@ -742,6 +842,7 @@ class PairCounter(Mapping):
                     sum_stat._stat[filter][k] = sum_dicts(
                         self._stat[filter][k], other._stat[filter][k]
                     )
+                
                 elif k == "chrom_freq":
                     # union list of keys (chr1,chr2) with potential duplicates:
                     union_keys_with_dups = list(self._stat[filter][k].keys()) + list(
@@ -756,6 +857,7 @@ class PairCounter(Mapping):
                         sum_stat._stat[filter][k][union_key] = self._stat[filter][
                             k
                         ].get(union_key, 0) + other._stat[filter][k].get(union_key, 0)
+                
                 elif k == "dist_freq":
                     for dirs in sum_stat[k]:
                         from functools import reduce
@@ -771,6 +873,7 @@ class PairCounter(Mapping):
                             {},
                         )
                         # sum_stat[k][dirs] = self._stat[filter][k][dirs] + other._stat[filter][k][dirs]
+                
                 elif k == "chromsizes":
                     if k in self._stat[filter] and k in other._stat[filter]:
                         if self._stat[filter][k] == other._stat[filter][k]:
@@ -795,6 +898,8 @@ class PairCounter(Mapping):
                         logger.warning(
                             "One or both stats don't have chromsizes recorded"
                         )
+
+        sum_stat.calculate_summaries()
 
         return sum_stat
 
@@ -836,10 +941,13 @@ class PairCounter(Mapping):
                                 raise ValueError("There is a mismatch between dist_freq bins in the instance")
                             # store key,value pair:
                             flat_stat[formatted_key] = freqs[dist]
+                
                 elif (k in ["pair_types", "dedup", "chromsizes", 'summary']) and v:
                     # 'pair_types' and 'dedup' are simple dicts inside,
                     # treat them the exact same way:
-                    flat_stat.update(flatten_dict(v, k, self._KEY_SEP))
+                    flat_stat.update(
+                        {k+self._KEY_SEP+k2 : v2 for k2,v2 in nested_dict_to_flat(v, sep=self._KEY_SEP).items()})
+                
                 elif (k == "chrom_freq") and v:
                     for (chrom1, chrom2), freq in v.items():
                         formatted_key = self._KEY_SEP.join(["{}", "{}", "{}"]).format(
@@ -857,30 +965,23 @@ class PairCounter(Mapping):
 
         from copy import deepcopy
 
-        formatted_stat = {key: {} for key in self.filters.keys()}
+        formatted_stat = {filter_name: {} for filter_name in self.filters.keys()}
 
         # Storing statistics for each filter
-        for key in self.filters.keys():
-            for k, v in self._stat[key].items():
-                if isinstance(v, int):
-                    formatted_stat[key][k] = v
-                # store nested dicts/arrays in a context dependet manner:
-                # nested categories are stored only if they are non-trivial
-                else:
-                    if (k != "chrom_freq") and v:
-                        # simple dicts inside
-                        # treat them the exact same way:
-                        formatted_stat[key][k] = deepcopy(v)
-                    elif (k == "chrom_freq") and v:
-                        # need to convert tuples of chromosome names to str
-                        freqs = {}
-                        for (chrom1, chrom2), freq in sorted(v.items()):
-                            freqs[
-                                self._KEY_SEP.join(["{}", "{}"]).format(chrom1, chrom2)
-                            ] = freq
-                            # store key,value pair:
-                        formatted_stat[key][k] = deepcopy(freqs)
+        for filter_name in self.filters.keys():
+            for k, v in self._stat[filter_name].items():
+                if (k == "chrom_freq"):
+                    v = {self._KEY_SEP.join(k2):v2 for k2, v2 in v.items()}
+                if v:
+                    formatted_stat[filter_name][k] = deepcopy(v)
             # return formatted dict
+        formatted_stat = nested_dict_to_flat(formatted_stat, tuple_keys=True)
+        for k in formatted_stat:
+            v = formatted_stat[k]
+            if isinstance(v, np.generic):
+                formatted_stat[k] = v.item()
+        formatted_stat = flat_dict_to_nested(formatted_stat)
+
         return formatted_stat
 
     def save(self, outstream, yaml=False, filter="no_filter"):
@@ -914,6 +1015,7 @@ class PairCounter(Mapping):
             data = self.flatten(filter=filter)
             for k, v in data.items():
                 outstream.write("{}{}{}\n".format(k, self._SEP, v))
+
 
     def save_bytile_dups(self, outstream):
         """save bytile duplication counts to a tab-delimited text file.
