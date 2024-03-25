@@ -614,6 +614,7 @@ class PairCounter(Mapping):
         stat_from_file._stat = stat
         return stat_from_file
 
+
     def add_pair(
         self,
         chrom1,
@@ -933,11 +934,6 @@ class PairCounter(Mapping):
                         for dirs, freqs in v.items():
                             dist = self._dist_bins[i]
                             
-                            # in some previous versions of stats, last bin was not reported, so we need to skip it now:
-                            if (i == len(self._dist_bins) - 1) and dist not in freqs:
-                                flat_stat[formatted_key] = 0 
-                                continue
-
                             # last bin is treated differently: "100000+" vs "1200-3000":
                             if i < len(self._dist_bins) - 1:
                                 dist_next = self._dist_bins[i + 1]
@@ -950,11 +946,16 @@ class PairCounter(Mapping):
                                 ).format(k, dist, dirs)
                             else:
                                 raise ValueError("There is a mismatch between dist_freq bins in the instance")
+                            
                             # store key,value pair:
                             try:                        
                                 flat_stat[formatted_key] = freqs[dist]
                             except:
-                                raise ValueError(f"Error in {k} {dirs} {dist} {dist_next} {freqs}: source and destination bins do not match")
+                                # in some previous versions of stats, last bin was not reported, so we need to skip it now:
+                                if (dist not in freqs) and (i == len(self._dist_bins) - 1):
+                                    flat_stat[formatted_key] = 0 
+                                else:
+                                    raise ValueError(f"Error in {k} {dirs} {dist} {dist_next} {freqs}: source and destination bins do not match")
                 
                 elif (k in ["pair_types", "dedup", "chromsizes", 'summary']) and v:
                     # 'pair_types' and 'dedup' are simple dicts inside,
