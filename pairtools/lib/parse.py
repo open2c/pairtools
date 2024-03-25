@@ -122,16 +122,6 @@ def streaming_classify(
     if readID_transform is not None:
         readID_transform = compile(readID_transform, "<string>", "eval")
 
-    ### Prepare for iterative parsing of the input stream
-    # Each read is represented by readID, sams1 (left alignments) and sams2 (right alignments)
-    readID = ""  # Read id of the current read
-    sams1 = []  # Placeholder for the left alignments
-    sams2 = []  # Placeholder for the right alignments
-    # Each read is comprised of multiple alignments, or sam entries:
-    sam_entry = ""  # Placeholder for each aligned segment
-    # Keep the id of the previous sam entry to detect when the read is completely populated:
-    prev_readID = ""  # Placeholder for the read id
-
     ### Iterate over input pysam:
     instream = iter(instream)
     for (readID, (sams1, sams2)) in read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
@@ -191,7 +181,7 @@ def streaming_classify(
             write_pairsam(
                 algn1,
                 algn2,
-                readID=prev_readID,
+                readID=readID,
                 pair_index=pair_index,
                 sams1=sams1,
                 sams2=sams2,
@@ -218,14 +208,8 @@ def streaming_classify(
         # write all alignments:
         if out_alignments_stream and read_has_alignments:
             write_all_algnments(
-                prev_readID, all_algns1, all_algns2, out_alignments_stream
+                readID, all_algns1, all_algns2, out_alignments_stream
             )
-
-
-
-        if sam_entry is not None:
-            push_pysam(sam_entry, sams1, sams2)
-            prev_readID = readID
 
 
 ############################
