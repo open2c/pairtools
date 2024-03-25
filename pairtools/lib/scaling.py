@@ -208,7 +208,8 @@ def bins_pairs_by_distance(
 
     if not keep_unassigned:
         pairs_reduced_df = (pairs_reduced_df
-            .query('(start1 >= 0) and (end1 > 0) and (start2 >= 0) and (end2 > 0)')
+            .query('(start1 >= 0) and (start2 >= 0)') 
+            # do not test for end1 and end2, as they can be -1 if regions and not specified
             .reset_index(drop=True))
 
     pairs_reduced_df["min_dist"] = np.where(
@@ -226,10 +227,14 @@ def bins_pairs_by_distance(
     # importantly, in the future, we may want to extend the function to plot scalings
     # for pairs from different regions!
 
-    pairs_for_scaling_mask = (
+    cis_region_pairs = (
         (pairs_reduced_df.chrom1 == pairs_reduced_df.chrom2)
         & (pairs_reduced_df.start1 == pairs_reduced_df.start2)
         & (pairs_reduced_df.end1 == pairs_reduced_df.end2)
+    )
+
+    pairs_for_scaling_mask = (
+        cis_region_pairs
         & (pairs_reduced_df.min_dist > 0)
         & (pairs_reduced_df.max_dist < np.iinfo(np.int64).max)
     )
@@ -263,7 +268,7 @@ def bins_pairs_by_distance(
     if ignore_trans:
         pairs_no_scaling_counts = None
     else:
-        pairs_no_scaling_df = pairs_reduced_df.loc[~pairs_for_scaling_mask]
+        pairs_no_scaling_df = pairs_reduced_df.loc[~cis_region_pairs]
 
         pairs_no_scaling_counts = pairs_no_scaling_df.groupby(
             by=[
@@ -329,7 +334,7 @@ def compute_scaling(
     pairs,
     regions=None,
     chromsizes=None,
-    dist_range=(int(1e1), int(1e9)),
+    dist_range=(int(1e0), int(1e9)),
     n_dist_bins_decade=8,
     chunksize=int(1e7),
     ignore_trans=False,
@@ -403,11 +408,13 @@ def compute_scaling(
         )
 
         sc = sc_chunk if sc is None else sc.add(sc_chunk, fill_value=0)
+
         trans_counts = (
             trans_counts_chunk
             if trans_counts is None
             else trans_counts.add(trans_counts_chunk, fill_value=0)
         )
+
 
     #         if not (isinstance(regions, pd.DataFrame) and
     #                  (set(regions.columns) == set(['chrom', 'start','end']))):
@@ -420,9 +427,10 @@ def compute_scaling(
 
     if not ignore_trans:
         trans_counts.reset_index(inplace=True)
-        trans_counts["n_bp2"] = (trans_counts["end1"] - trans_counts["start1"]) * (
+        trans_counts["n_bp2"] = (
+            (trans_counts["end1"] - trans_counts["start1"]) * (
             trans_counts["end2"] - trans_counts["start2"]
-        )
+        ))
 
     return sc, trans_counts
 

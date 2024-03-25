@@ -57,6 +57,30 @@ COLUMNS_PAIRS = [
     "pair_type",
 ]
 
+DTYPES_PAIRSAM = {
+    "readID": str,
+    "chrom1": str,
+    "pos1": int,
+    "chrom2": str,
+    "pos2": int,
+    "strand1": str,
+    "strand2": str,
+    "pair_type": str,
+    "sam1": str,
+    "sam2": str,
+}
+
+DTYPES_PAIRS = {
+    "readID": str,
+    "chrom1": str,
+    "pos1": int,
+    "chrom2": str,
+    "pos2": int,
+    "strand1": str,
+    "strand2": str,
+    "pair_type": str,
+}
+
 UNMAPPED_CHROM = "!"
 UNMAPPED_POS = 0
 UNMAPPED_STRAND = "-"
@@ -77,3 +101,18 @@ EXTRA_COLUMNS = [
     "seq",
     "mismatches",  # Format: "{ref_letter}:{mut_letter}:{phred}:{ref_position}:{read_position}"
 ]
+
+DTYPES_EXTRA_COLUMNS = {
+    "mapq": int,
+    "pos5": int,
+    "pos3": int,
+    "cigar": str,
+    "read_len": int,
+    "matched_bp": int,
+    "algn_ref_span": int,
+    "algn_read_span": int,
+    "dist_to_5": int,
+    "dist_to_3": int,
+    "seq": str,
+    "mismatches": str,
+}
