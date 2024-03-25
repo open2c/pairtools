@@ -61,7 +61,7 @@ increases according to a simple equation:
 
 .. math::
 
-    U(N+1) = U(N) + (1 - {U(N) \\over C}),
+    U(N+1) = U(N) + (1 - {U(N) \over C}),
 
 where :math:`N` is the number of sequenced molecules, :math:`U(N)` is the expected number
 of observed unique molecules after sequencing :math:`N` molecules, and :math:`C` is the library complexity.
@@ -69,13 +69,13 @@ This differential equation yields [1, 2]:
 
 .. math::
     
-    {U(N) \\over C} = 1 - exp( - {N \\over C}),
+    {U(N) \over C} = 1 - exp( - {N \over C}),
 
 which can be solved as
 
 .. math::
 
-    C = \Re(lambert W( - { \exp( - {1 \\over u} ) \\over u} ) ) + {1 \\over u}
+    C = \Re(W_{Lambert}( - { \exp( - {1 \over u} ) \over u} ) ) + {1 \over u}
 
 Library complexity can guide in the choice of sequencing depth of the library
 and provide an estimate of library quality.
