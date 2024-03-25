@@ -59,17 +59,23 @@ replacement from a finite pool of fragments in DNA library [1]_ [2]_.
 With each new sequenced molecule, the expected number of observed unique molecules
 increases according to a simple equation:
 
-$$ U(N+1) = U(N) + (1 - {U(N) \\over C}), $$
+.. math::
 
-where $N$ is the number of sequenced molecules, $U(N)$ is the expected number
-of observed unique molecules after sequencing $N$ molecules, and C is the library complexity.
+    U(N+1) = U(N) + (1 - {U(N) \\over C}),
+
+where :math:`N` is the number of sequenced molecules, :math:`U(N)` is the expected number
+of observed unique molecules after sequencing :math:`N` molecules, and :math:`C` is the library complexity.
 This differential equation yields [1, 2]:
 
-$$ {U(N) \\over C} = 1 - exp( - {N \\over C}), $$
+.. math::
+    
+    {U(N) \\over C} = 1 - exp( - {N \\over C}),
 
 which can be solved as
 
-$$ C = \Re(lambert W( - { \exp( - {1 \\over u} ) \\over u} ) ) + {1 \\over u} $$
+.. math::
+
+    C = \Re(lambert W( - { \exp( - {1 \\over u} ) \\over u} ) ) + {1 \\over u}
 
 Library complexity can guide in the choice of sequencing depth of the library
 and provide an estimate of library quality.
