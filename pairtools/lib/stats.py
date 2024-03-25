@@ -208,7 +208,7 @@ class PairCounter(Mapping):
         self,
         min_log10_dist=0,
         max_log10_dist=9,
-        log10_dist_bin_step=0.25,
+        log10_dist_bin_step=0.125,
         bytile_dups=False,
         filters=None,
         **kwargs,
@@ -229,15 +229,17 @@ class PairCounter(Mapping):
 
         # some variables used for initialization:
         # genomic distance bining for the ++/--/-+/+- distribution
-        self._dist_bins = np.r_[
-            0,
-            np.round(
-                10
-                ** np.arange(
-                    min_log10_dist, max_log10_dist + 0.001, log10_dist_bin_step
-                )
-            ).astype(np.int_),
-        ]
+        self._dist_bins = np.unique(
+                np.r_[
+                0,
+                np.round(
+                    10
+                    ** np.arange(
+                        min_log10_dist, max_log10_dist + 0.001, log10_dist_bin_step
+                    )
+                ).astype(np.int_),
+            ]
+        )
 
         # establish structure of an empty _stat:
         for key in self.filters:
@@ -411,7 +413,7 @@ class PairCounter(Mapping):
             # Find the largest distance and the strand combination where frequency of pairs deviates from the average by the given threshold:
             divergence_bin_idx = 0
             divergence_strands = '??'
-            divergence_bin = '0-0'
+            divergence_dist = '0'
 
             for strands in all_strands:
                 if (idx_maxs[strands] > divergence_bin_idx):
@@ -419,14 +421,14 @@ class PairCounter(Mapping):
                     divergence_strands = strands
 
                     if idx_maxs[strands] < len(self._dist_bins):
-                        divergence_bin = f'{self._dist_bins[divergence_bin_idx]}-{self._dist_bins[divergence_bin_idx+1]}'
+                        divergence_dist = self._dist_bins[divergence_bin_idx+1]
                     else:
-                        divergence_bin = f'{self._dist_bins[divergence_bin_idx]}+'
+                        divergence_dist = np.iinfo(np.int64)
                     
             
-            out[filter]["dist_bin"] = divergence_bin
-            out[filter]["strands"] = divergence_strands
-            out[filter]['rel_diff_threshold'] = rel_threshold
+            out[filter]["divergence_dist"] = divergence_dist
+            out[filter]["divergent_strands"] = divergence_strands
+            out[filter]['divergence_rel_diff_threshold'] = rel_threshold
 
             out[filter]['n_cis_pairs_below_divergence_dist'] = {
                 strands:dist_freqs_by_strands[strands][:divergence_bin_idx+1].sum() for strands in all_strands
