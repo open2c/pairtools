@@ -580,14 +580,14 @@ def parse_read(
                             hic_algn2 = algn
                             break
 
-                # lower-case reported walks on the chimeric side
+                # DEPRECATED: lower-case reported walks on the chimeric side
                 if walks_policy != "mask":
                     if is_chimeric_1:
                         hic_algn1 = dict(hic_algn1)
-                        hic_algn1["type"] = hic_algn1["type"].lower()
+                        # hic_algn1["type"] = hic_algn1["type"].lower()
                     if is_chimeric_2:
                         hic_algn2 = dict(hic_algn2)
-                        hic_algn2["type"] = hic_algn2["type"].lower()
+                        # hic_algn2["type"] = hic_algn2["type"].lower()
 
         else:
             raise ValueError(f"Walks policy {walks_policy} is not supported.")
