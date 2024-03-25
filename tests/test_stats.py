@@ -45,7 +45,7 @@ def test_mock_pairsam():
     for orientation in ("++", "+-", "-+", "--"):
         s = stats["no_filter"]["dist_freq"][orientation]
         for k, val in s.items():
-            if orientation == "++" and k in [1, 2, 32]:
+            if orientation == "++" and k in [1, 2, 42]:
                 assert s[k] == 1
             else:
                 assert s[k] == 0
