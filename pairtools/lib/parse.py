@@ -459,12 +459,12 @@ def normalize_alignment_list(algns, side, sort_by="dist_to_5", max_inter_align_g
     if len(algns) == 0:
         algns = [empty_alignment()]
 
+    if sort_by:
+        algns = sorted(algns, key=lambda algn: algn[sort_by])
+
     if max_inter_align_gap is not None:
         _convert_gaps_into_alignments(algns, max_inter_align_gap)
 
-    if sort_by:
-        algns = sorted(algns, key=lambda algn: algn[sort_by])
-    
     for i, algn in enumerate(algns):
         algn["read_side"] = side
         algn["algn_idx"] = i
