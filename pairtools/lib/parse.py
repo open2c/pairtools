@@ -392,6 +392,28 @@ def flip_alignment(hic_algn):
     return hic_algn
 
 
+def flip_orientation(hic_algn):
+    """
+    Flip orientation of a single alignment
+    :param hic_algn: Alignment to be modified
+    :return:
+    """
+    hic_algn = dict(hic_algn)  # overwrite the variable with the copy of dictionary
+    hic_algn["strand"] = "+" if (hic_algn["strand"] == "-") else "-"
+    return hic_algn
+
+
+def flip_position(hic_algn):
+    """
+    Flip ends of a single alignment
+    :param hic_algn: Alignment to be modified
+    :return:
+    """
+    hic_algn = dict(hic_algn)  # overwrite the variable with the copy of dictionary
+    hic_algn["pos5"], hic_algn["pos3"] = hic_algn["pos3"], hic_algn["pos5"]
+    return hic_algn
+
+
 
 def _convert_gaps_into_alignments(sorted_algns, max_inter_align_gap):
     """
@@ -450,27 +472,6 @@ def normalize_alignment_list(algns, side, sort_by="dist_to_5", max_inter_align_g
 
     return algns
             
-
-def flip_orientation(hic_algn):
-    """
-    Flip orientation of a single alignment
-    :param hic_algn: Alignment to be modified
-    :return:
-    """
-    hic_algn = dict(hic_algn)  # overwrite the variable with the copy of dictionary
-    hic_algn["strand"] = "+" if (hic_algn["strand"] == "-") else "-"
-    return hic_algn
-
-
-def flip_position(hic_algn):
-    """
-    Flip ends of a single alignment
-    :param hic_algn: Alignment to be modified
-    :return:
-    """
-    hic_algn = dict(hic_algn)  # overwrite the variable with the copy of dictionary
-    hic_algn["pos5"], hic_algn["pos3"] = hic_algn["pos3"], hic_algn["pos5"]
-    return hic_algn
 
 
 ####################
