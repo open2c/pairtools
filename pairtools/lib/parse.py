@@ -443,11 +443,10 @@ def normalize_alignment_list(algns, side, sort_by="dist_to_5", max_inter_align_g
     if sort_by:
         algns = sorted(algns, key=lambda algn: algn[sort_by])
     
-
     for i, algn in enumerate(algns):
         algn["read_side"] = side
-        algn["align_idx"] = i
-        algn["tot_align_count"] = len(algns)
+        algn["algn_idx"] = i
+        algn["same_side_algn_count"] = len(algns)
 
     return algns
             
