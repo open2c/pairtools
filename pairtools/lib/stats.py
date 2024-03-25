@@ -427,7 +427,7 @@ class PairCounter(Mapping):
                     
             
             out[filter]["divergence_dist"] = divergence_dist
-            out[filter]["divergent_strands"] = divergence_strands
+            out[filter]["divergence_strands"] = divergence_strands
             out[filter]['divergence_rel_diff_threshold'] = rel_threshold
 
             out[filter]['n_cis_pairs_below_divergence_dist'] = {
