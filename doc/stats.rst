@@ -14,7 +14,7 @@ output file.
 
 - **Global statistics** include:
     - number of pairs (total, unmapped, single-side mapped, etc.),
-    - total number of different pair types (UU, NN, NU, and others, see ` Pair types in pairtools docs <https://pairtools.readthedocs.io/en/latest/formats.html#pair-types>`_),
+    - total number of different pair types (UU, NN, NU, and others, see `Pair types in pairtools docs <https://pairtools.readthedocs.io/en/latest/formats.html#pair-types>`_),
     - number of contacts between all chromosome pairs
 
 - **Summary statistics** include:
