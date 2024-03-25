@@ -203,12 +203,15 @@ class PairCounter(Mapping):
     _SEP = "\t"
     _KEY_SEP = "/"
     DIST_FREQ_REL_DIFF_THRESHOLD = 0.05
+    N_DIST_BINS_DECADE_DEFAULT = 8
+    MIN_LOG10_DIST_DEFAULT = 0
+    MAX_LOG10_DIST_DEFAULT = 9    
 
     def __init__(
         self,
-        min_log10_dist=0,
-        max_log10_dist=9,
-        log10_dist_bin_step=0.125,
+        min_log10_dist=MIN_LOG10_DIST_DEFAULT,
+        max_log10_dist=MAX_LOG10_DIST_DEFAULT,
+        n_dist_bins_decade=N_DIST_BINS_DECADE_DEFAULT,
         bytile_dups=False,
         filters=None,
         **kwargs,
@@ -229,6 +232,7 @@ class PairCounter(Mapping):
 
         # some variables used for initialization:
         # genomic distance bining for the ++/--/-+/+- distribution
+        log10_dist_bin_step = 1.0 / n_dist_bins_decade
         self._dist_bins = np.unique(
                 np.r_[
                 0,
@@ -303,6 +307,7 @@ class PairCounter(Mapping):
             )
         self._summaries_calculated = False
 
+
     def __getitem__(self, key, filter="no_filter"):
         if isinstance(key, str):
             # let's strip any unintentional '/'
@@ -373,14 +378,16 @@ class PairCounter(Mapping):
         else:
             raise ValueError("{} is not a valid key".format(k))
 
+
     def __iter__(self):
         return iter(self._stat)
+
 
     def __len__(self):
         return len(self._stat)
 
 
-    def find_dist_freq_divergence_distance(self, rel_threshold):
+    def find_dist_freq_convergence_distance(self, rel_threshold):
         """Finds the largest distance at which the frequency of pairs of reads 
         with different strands deviates from their average by the specified 
         relative threshold."""
@@ -411,65 +418,60 @@ class PairCounter(Mapping):
                     idx_maxs[strands] = np.max(np.nonzero(bin_exceeds))
 
             # Find the largest distance and the strand combination where frequency of pairs deviates from the average by the given threshold:
-            divergence_bin_idx = 0
-            divergence_strands = '??'
-            divergence_dist = '0'
+            convergence_bin_idx = 0
+            convergence_strands = '??'
+            convergence_dist = '0'
 
             for strands in all_strands:
-                if (idx_maxs[strands] > divergence_bin_idx):
-                    divergence_bin_idx = idx_maxs[strands]
-                    divergence_strands = strands
+                if (idx_maxs[strands] > convergence_bin_idx):
+                    convergence_bin_idx = idx_maxs[strands]
+                    convergence_strands = strands
 
                     if idx_maxs[strands] < len(self._dist_bins):
-                        divergence_dist = self._dist_bins[divergence_bin_idx+1]
+                        convergence_dist = self._dist_bins[convergence_bin_idx+1]
                     else:
-                        divergence_dist = np.iinfo(np.int64)
+                        convergence_dist = np.iinfo(np.int64)
                     
             
-            out[filter]["divergence_dist"] = divergence_dist
-            out[filter]["divergence_strands"] = divergence_strands
-            out[filter]['divergence_rel_diff_threshold'] = rel_threshold
+            out[filter]["convergence_dist"] = convergence_dist
+            out[filter]["strands_w_max_convergence_dist"] = convergence_strands
+            out[filter]['convergence_rel_diff_threshold'] = rel_threshold
 
-            out[filter]['n_cis_pairs_below_divergence_dist'] = {
-                strands:dist_freqs_by_strands[strands][:divergence_bin_idx+1].sum() for strands in all_strands
+            out[filter]['n_cis_pairs_below_convergence_dist'] = {
+                strands:dist_freqs_by_strands[strands][:convergence_bin_idx+1].sum() for strands in all_strands
                 for strands in all_strands
             }
 
-            out[filter]['n_cis_pairs_below_divergence_dist_all_strands'] = sum(
-                list(out[filter]['n_cis_pairs_below_divergence_dist'].values())) 
+            out[filter]['n_cis_pairs_below_convergence_dist_all_strands'] = sum(
+                list(out[filter]['n_cis_pairs_below_convergence_dist'].values())) 
 
-            out[filter]['n_cis_pairs_above_divergence_dist'] = {
-                strands:dist_freqs_by_strands[strands][divergence_bin_idx+1:].sum() for strands in all_strands
+            n_cis_pairs_above_convergence_dist = {
+                strands:dist_freqs_by_strands[strands][convergence_bin_idx+1:].sum() for strands in all_strands
                 for strands in all_strands
             }
             
-            out[filter]['n_cis_pairs_above_divergence_dist_all_strands'] = sum(
-                list(out[filter]['n_cis_pairs_above_divergence_dist'].values())) 
+            out[filter]['n_cis_pairs_above_convergence_dist_all_strands'] = sum(
+                list(n_cis_pairs_above_convergence_dist.values())) 
 
             norms = dict(
                 cis=self._stat[filter]['cis'],
-                total_mapped = self._stat[filter]['total_mapped']
+                total_mapped=self._stat[filter]['total_mapped']
             )
+
             if 'total_nodups' in self._stat[filter]:
                 norms['total_nodups'] = self._stat[filter]['total_nodups']
 
             for key, norm_factor in norms.items():
-                out[filter][f'frac_{key}_in_cis_below_divergence_dist'] = {
+                out[filter][f'frac_{key}_in_cis_below_convergence_dist'] = {
                     strands: n_cis_pairs / norm_factor 
-                    for strands, n_cis_pairs in out[filter]['n_cis_pairs_below_divergence_dist'].items()
+                    for strands, n_cis_pairs in out[filter]['n_cis_pairs_below_convergence_dist'].items()
                 }
 
-                out[filter][f'frac_{key}_in_cis_below_divergence_dist_all_strands'] = sum(
-                    list(out[filter][f'frac_{key}_in_cis_below_divergence_dist'].values()))
+                out[filter][f'frac_{key}_in_cis_below_convergence_dist_all_strands'] = sum(
+                    list(out[filter][f'frac_{key}_in_cis_below_convergence_dist'].values()))
 
-
-                out[filter][f'frac_{key}_in_cis_above_divergence_dist'] = {
-                    strands: n_cis_pairs / norm_factor 
-                    for strands, n_cis_pairs in out[filter]['n_cis_pairs_above_divergence_dist'].items()
-                }
-
-                out[filter][f'frac_{key}_in_cis_above_divergence_dist_all_strands'] = sum(
-                    list(out[filter][f'frac_{key}_in_cis_above_divergence_dist'].values()))
+                out[filter][f'frac_{key}_in_cis_above_convergence_dist_all_strands'] = (
+                    sum(list(n_cis_pairs_above_convergence_dist.values())) / norm_factor )
 
         return out
 
@@ -479,7 +481,7 @@ class PairCounter(Mapping):
         complexity estimate) based on accumulated counts. Results are saved into
         self._stat["filter_name"]['summary"]
         """
-        divergence_stats = self.find_dist_freq_divergence_distance(
+        convergence_stats = self.find_dist_freq_convergence_distance(
             self.DIST_FREQ_REL_DIFF_THRESHOLD)
 
         for filter_name in self.filters.keys():
@@ -498,7 +500,7 @@ class PairCounter(Mapping):
                     else 0
                 )
 
-            self._stat[filter_name]["summary"]["dist_freq_divergence"] = divergence_stats[filter_name]
+            self._stat[filter_name]["summary"]["dist_freq_convergence"] = convergence_stats[filter_name]
 
             self._stat[filter_name]["summary"]["frac_dups"] = (
                 (self._stat[filter_name]["total_dups"] / self._stat[filter_name]["total_mapped"])
@@ -535,7 +537,7 @@ class PairCounter(Mapping):
 
 
     @classmethod
-    def from_file(cls, file_handle):
+    def from_file(cls, file_handle, n_dist_bins_decade=N_DIST_BINS_DECADE_DEFAULT):
         """create instance of PairCounter from file
         Parameters
         ----------
@@ -547,7 +549,7 @@ class PairCounter(Mapping):
         """
         # fill in from file - file_handle:
         default_filter = "no_filter"
-        stat_from_file = cls()
+        stat_from_file = cls(n_dist_bins_decade=n_dist_bins_decade)
         raw_stat = {}
         for l in file_handle:
             key_val_pair = l.strip().split(cls._SEP)
@@ -585,7 +587,7 @@ class PairCounter(Mapping):
         return stat_from_file
 
     @classmethod
-    def from_yaml(cls, file_handle):
+    def from_yaml(cls, file_handl, n_dist_bins_decade=N_DIST_BINS_DECADE_DEFAULT):
         """create instance of PairCounter from file
         Parameters
         ----------
@@ -598,6 +600,7 @@ class PairCounter(Mapping):
         # fill in from file - file_handle:
         stat = yaml.safe_load(file_handle)
         stat_from_file = cls(
+            n_dist_bins_decade=n_dist_bins_decade,
             filters={key: val.get("filter_expression", "") for key, val in stat.items()}
         )
 
@@ -929,6 +932,12 @@ class PairCounter(Mapping):
                     for i in range(len(self._dist_bins)):
                         for dirs, freqs in v.items():
                             dist = self._dist_bins[i]
+                            
+                            # in some previous versions of stats, last bin was not reported, so we need to skip it now:
+                            if (i == len(self._dist_bins) - 1) and dist not in freqs:
+                                flat_stat[formatted_key] = 0 
+                                continue
+
                             # last bin is treated differently: "100000+" vs "1200-3000":
                             if i < len(self._dist_bins) - 1:
                                 dist_next = self._dist_bins[i + 1]
@@ -942,7 +951,10 @@ class PairCounter(Mapping):
                             else:
                                 raise ValueError("There is a mismatch between dist_freq bins in the instance")
                             # store key,value pair:
-                            flat_stat[formatted_key] = freqs[dist]
+                            try:                        
+                                flat_stat[formatted_key] = freqs[dist]
+                            except:
+                                raise ValueError(f"Error in {k} {dirs} {dist} {dist_next} {freqs}: source and destination bins do not match")
                 
                 elif (k in ["pair_types", "dedup", "chromsizes", 'summary']) and v:
                     # 'pair_types' and 'dedup' are simple dicts inside,
@@ -1050,9 +1062,9 @@ def do_merge(output, files_to_merge, **kwargs):
         )
         # use a factory method to instanciate PairCounter
         if kwargs.get("yaml", False):
-            stat = PairCounter.from_yaml(f)
+            stat = PairCounter.from_yaml(f, n_dist_bins_decade=kwargs.get('n_dist_bins_decade', PairCounter.N_DIST_BINS_DECADE_DEFAULT))
         else:
-            stat = PairCounter.from_file(f)
+            stat = PairCounter.from_file(f, n_dist_bins_decade=kwargs.get('n_dist_bins_decade', PairCounter.N_DIST_BINS_DECADE_DEFAULT))
         stats.append(stat)
         f.close()
 
