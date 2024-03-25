@@ -587,7 +587,7 @@ class PairCounter(Mapping):
         return stat_from_file
 
     @classmethod
-    def from_yaml(cls, file_handl, n_dist_bins_decade=N_DIST_BINS_DECADE_DEFAULT):
+    def from_yaml(cls, file_handle, n_dist_bins_decade=N_DIST_BINS_DECADE_DEFAULT):
         """create instance of PairCounter from file
         Parameters
         ----------
