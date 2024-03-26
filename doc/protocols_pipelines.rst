@@ -1,9 +1,6 @@
 Workflows and Parameters
 ========================
 
-Introduction
-------------
-
 This page provides guidance on using pairtools for the most common Hi-C protocols and 
 helps users fine-tune the pipeline for different variations of the Hi-C protocol. 
 It covers recommended parameters and best practices for processing Hi-C data using pairtools.
