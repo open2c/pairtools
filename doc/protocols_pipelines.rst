@@ -8,7 +8,7 @@ This page provides guidance on using pairtools for the most common Hi-C protocol
 helps users fine-tune the pipeline for different variations of the Hi-C protocol. 
 It covers recommended parameters and best practices for processing Hi-C data using pairtools.
 
-Standard Hi-C Workflow
+Typical Hi-C Workflow
 ----------------------
 
 A typical pairtools workflow for processing standard Hi-C data is outlined below. 
@@ -54,8 +54,8 @@ Please, note that this is a shorter version; you can find a more detailed and re
 
 
 
-Recommended pairtools parameters for typical Hi-C protocols
------------------------------------------------------------
+Recommended pairtools parameters for standard Hi-C protocols
+------------------------------------------------------------
 
 To adapt the standard workflow for common variations of the Hi-C protocol, consider adjusting the following parameters:
 
