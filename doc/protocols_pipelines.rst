@@ -17,22 +17,27 @@ Please, note that this is a shorter version; you can find a more detailed and re
 1. Align sequences to the reference genome with ``bwa mem``:
    
     .. code-block:: console
+
         bwa mem -SP index_file input.R1.fastq input.R2.fastq > input.sam
 
 2. Parse alignments into Hi-C pairs using ``pairtools parse``:
 
     .. code-block:: console 
+
         pairtools parse -c /path/to/chrom_sizes -o output.pairs.gz input.sam
 
 3. Sort pairs using ``pairtools sort``:
 
 
     .. code-block:: console
+
+
         pairtools sort --nproc 8 -o output.sorted.pairs.gz output.pairs.gz
 
 4. Detect and remove duplicates using ``pairtools dedup`` and generate statistics:
 
     .. code-block:: console
+
         pairtools dedup \
         --output output.nodups.pairs.gz \
         --output-dups output.dups.pairs.gz \
@@ -43,6 +48,7 @@ Please, note that this is a shorter version; you can find a more detailed and re
 5. Aggregate into a cooler file:
 
     .. code-block:: console
+
         cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 /path/to/chrom_sizes:1000 output.nodups.pairs.gz output.1000.cool
 
 
@@ -81,6 +87,7 @@ To adapt the standard workflow for common variations of the Hi-C protocol, consi
    Note that we recommend storing the most comprehensive, unfiltered list of pairs and applying the filter on the fly prior to contact aggregation:
 
     .. code-block:: console
+
         pairtools select "(mapq1>=30) and (mapq2>=30)" output.nodups.pairs.gz | \
             cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 chromsizes.txt:1000 - output.mapq_30.1000.cool
 
@@ -95,6 +102,7 @@ Technical tips
     Specifically, mapping, parsing, sorting and deduplication can all be connected into a single pipeline:
 
     .. code-block:: console
+        
         bwa mem -SP index input.R1.fastq input.R2.fastq | \
         pairtools parse -c chromsizes.txt | \
         pairtools sort | \
