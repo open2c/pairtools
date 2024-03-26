@@ -46,17 +46,6 @@ Please, note that this is a shorter version; you can find a more detailed and re
         cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 /path/to/chrom_sizes:1000 output.nodups.pairs.gz output.1000.cool
 
 
-Together, these steps can be stringed into a simple two-step pipeline:
-
-    .. code-block:: console
-        bwa mem -SP index input.R1.fastq input.R2.fastq | \
-        pairtools parse -c chromsizes.txt | \
-        pairtools sort | \
-            --output output.nodups.pairs.gz \
-            --output-dups output.dups.pairs.gz \
-            --output-unmapped output.unmapped.pairs.gz 
-            --output-stats output.dedup.stats
-        cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 chromsizes.txt:1000 output.nodups.pairs.gz output.1000.cool
 
 
 Optimal pairtools parameters for standard Hi-C protocol
@@ -89,19 +78,38 @@ To adapt the standard workflow for common variations of the Hi-C protocol, consi
    Applying this filter helps remove false alignments between partially homologous sequences, which often cause artificial high-frequency interactions in Hi-C maps. 
    This step is essential for generating maps for high-quality dot calls.
 
-   Note that we recommend storing the most comprehensive, unfiltered list of pairs and filtering only for contact aggregation:
+   Note that we recommend storing the most comprehensive, unfiltered list of pairs and applying the filter on the fly prior to contact aggregation:
 
     .. code-block:: console
         pairtools select "(mapq1>=30) and (mapq2>=30)" output.nodups.pairs.gz | \
             cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 chromsizes.txt:1000 - output.mapq_30.1000.cool
 
 
-Best Practices and Tips
------------------------
+Technical tips
+--------------
 
-- Pipe between commands to save space and I/O throughput.
-- Use recommended file formats and compression for efficient storage and processing.
+- Pipe between commands to save space and I/O throughput:
+
+    Use Unix pipes to connect the output of one command directly to the input of the next command in the pipeline. 
+    This eliminates the need to store intermediate files on disk, saving storage space and reducing I/O overhead.
+    Specifically, mapping, parsing, sorting and deduplication can all be connected into a single pipeline:
+
+    .. code-block:: console
+        bwa mem -SP index input.R1.fastq input.R2.fastq | \
+        pairtools parse -c chromsizes.txt | \
+        pairtools sort | \
+            --output output.nodups.pairs.gz \
+            --output-dups output.dups.pairs.gz \
+            --output-unmapped output.unmapped.pairs.gz 
+            --output-stats output.dedup.stats
+
+- Use recommended compression for efficient storage and processing. .sam, .pairs and .pairsam files are text-based format that are rather inefficient and slow to process.  
+  Pairtools recognize .bam, .gz and .lz4 file extensions and automatically compress and decompress files on the fly.
+  Compression saves space, and reduces I/O overhead at a relatively minor CPU cost.
+
 - Parallelize tasks and manage resources effectively for faster execution.
+  Each pairtool has the CLI flags --nproc-in and --nproc-out to control the number of cores dedicated 
+  to input decompression and output compression. Additionally, `pairtools sort` parallelizes sorting with `--nproc`.ß
 
 Example Workflows
 -----------------
