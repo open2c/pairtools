@@ -64,36 +64,46 @@ Optimal pairtools parameters for standard Hi-C protocol
 
 To adapt the standard workflow for common variations of the Hi-C protocol, consider adjusting the following parameters:
 
-1. ``--walks-policy``: This parameter determines how ``pairtools parse`` handles reads with multiple alignments (walks). For example:
-   - Use ``--walks-policy 5uniq`` to keep all walks for protocols with lower library complexity or when analyzing repetitive regions.
+1. `pairtools parse --walks-policy`: This parameter determines how pairtools parse handles reads with multiple alignments (walks). 
+    We recommend specifying the value explicitly, as the default has changed between versions of `pairtools parse`.
+    
+    - Our current recommendation is to use `--walks-policy 5unique`, which is the default setting in the latest version of pairtools. 
+    With this option, pairtools parse reports the two 5'-most unique alignments on each side of a paired read as a pair. 
+    This option increases the number of reported pairs compared to the most conservative `--walks-policy mask`. 
+    However, it's important to note that 5unique can potentially report pairs of non-directly ligated fragments 
+    (i.e., two fragments separated by one or more other DNA fragments) as directly ligated. Such non-direct (also known as 
+    "higher-order" or "nonadjacent") ligations have slightly different statistical properties than direct ligations, 
+    as illustrated in several Pore-C papers  [`1 <https://www.biorxiv.org/content/10.1101/833590v1.full>`_ , `2 <https://www.nature.com/articles/s41467-023-36899-x>`_].
 
-2. select by mapq>30 
+    - An alternative is the `--walks-policy 3unique` policy, which reports the two 3'-most unique alignments on each side of 
+    a paired read as a pair, thus decreasing the chance of reporting non-direct ligations. 
+    However, `3unique` may not work well in situations where the combined length of a read pair is longer than the length of a DNA fragment. 
+    In this case, the 3' sides of the two reads will cover the same locations in the DNA molecule, and the 3' alignments may end up identical.
+    
+    - Finally, the experimental `--walks-policy all` option reports all alignments of a read pair as separate pairs. 
+    This option maximizes the number of reported pairs. The downside is that it breaks the assumption that there is only one pair per read,
+    which is not compatible with retrieval of .sams from .pairsam and may also complicate the interpretation of the stats.
 
-Experimental:
+2. `pairtools select "(mapq1>=30) and (mapq2>=30)"``: This filtering command selects only pairs with high-quality alignments, 
+   where both reads in a pair have a mapping quality (MAPQ) score of 30 or higher. 
+   Applying this filter helps remove false alignments between partially homologous sequences, which often cause artificial high-frequency interactions in Hi-C maps. 
+   This step is essential for generating maps for high-quality dot calls.
 
+   Note that we recommend storing the most comprehensive, unfiltered list of pairs and filtering only for contact aggregation:
 
-Other Hi-C Protocols
---------------------
+    .. code-block:: console
+        pairtools select "(mapq1>=30) and (mapq2>=30)" output.nodups.pairs.gz | \
+            cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 chromsizes.txt:1000 - output.mapq_30.1000.cool
 
-Pairtools can be used for non-standard Hi-C protocols with additional tools and parameters:
-
-- Single-cell Hi-C: Use ``pairtools phase`` for data mapped to diploid genomes.
-- Micro-C: Adjust ``pairtools dedup`` settings for different amplification strategies.
-- HiChIP: Incorporate ``pairtools restrict`` for enzyme-specific analysis.
 
 Best Practices and Tips
 -----------------------
 
+- Pipe between commands to save space and I/O throughput.
 - Use recommended file formats and compression for efficient storage and processing.
 - Parallelize tasks and manage resources effectively for faster execution.
-- Troubleshoot common issues by referring to the documentation and seeking help from the community.
 
 Example Workflows
 -----------------
 
 Example workflows for common Hi-C data processing scenarios are available in the `examples` directory of the pairtools repository. Each example includes sample datasets, step-by-step instructions, and example output files.
-
-FAQs
-----
-
-For frequently asked questions related to using pairtools for different Hi-C protocols and experimental designs, please refer to the FAQ section of the documentation.
