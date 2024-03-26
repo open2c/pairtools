@@ -12,29 +12,27 @@ Standard Hi-C Workflow
 ----------------------
 
 A typical pairtools workflow for processing standard Hi-C data is outlined below. 
-Please, note that this is a shorter version; you can find a more detailed and reproducible example in chapter :ref:`./examples/pairtools_walkthrough.ipynb`.
+Please, note that this is a shorter version; you can find a more detailed and reproducible example in chapter :ref:`examples/pairtools_walkthrough`.
 
 1. Align sequences to the reference genome with ``bwa mem``:
    
     .. code-block:: console
-
         bwa mem -SP index_file input.R1.fastq input.R2.fastq > input.sam
 
 2. Parse alignments into Hi-C pairs using ``pairtools parse``:
 
-   .. code-block:: console
-
-      pairtools parse -c /path/to/chrom_sizes -o output.pairs.gz input.sam
+    .. code-block:: console 
+        pairtools parse -c /path/to/chrom_sizes -o output.pairs.gz input.sam
 
 3. Sort pairs using ``pairtools sort``:
 
-   .. code-block:: console
 
-      pairtools sort --nproc 8 -o output.sorted.pairs.gz output.pairs.gz
+    .. code-block:: console
+        pairtools sort --nproc 8 -o output.sorted.pairs.gz output.pairs.gz
 
 4. Detect and remove duplicates using ``pairtools dedup`` and generate statistics:
 
-   .. code-block:: console
+    .. code-block:: console
         pairtools dedup \
         --output output.nodups.pairs.gz \
         --output-dups output.dups.pairs.gz \
@@ -45,12 +43,12 @@ Please, note that this is a shorter version; you can find a more detailed and re
 5. Aggregate into a cooler file:
 
     .. code-block:: console
-
         cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 /path/to/chrom_sizes:1000 output.nodups.pairs.gz output.1000.cool
+
 
 Together, these steps can be stringed into a simple two-step pipeline:
 
-   .. code-block:: console
+    .. code-block:: console
         bwa mem -SP index input.R1.fastq input.R2.fastq | \
         pairtools parse -c chromsizes.txt | \
         pairtools sort | \
@@ -61,27 +59,18 @@ Together, these steps can be stringed into a simple two-step pipeline:
         cooler cload pairs -c1 2 -p1 3 -c2 4 -p2 5 chromsizes.txt:1000 output.nodups.pairs.gz output.1000.cool
 
 
-Variations of Standard Hi-C
----------------------------
+Optimal pairtools parameters for standard Hi-C protocol
+-------------------------------------------------------
 
 To adapt the standard workflow for common variations of the Hi-C protocol, consider adjusting the following parameters:
 
-1. ``--min-mapq`` and ``--max-mapq``: These parameters control the minimum and maximum mapping quality (MAPQ) thresholds for accepting alignments. For example:
+1. ``--walks-policy``: This parameter determines how ``pairtools parse`` handles reads with multiple alignments (walks). For example:
+   - Use ``--walks-policy 5uniq`` to keep all walks for protocols with lower library complexity or when analyzing repetitive regions.
 
-   - Increase ``--min-mapq`` to reduce noise from low-quality alignments in protocols with lower library complexity.
-   - Decrease ``--max-mapq`` to retain multi-mapping reads in protocols where such reads are informative, such as in repetitive regions.
+2. select by mapq>30 
 
-2. ``--walks-policy``: This parameter determines how ``pairtools parse`` handles reads with multiple alignments (walks). For example:
+Experimental:
 
-   - Use ``--walks-policy all`` to keep all walks for protocols with lower library complexity or when analyzing repetitive regions.
-
-3. ``--max-inter-align-gap``: This parameter sets the maximum acceptable gap between two alignments in a walk. For example:
-
-   - Increase ``--max-inter-align-gap`` to retain more informative walks in protocols with longer fragments or reads.
-
-4. ``--no-rescue-walks``: This flag disables the rescue of truncated walks. For example:
-
-   - Use ``--no-rescue-walks`` to reduce false-positive pairs in protocols with high levels of chimeric reads or ligation errors.
 
 Other Hi-C Protocols
 --------------------
