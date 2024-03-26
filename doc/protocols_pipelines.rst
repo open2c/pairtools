@@ -54,8 +54,8 @@ Please, note that this is a shorter version; you can find a more detailed and re
 
 
 
-Optimal pairtools parameters for standard Hi-C protocol
--------------------------------------------------------
+Recommended pairtools parameters for typical Hi-C protocols
+-----------------------------------------------------------
 
 To adapt the standard workflow for common variations of the Hi-C protocol, consider adjusting the following parameters:
 
@@ -79,7 +79,7 @@ To adapt the standard workflow for common variations of the Hi-C protocol, consi
     This option maximizes the number of reported pairs. The downside is that it breaks the assumption that there is only one pair per read,
     which is not compatible with retrieval of .sams from .pairsam and may also complicate the interpretation of the stats.
 
-2. `pairtools select "(mapq1>=30) and (mapq2>=30)"``: This filtering command selects only pairs with high-quality alignments, 
+2. `pairtools select "(mapq1>=30) and (mapq2>=30)"`: This filtering command selects only pairs with high-quality alignments, 
    where both reads in a pair have a mapping quality (MAPQ) score of 30 or higher. 
    Applying this filter helps remove false alignments between partially homologous sequences, which often cause artificial high-frequency interactions in Hi-C maps. 
    This step is essential for generating maps for high-quality dot calls.
@@ -102,7 +102,7 @@ Technical tips
     Specifically, mapping, parsing, sorting and deduplication can all be connected into a single pipeline:
 
     .. code-block:: console
-        
+
         bwa mem -SP index input.R1.fastq input.R2.fastq | \
         pairtools parse -c chromsizes.txt | \
         pairtools sort | \
@@ -122,4 +122,3 @@ Technical tips
 Example Workflows
 -----------------
 
-Example workflows for common Hi-C data processing scenarios are available in the `examples` directory of the pairtools repository. Each example includes sample datasets, step-by-step instructions, and example output files.
