@@ -198,7 +198,7 @@ def sort_py(
     for col in columns:
         colindex = int(col) if col.isnumeric() else column_names.index(col) + 1
         cols.append(
-            f"-k {colindex},{colindex}{'n' if isinstance(pairsam_format.DTYPES_PAIRSAM.get(column_names[colindex-1], str), int) else ''}"
+            f"-k {colindex},{colindex}{'n' if issubclass(pairsam_format.DTYPES_PAIRSAM.get(column_names[colindex-1], str), int) else ''}"
         )
     cols = " ".join(cols)
     command = rf"""
