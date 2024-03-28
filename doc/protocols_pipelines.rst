@@ -69,7 +69,7 @@ To adapt the standard workflow for common variations of the Hi-C protocol, consi
 
     - An alternative is the `--walks-policy 3unique` policy, which reports the two 3'-most unique alignments on each side of 
     a paired read as a pair, thus decreasing the chance of reporting non-direct ligations. 
-    However, `3unique` may not work well in situations where the combined length of a read pair is longer than the length of a DNA fragment. 
+    However, ``3unique`` may not work well in situations where the combined length of a read pair is longer than the length of a DNA fragment (e.g. long read experiments). 
     In this case, the 3' sides of the two reads will cover the same locations in the DNA molecule, and the 3' alignments may end up identical.
     
     - Finally, the experimental `--walks-policy all` option reports all alignments of a read pair as separate pairs. 
