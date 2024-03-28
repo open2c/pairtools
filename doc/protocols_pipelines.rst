@@ -69,9 +69,7 @@ This option increases the number of reported pairs compared to the most conserva
     However, ``3unique`` may not work well in situations where the combined length of a read pair is longer than the length of a DNA fragment (e.g. long read experiments). 
     In this case, the 3' sides of the two reads will cover the same locations in the DNA molecule, and the 3' alignments may end up identical.
     
-    - Finally, the experimental `--walks-policy all` option reports all alignments of a read pair as separate pairs. 
-    This option maximizes the number of reported pairs. The downside is that it breaks the assumption that there is only one pair per read,
-    which is not compatible with retrieval of .sams from .pairsam and may also complicate the interpretation of the stats.
+Finally, the experimental ``--walks-policy all`` option reports all alignments of a read pair as separate pairs. This option maximizes the number of reported pairs. The downside is that it breaks the assumption that there is only one pair per read,  which is not compatible with retrieval of .sam records from .pairsam output and may also complicate the interpretation of pair statistics.
 
 2. `pairtools select "(mapq1>=30) and (mapq2>=30)"`: This filtering command selects only pairs with high-quality alignments, 
    where both reads in a pair have a mapping quality (MAPQ) score of 30 or higher. 
