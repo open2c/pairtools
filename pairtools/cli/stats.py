@@ -29,6 +29,14 @@ UTIL_NAME = "pairtools_stats"
     " the end of the file. Supported for tsv stats with single filter.",
 )
 @click.option(
+    "--n-dist-bins-decade",
+    type=int,
+    default=PairCounter.N_DIST_BINS_DECADE_DEFAULT,
+    show_default=True,
+    required=False,
+    help="Number of bins to split the distance range in log10-space, specified per a factor of 10 difference.",
+)
+@click.option(
     "--with-chromsizes/--no-chromsizes",
     is_flag=True,
     default=True,
@@ -107,7 +115,7 @@ UTIL_NAME = "pairtools_stats"
 )
 @common_io_options
 def stats(
-    input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs
+    input_path, output, merge, n_dist_bins_decade, bytile_dups, output_bytile_stats, filter, **kwargs
 ):
     """Calculate pairs statistics.
 
@@ -123,6 +131,7 @@ def stats(
         input_path,
         output,
         merge,
+        n_dist_bins_decade,
         bytile_dups,
         output_bytile_stats,
         filter,
@@ -131,10 +140,10 @@ def stats(
 
 
 def stats_py(
-    input_path, output, merge, bytile_dups, output_bytile_stats, filter, **kwargs
+    input_path, output, merge, n_dist_bins_decade, bytile_dups, output_bytile_stats, filter, **kwargs
 ):
     if merge:
-        do_merge(output, input_path, **kwargs)
+        do_merge(output, input_path, n_dist_bins_decade=n_dist_bins_decade, **kwargs)
         return
 
     if len(input_path) == 0:
@@ -181,6 +190,7 @@ def stats_py(
         filter = None
 
     stats = PairCounter(
+        n_dist_bins_decade=n_dist_bins_decade,
         bytile_dups=bytile_dups,
         filters=filter,
         startup_code=kwargs.get("startup_code", ""),  # for evaluation of filters

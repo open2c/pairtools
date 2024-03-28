@@ -14,7 +14,7 @@ output file.
 
 - **Global statistics** include:
     - number of pairs (total, unmapped, single-side mapped, etc.),
-    - total number of different pair types (UU, NN, NU, and others, see ` Pair types in pairtools docs <https://pairtools.readthedocs.io/en/latest/formats.html#pair-types>`_),
+    - total number of different pair types (UU, NN, NU, and others, see `Pair types in pairtools docs <https://pairtools.readthedocs.io/en/latest/formats.html#pair-types>`_),
     - number of contacts between all chromosome pairs
 
 - **Summary statistics** include:
@@ -59,17 +59,23 @@ replacement from a finite pool of fragments in DNA library [1]_ [2]_.
 With each new sequenced molecule, the expected number of observed unique molecules
 increases according to a simple equation:
 
-$$ U(N+1) = U(N) + (1 - {U(N) \\over C}), $$
+.. math::
 
-where $N$ is the number of sequenced molecules, $U(N)$ is the expected number
-of observed unique molecules after sequencing $N$ molecules, and C is the library complexity.
+    U(N+1) = U(N) + \left(1 - \frac{U(N)}{C} \right),
+
+where :math:`N` is the number of sequenced molecules, :math:`U(N)` is the expected number
+of observed unique molecules after sequencing :math:`N` molecules, and :math:`C` is the library complexity.
 This differential equation yields [1, 2]:
 
-$$ {U(N) \\over C} = 1 - exp( - {N \\over C}), $$
+.. math::
+    
+    {U(N) \over C} = 1 - exp\left( - \frac{N}{C} \right),
 
 which can be solved as
 
-$$ C = \Re(lambert W( - { \exp( - {1 \\over u} ) \\over u} ) ) + {1 \\over u} $$
+.. math::
+
+    C = \Re \left( W_{Lambert} \left( - \frac{ \exp\left( - \frac{1}{U} \right) } {U} \right) \right) + \frac{1}{U}
 
 Library complexity can guide in the choice of sequencing depth of the library
 and provide an estimate of library quality.
