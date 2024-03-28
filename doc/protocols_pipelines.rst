@@ -71,7 +71,9 @@ This option increases the number of reported pairs compared to the most conserva
     
 Finally, the experimental ``--walks-policy all`` option reports all alignments of a read pair as separate pairs. This option maximizes the number of reported pairs. The downside is that it breaks the assumption that there is only one pair per read,  which is not compatible with retrieval of .sam records from .pairsam output and may also complicate the interpretation of pair statistics.
 
-2. `pairtools select "(mapq1>=30) and (mapq2>=30)"`: This filtering command selects only pairs with high-quality alignments, 
+2. ``pairtools select "(mapq1>=30) and (mapq2>=30)"``: 
+
+This filtering command selects only pairs with high-quality alignments, 
    where both reads in a pair have a mapping quality (MAPQ) score of 30 or higher. 
    Applying this filter helps remove false alignments between partially homologous sequences, which often cause artificial high-frequency interactions in Hi-C maps. 
    This step is essential for generating maps for high-quality dot calls.
