@@ -58,22 +58,25 @@ To adapt the standard workflow for common variations of the Hi-C protocol, consi
 
 1. ``pairtools parse --walks-policy``: 
 
-This parameter determines how pairtools parse handles reads with multiple alignments (walks). We recommend specifying the value explicitly, as the default has changed between versions of ``pairtools parse``.
+   This parameter determines how pairtools parse handles reads with multiple alignments (walks). We recommend specifying the value explicitly, as the default has changed between versions of ``pairtools parse``.
     
-Our current recommendation is to use ``--walks-policy 5unique``, which is the default setting in the latest version of pairtools. With this option, pairtools parse reports the two 5'-most unique alignments on each side of a paired read as a pair. 
+   Our current recommendation is to use ``--walks-policy 5unique``, which is the default setting in the latest version of pairtools. With this option, pairtools parse reports the two 5'-most unique alignments on each side of a paired read as a pair. 
 
-This option increases the number of reported pairs compared to the most conservative ``--walks-policy mask``. However, it's important to note that ``5unique`` can potentially report pairs of non-directly ligated fragments (i.e., two fragments separated by one or more other DNA fragments). Such non-direct (also known as "higher-order" or "nonadjacent") ligations have slightly different statistical properties than direct ligations, as illustrated in several Pore-C papers  [`1 <https://www.biorxiv.org/content/10.1101/833590v1.full>`_ , `2 <https://www.nature.com/articles/s41467-023-36899-x>`_].
+   This option increases the number of reported pairs compared to the most conservative ``--walks-policy mask``. However, it's important to note that ``5unique`` can potentially report pairs of non-directly ligated fragments (i.e., two fragments separated by one or more other DNA fragments). Such non-direct (also known as "higher-order" or "nonadjacent") ligations have slightly different statistical properties than direct ligations, as illustrated in several Pore-C papers  [`1 <https://www.biorxiv.org/content/10.1101/833590v1.full>`_ , `2 <https://www.nature.com/articles/s41467-023-36899-x>`_].
 
-An alternative is the ``--walks-policy 3unique`` policy, which reports the two 3'-most unique alignments on each side of 
-    a paired read as a pair, thus decreasing the chance of reporting non-direct ligations. 
-    However, ``3unique`` may not work well in situations where the combined length of a read pair is longer than the length of a DNA fragment (e.g. long read experiments). 
-    In this case, the 3' sides of the two reads will cover the same locations in the DNA molecule, and the 3' alignments may end up identical.
+   An alternative is the ``--walks-policy 3unique`` policy, which reports the two 3'-most unique alignments on each side of 
+   a paired read as a pair, thus decreasing the chance of reporting non-direct ligations. 
+   However, ``3unique`` may not work well in situations where the combined length of a read pair is longer than the length of a DNA fragment (e.g. long read experiments). 
+   In this case, the 3' sides of the two reads will cover the same locations in the DNA molecule, and the 3' alignments may end up identical.
     
-Finally, the experimental ``--walks-policy all`` option reports all alignments of a read pair as separate pairs. This option maximizes the number of reported pairs. The downside is that it breaks the assumption that there is only one pair per read,  which is not compatible with retrieval of .sam records from .pairsam output and may also complicate the interpretation of pair statistics.
+   Finally, the experimental ``--walks-policy all`` option reports all alignments of a read pair as separate pairs. 
+   This option maximizes the number of reported pairs. 
+   The downside is that it breaks the assumption that there is only one pair per read, 
+   which is not compatible with retrieval of .sam records from .pairsam output and may also complicate the interpretation of pair statistics.
 
 2. ``pairtools select "(mapq1>=30) and (mapq2>=30)"``: 
 
-This filtering command selects only pairs with high-quality alignments, 
+   This filtering command selects only pairs with high-quality alignments, 
    where both reads in a pair have a mapping quality (MAPQ) score of 30 or higher. 
    Applying this filter helps remove false alignments between partially homologous sequences, which often cause artificial high-frequency interactions in Hi-C maps. 
    This step is essential for generating maps for high-quality dot calls.
@@ -114,5 +117,8 @@ Technical tips
   to input decompression and output compression. Additionally, `pairtools sort` parallelizes sorting with `--nproc`.ß
 
 Example Workflows
------------------
+------------------
+For more advanced workflows, please check the following projects:
 
+- `Distiller-nf <https://github.com/open2c/distiller-nf>`_ is a feature-rich Open2C Hi-C processing pipeline for the Nextflow workflow manager.
+- `Distiller-sm <https://github.com/open2c/distiller-sm>`_ is a similarly feature-rich and optimized pipeline implemented in Snakemake.
