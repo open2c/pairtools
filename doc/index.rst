@@ -72,7 +72,8 @@ Contents:
    sorting
    formats
    stats
-   technotes
+   protocols_pipelines
+   designnotes
    cli_tools
 
 .. toctree::
