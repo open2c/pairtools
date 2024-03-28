@@ -9,7 +9,7 @@ Typical Hi-C Workflow
 ----------------------
 
 A typical pairtools workflow for processing standard Hi-C data is outlined below. 
-Please, note that this is a shorter version; you can find a more detailed and reproducible example in chapter :ref:`examples/pairtools_walkthrough`.
+Please, note that this is a shorter version. For a detailed reproducible example, please, check the Jupyter notebook "Pairtools Walkthrough".
 
 1. Align sequences to the reference genome with ``bwa mem``:
    
@@ -113,6 +113,9 @@ Technical tips
   Each pairtool has the CLI flags --nproc-in and --nproc-out to control the number of cores dedicated 
   to input decompression and output compression. Additionally, `pairtools sort` parallelizes sorting with `--nproc`.ß
 
-Example Workflows
------------------
+Advanced Workflows
+------------------
+For more advanced workflows, please check the following projects:
+- [Distiller-NF](https://github.com/open2c/distiller-nf) is a feature-rich Open2C Hi-C processing pipeline for the Nextflow workflow manager.
+- [Distiller-SM](https://github.com/open2c/distiller-sm) is a similarly feature-rich and optimized pipeline implemented in Snakemake.
 
