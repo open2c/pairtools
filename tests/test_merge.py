@@ -90,11 +90,11 @@ def test_mock_pairsam(setup_sort_two):
         if prev_pair is not None:
             assert cur_pair[0] >= prev_pair[0]
             if cur_pair[0] == prev_pair[0]:
-                assert cur_pair[1] >= prev_pair[1]
-                if cur_pair[1] == prev_pair[1]:
-                    assert cur_pair[2] >= prev_pair[2]
-                    if cur_pair[2] == prev_pair[2]:
-                        assert cur_pair[3] >= prev_pair[3]
+                assert cur_pair[2] >= prev_pair[2]
+                if cur_pair[2] == prev_pair[2]:
+                    assert int(cur_pair[1]) >= int(prev_pair[1])
+                    if int(cur_pair[1]) == int(prev_pair[1]):
+                        assert int(cur_pair[3]) >= int(prev_pair[3])
 
         prev_pair = cur_pair
 

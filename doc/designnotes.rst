@@ -1,5 +1,5 @@
-Technical notes
-===============
+Design notes
+=============
 
 Designing scientific software and formats requires making a multitude of 
 tantalizing technical decisions and compromises. Often, the reasons behind a 
