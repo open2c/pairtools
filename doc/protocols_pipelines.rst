@@ -89,7 +89,7 @@ This filtering command selects only pairs with high-quality alignments,
 Technical tips
 --------------
 
-- Pipe between commands to save space and I/O throughput:
+- **Pipe between commands to save space and I/O throughput**
 
     Use Unix pipes to connect the output of one command directly to the input of the next command in the pipeline. 
     This eliminates the need to store intermediate files on disk, saving storage space and reducing I/O overhead.
