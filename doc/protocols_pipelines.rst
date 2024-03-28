@@ -56,16 +56,13 @@ Recommended pairtools parameters for standard Hi-C protocols
 
 To adapt the standard workflow for common variations of the Hi-C protocol, consider adjusting the following parameters:
 
-1. `pairtools parse --walks-policy`: This parameter determines how pairtools parse handles reads with multiple alignments (walks). 
-    We recommend specifying the value explicitly, as the default has changed between versions of `pairtools parse`.
+1. ``pairtools parse --walks-policy``: 
+
+This parameter determines how pairtools parse handles reads with multiple alignments (walks). We recommend specifying the value explicitly, as the default has changed between versions of ``pairtools parse``.
     
-    - Our current recommendation is to use `--walks-policy 5unique`, which is the default setting in the latest version of pairtools. 
-    With this option, pairtools parse reports the two 5'-most unique alignments on each side of a paired read as a pair. 
-    This option increases the number of reported pairs compared to the most conservative `--walks-policy mask`. 
-    However, it's important to note that 5unique can potentially report pairs of non-directly ligated fragments 
-    (i.e., two fragments separated by one or more other DNA fragments) as directly ligated. Such non-direct (also known as 
-    "higher-order" or "nonadjacent") ligations have slightly different statistical properties than direct ligations, 
-    as illustrated in several Pore-C papers  [`1 <https://www.biorxiv.org/content/10.1101/833590v1.full>`_ , `2 <https://www.nature.com/articles/s41467-023-36899-x>`_].
+Our current recommendation is to use ``--walks-policy 5unique``, which is the default setting in the latest version of pairtools. With this option, pairtools parse reports the two 5'-most unique alignments on each side of a paired read as a pair. 
+
+This option increases the number of reported pairs compared to the most conservative ``--walks-policy mask``. However, it's important to note that ``5unique`` can potentially report pairs of non-directly ligated fragments (i.e., two fragments separated by one or more other DNA fragments). Such non-direct (also known as "higher-order" or "nonadjacent") ligations have slightly different statistical properties than direct ligations, as illustrated in several Pore-C papers  [`1 <https://www.biorxiv.org/content/10.1101/833590v1.full>`_ , `2 <https://www.nature.com/articles/s41467-023-36899-x>`_].
 
     - An alternative is the `--walks-policy 3unique` policy, which reports the two 3'-most unique alignments on each side of 
     a paired read as a pair, thus decreasing the chance of reporting non-direct ligations. 
