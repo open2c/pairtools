@@ -109,7 +109,7 @@ Technical tips
   Pairtools recognize .bam, .gz and .lz4 file extensions and automatically compress and decompress files on the fly.
   Compression saves space, and reduces I/O overhead at a relatively minor CPU cost.
 
-- Parallelize tasks and manage resources effectively for faster execution.
+- **Parallelize tasks and manage resources effectively for faster execution.**
   Each pairtool has the CLI flags --nproc-in and --nproc-out to control the number of cores dedicated 
   to input decompression and output compression. Additionally, `pairtools sort` parallelizes sorting with `--nproc`.ß
 
