@@ -117,6 +117,6 @@ Advanced Workflows
 ------------------
 For more advanced workflows, please check the following projects:
 
-- [Distiller-NF](https://github.com/open2c/distiller-nf) is a feature-rich Open2C Hi-C processing pipeline for the Nextflow workflow manager.
-- [Distiller-SM](https://github.com/open2c/distiller-sm) is a similarly feature-rich and optimized pipeline implemented in Snakemake.
+- `Distiller-nf <https://github.com/open2c/distiller-nf>`_ is a feature-rich Open2C Hi-C processing pipeline for the Nextflow workflow manager.
+- `Distiller-sm <https://github.com/open2c/distiller-sm>`_ is a similarly feature-rich and optimized pipeline implemented in Snakemake.
 
