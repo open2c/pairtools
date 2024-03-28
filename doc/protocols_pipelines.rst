@@ -64,7 +64,7 @@ Our current recommendation is to use ``--walks-policy 5unique``, which is the de
 
 This option increases the number of reported pairs compared to the most conservative ``--walks-policy mask``. However, it's important to note that ``5unique`` can potentially report pairs of non-directly ligated fragments (i.e., two fragments separated by one or more other DNA fragments). Such non-direct (also known as "higher-order" or "nonadjacent") ligations have slightly different statistical properties than direct ligations, as illustrated in several Pore-C papers  [`1 <https://www.biorxiv.org/content/10.1101/833590v1.full>`_ , `2 <https://www.nature.com/articles/s41467-023-36899-x>`_].
 
-    - An alternative is the `--walks-policy 3unique` policy, which reports the two 3'-most unique alignments on each side of 
+An alternative is the ``--walks-policy 3unique`` policy, which reports the two 3'-most unique alignments on each side of 
     a paired read as a pair, thus decreasing the chance of reporting non-direct ligations. 
     However, ``3unique`` may not work well in situations where the combined length of a read pair is longer than the length of a DNA fragment (e.g. long read experiments). 
     In this case, the 3' sides of the two reads will cover the same locations in the DNA molecule, and the 3' alignments may end up identical.
