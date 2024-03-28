@@ -105,7 +105,7 @@ Technical tips
             --output-unmapped output.unmapped.pairs.gz 
             --output-stats output.dedup.stats
 
-- Use recommended compression for efficient storage and processing. .sam, .pairs and .pairsam files are text-based format that are rather inefficient and slow to process.  
+- **Use recommended compression for efficient storage and processing.** .sam, .pairs and .pairsam files are text-based format that are rather inefficient and slow to process.  
   Pairtools recognize .bam, .gz and .lz4 file extensions and automatically compress and decompress files on the fly.
   Compression saves space, and reduces I/O overhead at a relatively minor CPU cost.
 
