@@ -100,6 +100,10 @@ EXTRA_COLUMNS = [
     "dist_to_3",
     "seq",
     "mismatches",  # Format: "{ref_letter}:{mut_letter}:{phred}:{ref_position}:{read_position}"
+    "read_side",
+    "algn_idx",
+    "same_side_algn_count"
+    
 ]
 
 DTYPES_EXTRA_COLUMNS = {
@@ -115,4 +119,7 @@ DTYPES_EXTRA_COLUMNS = {
     "dist_to_3": int,
     "seq": str,
     "mismatches": str,
+    "read_side": int,
+    "algn_idx": int,
+    "same_side_algn_count": int,
 }
