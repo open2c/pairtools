@@ -89,9 +89,19 @@ def streaming_dedup(
         # Clean up dataframe:
         df_chunk = df_chunk.drop(columns=["duplicate"])
 
-        # Stream the pairs:
-        # If outstream_dups is the same as outstream, we save all mapped pairs to the same file
+        # Save the pairs:
 
+        # Stream unmapped:
+        if outstream_unmapped:
+            df_chunk.loc[~mask_mapped, :].to_csv(
+                outstream_unmapped,
+                index=False,
+                header=False,
+                sep="\t",
+                quoting=QUOTE_NONE,
+            )
+
+        # If outstream_dups is the same as outstream, we save the mapped pairs to the same file
         if outstream_dups == outstream:
             df_chunk.loc[mask_mapped, :].to_csv(
                 outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
@@ -115,16 +125,6 @@ def streaming_dedup(
                 df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
                     outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
                 )
-
-        # Stream unmapped:
-        if outstream_unmapped:
-            df_chunk.loc[~mask_mapped, :].to_csv(
-                outstream_unmapped,
-                index=False,
-                header=False,
-                sep="\t",
-                quoting=QUOTE_NONE,
-            )
 
     t1 = time.time()
     t = t1 - t0

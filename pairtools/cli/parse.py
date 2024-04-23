@@ -123,7 +123,7 @@ UTIL_NAME = "pairtools_parse"
 @click.option(
     "--walks-policy",
     type=click.Choice(["mask", "5any", "5unique", "3any", "3unique", "all"]),
-    default="mask",
+    default="5unique",
     help="the policy for reporting unrescuable walks (reads containing more"
     " than one alignment on one or both sides, that can not be explained by a"
     " single ligation between two mappable DNA fragments)."
