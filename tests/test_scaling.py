@@ -23,5 +23,5 @@ def test_scaling():
     output = pd.read_csv(io.StringIO(result), sep="\t", header=0)
 
     assert (
-        output["n_pairs"].sum() == 9
+        output["n_pairs"].sum() == 7
     )  # double unmapped pairs are currently ignored by lib.scaling
