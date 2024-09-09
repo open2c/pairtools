@@ -48,13 +48,13 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        uses: actions/setup-python@v5
+      - name: Checkout, install, build
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
           cache: 'pip' # caching pip dependencies
-        run: |
+      - run: |
           python -m pip install --upgrade pip wheel setuptools build
           python -m pip install --upgrade cython pysam
           python -m pip install -r requirements-dev.txt
