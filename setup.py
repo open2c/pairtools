@@ -9,6 +9,8 @@ import glob
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
+
+import Cython
 try:
     from Cython.Distutils import build_ext as _build_ext
     from Cython.Build import cythonize
