@@ -16,7 +16,7 @@ try:
     HAVE_CYTHON = True
 except ImportError:
     from setuptools.command.build_ext import build_ext as _build_ext
-
+    print('Cython was not found!')
     HAVE_CYTHON = False
 
 classifiers = """\
