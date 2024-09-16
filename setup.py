@@ -9,6 +9,7 @@ import glob
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
+
 try:
     from Cython.Distutils import build_ext as _build_ext
     from Cython.Build import cythonize
@@ -16,7 +17,7 @@ try:
     HAVE_CYTHON = True
 except ImportError:
     from setuptools.command.build_ext import build_ext as _build_ext
-
+    print('Cython was not found!')
     HAVE_CYTHON = False
 
 classifiers = """\
