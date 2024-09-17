@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pairtools"
-dynamic = ['version', 'author', 'author_email', 'license', 'url', 'description', 'keywords', 'classifiers']
+dynamic = ['version', 'authors',  'license', 'urls', 'description', 'keywords', 'classifiers']
 requires-python = ">=3.8"
 
 [tool.cibuildwheel.linux]
