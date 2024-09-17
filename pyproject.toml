@@ -3,6 +3,8 @@ requires = ["setuptools", "cython", "numpy", "pysam"]
 build-backend = "setuptools.build_meta"
 
 [project]
+name = "pairtools"
+dynamic = ['version']
 requires-python = ">=3.8"
 
 [tool.cibuildwheel.linux]
