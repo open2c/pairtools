@@ -100,7 +100,7 @@ class build_ext(_build_ext):
         # Fix to work with bootstrapped numpy installation
         # http://stackoverflow.com/a/21621689/579416
         # Prevent numpy from thinking it is still in its setup process:
-        __builtins__.__NUMPY_SETUP__ = False
+        #__builtins__.__NUMPY_SETUP__ = False
         import numpy
 
         self.include_dirs.append(numpy.get_include())
