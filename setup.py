@@ -57,7 +57,8 @@ install_requires = [l for l in _read("requirements.txt").split("\n") if l]
 def get_ext_modules():
     ext = ".pyx" if HAVE_CYTHON else ".c"
     src_files = glob.glob(
-        os.path.join(os.path.dirname(__file__), "pairtools", "lib", "*" + ext)
+        #os.path.join(os.path.dirname(__file__), "pairtools", "lib", "*" + ext)
+        os.path.join("pairtools", "lib", "*" + ext)
     )
 
     ext_modules = []
