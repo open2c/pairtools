@@ -9,7 +9,7 @@ I. pysam-based:
         each sam entry is in fact special AlignedSegmentPairtoolized Cython object
         that has alignment attributes and can be easily accessed from Python.
     
-        Sam entries are gathered into reads by `push_pysam` function.
+        Sam entries are gathered into reads by `group_alignments_by_side` function.
     
     2. **read** is a collection of sam entries corresponding to a single Hi-C molecule.
         It is represented by three variables:
@@ -36,36 +36,6 @@ II. python-based data types are parsed from pysam-based ones:
 """
 from . import pairsam_format
 from .parse_pysam import get_mismatches_c
-
-
-def group_alignments_by_side(sams):
-    return [sam for sam in sams if sam.is_read1], [sam for sam in sams if sam.is_read2]
-
-
-def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
-    sams = []
-
-    prev_readID = None
-    while True:
-        sam_entry = next(instream, None)
-        readID = sam_entry.query_name if sam_entry else None
-
-        # Read is fully populated, then parse and write:
-        if not (sam_entry) or ((readID != prev_readID) and prev_readID):
-            if sort:
-                sams = sorted(sams, key=lambda a: (a.is_read2, a.query_alignment_start))
-            out = sams if not group_by_side else group_alignments_by_side(sams)
-            out = out if not return_readID else (prev_readID, out)
-            yield out
-            
-            sams.clear()
-            
-        if sam_entry is None:
-            break
-        else:
-            sams.append(sam_entry)
-            prev_readID = readID
-
 
 def streaming_classify(
     instream, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
@@ -216,17 +186,6 @@ def streaming_classify(
 ### Alignment utilities: ###
 ############################
 
-
-def push_pysam(sam_entry, sams1, sams2):
-    """Parse pysam AlignedSegment (sam) into pairtools sams entry"""
-    flag = sam_entry.flag
-    if (flag & 0x40) != 0:
-        sams1.append(sam_entry)  # left read, or first read in a pair
-    else:
-        sams2.append(sam_entry)  # right read, or mate pair
-    return
-
-
 def empty_alignment():
     return {
         "chrom": pairsam_format.UNMAPPED_CHROM,
@@ -251,6 +210,43 @@ def empty_alignment():
         "mismatches": "",
     }
 
+def group_alignments_by_side(sams):
+    """Group pysam AlignedSegments (sams) into left-read (R1) and right-read (R2) sam entries"""
+
+    sams1 = []
+    sams2 = []
+    for sam_entry in sams:
+        flag = sam_entry.flag
+        if (flag & 0x40) != 0:
+            sams1.append(sam_entry)  # left read, or first read in a pair
+        else:
+            sams2.append(sam_entry)  # right read, or mate pair
+    return sams1, sams2
+
+
+def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
+    sams = []
+
+    prev_readID = None
+    while True:
+        sam_entry = next(instream, None)
+        readID = sam_entry.query_name if sam_entry else None
+
+        # Read is fully populated, then parse and write:
+        if not (sam_entry) or ((readID != prev_readID) and prev_readID):
+            if sort:
+                sams = sorted(sams, key=lambda a: (a.is_read2, a.query_alignment_start))
+            out = sams if not group_by_side else group_alignments_by_side(sams)
+            out = out if not return_readID else (prev_readID, out)
+            yield out
+            
+            sams.clear()
+            
+        if sam_entry is None:
+            break
+        else:
+            sams.append(sam_entry)
+            prev_readID = readID
 
 def parse_pysam_entry(
     sam,
