@@ -680,6 +680,8 @@ def parse2_read(
                 report_position,
                 report_orientation,
                 dedup_max_mismatch,
+                expand,
+                max_expansion_depth,
             )
             output = [x for x in output if x[-1][-1] != "R1-2"]
             return (output, algns1, algns2)
@@ -1144,7 +1146,7 @@ def expand_pairs(pairs_list, max_expansion_depth=None):
     list of expanded pairs
 
     """
-
+    
     for algn1, _algn1, pair_index1 in pairs_list:
         for _algn2, algn2, pair_index2 in pairs_list:
             if pair_index1 > pair_index2:
