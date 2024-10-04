@@ -94,9 +94,7 @@ def streaming_classify(
 
     ### Iterate over input pysam:
     instream = iter(instream)
-    for (readID, (sams1, sams2)) in read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
-        if readID_transform is not None:
-            readID = eval(readID_transform)
+    for (readID, (sams1, sams2)) in read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True, readID_transform=readID_transform):
 
         ### Parse
         if not parse2:  # regular parser:
@@ -224,13 +222,15 @@ def group_alignments_by_side(sams):
     return sams1, sams2
 
 
-def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
+def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True, readID_transform=None):
     sams = []
 
     prev_readID = None
     while True:
         sam_entry = next(instream, None)
         readID = sam_entry.query_name if sam_entry else None
+        if readID_transform is not None and readID is not None: 
+            readID = eval(readID_transform)
 
         # Read is fully populated, then parse and write:
         if not (sam_entry) or ((readID != prev_readID) and prev_readID):
