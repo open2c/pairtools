@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython", "numpy",] # "pysam"]
+requires = ["setuptools", "cython", "numpy"] # "pysam"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,4 +8,5 @@ dynamic = ['version', 'authors',  'license', 'urls', 'description', 'keywords', 
 requires-python = ">=3.8"
 
 [tool.cibuildwheel.linux]
-before-all = "yum install bzip2-devel xz-devel -y; pip install cython numpy; pip install pysam --no-binary pysam"
+before-all = "yum install bzip2-devel xz-devel -y;"
+before-build = "pip install pysam --no-binary "
