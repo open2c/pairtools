@@ -9,4 +9,4 @@ requires-python = ">=3.8"
 
 [tool.cibuildwheel.linux]
 before-all = "yum install bzip2-devel xz-devel -y;"
-before-build = "pip install pysam --no-binary "
+before-build = "pip install pysam --no-binary pysam"
