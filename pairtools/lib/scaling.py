@@ -134,7 +134,11 @@ def make_empty_cross_region_table(
 
 
 def bins_pairs_by_distance(
-    pairs_df, dist_bins, regions=None, chromsizes=None, ignore_trans=False,
+    pairs_df,
+    dist_bins,
+    regions=None,
+    chromsizes=None,
+    ignore_trans=False,
     keep_unassigned=False,
 ):
 
@@ -187,7 +191,6 @@ def bins_pairs_by_distance(
             pairs_df.chrom2.values, pairs_df.pos2.values, regions
         ).T
 
-
     pairs_reduced_df = pd.DataFrame(
         {
             "chrom1": pairs_df.chrom1.values,
@@ -207,10 +210,11 @@ def bins_pairs_by_distance(
     )
 
     if not keep_unassigned:
-        pairs_reduced_df = (pairs_reduced_df
-            .query('(start1 >= 0) and (start2 >= 0)') 
+        pairs_reduced_df = (
+            pairs_reduced_df.query("(start1 >= 0) and (start2 >= 0)")
             # do not test for end1 and end2, as they can be -1 if regions and not specified
-            .reset_index(drop=True))
+            .reset_index(drop=True)
+        )
 
     pairs_reduced_df["min_dist"] = np.where(
         pairs_reduced_df["dist_bin_idx"] > 0,
@@ -219,7 +223,7 @@ def bins_pairs_by_distance(
     )
 
     pairs_reduced_df["max_dist"] = np.where(
-        pairs_reduced_df["dist_bin_idx"] < len(dist_bins)-1,
+        pairs_reduced_df["dist_bin_idx"] < len(dist_bins) - 1,
         dist_bins[pairs_reduced_df["dist_bin_idx"]],
         np.iinfo(np.int64).max,
     )
@@ -348,7 +352,7 @@ def compute_scaling(
     Parameters
     ----------
     pairs : pd.DataFrame or str or file-like object
-        A table with pairs of genomic coordinates representing contacts. 
+        A table with pairs of genomic coordinates representing contacts.
         It can be a pandas DataFrame, a path to a pairs file, or a file-like object.
     regions : bioframe viewframe or None, optional
         Genomic regions of interest. It can be anything that can serve as input to bioframe.from_any,
@@ -379,16 +383,18 @@ def compute_scaling(
     """
 
     dist_bins = geomspace(
-        dist_range[0], 
+        dist_range[0],
         dist_range[1],
-        int(np.round(np.log10(dist_range[1]/dist_range[0])*n_dist_bins_decade))
+        int(np.round(np.log10(dist_range[1] / dist_range[0]) * n_dist_bins_decade)),
     )
 
     if isinstance(pairs, pd.DataFrame):
         pairs_df = pairs
 
     elif isinstance(pairs, str) or hasattr(pairs, "buffer") or hasattr(pairs, "peek"):
-        pairs_df, _, _ = pairsio.read_pairs(pairs, nproc=nproc_in, chunksize=chunksize)
+        pairs_df, _, chromsizes = pairsio.read_pairs(
+            pairs, nproc=nproc_in, chunksize=chunksize
+        )
     else:
         raise ValueError(
             "pairs must be either a path to a pairs file or a pd.DataFrame"
@@ -404,7 +410,7 @@ def compute_scaling(
             regions=regions,
             chromsizes=chromsizes,
             ignore_trans=ignore_trans,
-            keep_unassigned=keep_unassigned
+            keep_unassigned=keep_unassigned,
         )
 
         sc = sc_chunk if sc is None else sc.add(sc_chunk, fill_value=0)
@@ -414,7 +420,6 @@ def compute_scaling(
             if trans_counts is None
             else trans_counts.add(trans_counts_chunk, fill_value=0)
         )
-
 
     #         if not (isinstance(regions, pd.DataFrame) and
     #                  (set(regions.columns) == set(['chrom', 'start','end']))):
@@ -427,10 +432,9 @@ def compute_scaling(
 
     if not ignore_trans:
         trans_counts.reset_index(inplace=True)
-        trans_counts["n_bp2"] = (
-            (trans_counts["end1"] - trans_counts["start1"]) * (
+        trans_counts["n_bp2"] = (trans_counts["end1"] - trans_counts["start1"]) * (
             trans_counts["end2"] - trans_counts["start2"]
-        ))
+        )
 
     return sc, trans_counts
 
@@ -450,12 +454,12 @@ def norm_scaling_factor(bins, cfreqs, norm_window):
     """
 
     lo, hi = np.searchsorted(bins, norm_window)
-    return cfreqs[lo:hi+1].mean()
+    return cfreqs[lo : hi + 1].mean()
 
 
 def norm_scaling(bins, cfreqs, norm_window, log_input=False):
     """
-    Normalize a contact-frequency-vs-distance curve, by setting the average contact frequency 
+    Normalize a contact-frequency-vs-distance curve, by setting the average contact frequency
     in a given window to 1.0.
 
     Args:
@@ -467,14 +471,14 @@ def norm_scaling(bins, cfreqs, norm_window, log_input=False):
     Returns:
         float or array-like: The normalized contact frequencies.
     """
-    
+
     norm = norm_scaling_factor(bins, cfreqs, norm_window)
     if log_input:
         return cfreqs - norm
     else:
         return cfreqs / norm
 
-    
+
 def unity_norm_scaling(bins, cfreqs, norm_range=(1e4, 1e9)):
     bin_lens = np.diff(bins)
     bin_mids = np.sqrt(bins[1:] * bins[:-1])
