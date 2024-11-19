@@ -17,3 +17,4 @@ before-all = "yum install bzip2-devel xz-devel -y;"
 
 [tool.cibuildwheel.linux.environment]
 PIP_NO_BINARY = "pysam"
+PIP_NO_CACHE_DIR = "false"
