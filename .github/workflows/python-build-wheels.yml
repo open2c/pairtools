@@ -38,6 +38,7 @@ jobs:
         # to supply options, put them in 'env', like:
         env:
           CIBW_BUILD_FRONTEND: "build"
+          PIP_NO_BUILD_ISOLATION: "false"
 
       - uses: actions/upload-artifact@v4
         with:
