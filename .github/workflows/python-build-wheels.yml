@@ -20,7 +20,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.0
+        #uses: pypa/cibuildwheel@v2.21.0
+        uses: pypa/cibuildwheel@v2.17.0
         # env:
         #   CIBW_SOME_OPTION: value
         #    ...
