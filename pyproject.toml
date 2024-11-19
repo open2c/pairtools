@@ -3,7 +3,7 @@ requires = [
     "setuptools", 
     "cython", 
     "numpy"] 
-    # "pysam"]
+    "pysam"]
 build-backend = "setuptools.build_meta"
 
 [project]
