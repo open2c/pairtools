@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pairtools"
 dynamic = ['version', 'authors',  'license', 'urls', 'description', 'keywords', 'classifiers', 'readme', 'scripts', 'dependencies']
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [tool.cibuildwheel.linux]
 before-all = "yum install bzip2-devel xz-devel -y;"
