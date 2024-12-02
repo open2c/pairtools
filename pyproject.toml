@@ -5,6 +5,7 @@ requires = [
     "numpy", 
     "pysam"]
 build-backend = "setuptools.build_meta"
+#build-backend = "build"
 
 [project]
 name = "pairtools"
