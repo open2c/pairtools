@@ -19,7 +19,7 @@ dynamic = [
     'readme', 
     'scripts', 
     'dependencies']
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 [tool.cibuildwheel.linux]
 before-all = "yum install bzip2-devel xz-devel -y;"
