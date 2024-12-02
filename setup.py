@@ -80,9 +80,10 @@ def get_ext_modules():
                 Extension(
                     name,
                     [src_file],
-                    extra_link_args=pysam.get_libraries(),
+                    #extra_link_args=pysam.get_libraries(),
                     include_dirs=pysam.get_include(),
                     define_macros=pysam.get_defines(),
+                    #libraries=['libchtslib'],
                     #extra_objects=pysam.get_libraries(),
                 )
             )
