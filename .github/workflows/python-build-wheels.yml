@@ -39,7 +39,7 @@ jobs:
         env:
           #CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
           CIBW_BUILD_FRONTEND: "build; args: -n"
-          CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel -y;"
+          CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel libnghttp2 -y;"
           CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam" 
 
           CIBW_ARCHS_LINUX: "auto64"
