@@ -39,8 +39,9 @@ jobs:
         env:
           #CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
           CIBW_BUILD_FRONTEND: "build; args: -n"
-          CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel  -y;"
-          CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam --no-binary pysam" 
+          CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel openssl-devel -y;"
+          CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam "
+          #--no-binary pysam" 
 
           # skip building 32-bit wheels (i686)
           CIBW_ARCHS_LINUX: "auto64"
