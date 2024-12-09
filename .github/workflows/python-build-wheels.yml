@@ -42,8 +42,15 @@ jobs:
           CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel libnghttp2 -y;"
           CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam" 
 
+          # skip building 32-bit wheels (i686)
           CIBW_ARCHS_LINUX: "auto64"
+
+          # use 2_28 to download pysam's wheel instead of compiling it
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
+          
+          ## skip building pypy
+          CIBW_SKIP: pp*
+
           #PIP_NO_CACHE_DIR: "false"
           #PIP_NO_BUILD_ISOLATION: "false"
           #PIP_NO_BINARY: "pysam"
