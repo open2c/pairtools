@@ -39,13 +39,15 @@ jobs:
         env:
           #CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
           CIBW_BUILD_FRONTEND: "build; args: -n"
-          CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel libnghttp2 -y;"
-          CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam" 
+          CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel  -y;"
+          CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam --no-binary pysam" 
 
           # skip building 32-bit wheels (i686)
           CIBW_ARCHS_LINUX: "auto64"
 
-          # use 2_28 to download pysam's wheel instead of compiling it
+          # use 2_28 to download pysam's wheel instead of compiling it ;
+          # THAT DIDN'T WORK THOUGH BECAUSE PYSAM DEPENDS ON LIBSSL, LIBNGHTTP2, ETC, WHICH CANNOT BE FOUND
+          # SO WE ARE BACK TO COMPILING PYSAM'S WHEEL (no-binary pysam)
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           
           ## skip building pypy
