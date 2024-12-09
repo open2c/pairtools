@@ -39,7 +39,7 @@ jobs:
         env:
           #CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
           CIBW_BUILD_FRONTEND: "build; args: -n"
-          CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel openssl-devel openldap-devel krb5-devel libssh-devel libnghttp2-devel -y;"
+          CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel openssl-devel openldap-devel krb5-devel libssh-devel libnghttp2-devel openssl-libs -y;"
           CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam "
           #--no-binary pysam" 
 
