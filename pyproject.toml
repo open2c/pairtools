@@ -38,6 +38,23 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 
+[project.optional-dependencies]
+test = [
+  'pytest',
+  'pytest-flake8',
+  'pytest-cov',
+]
+
+doc = [
+  'sphinx-click',
+  'ipython',
+  'nbsphinx',
+  'Sphinx>=7.0',
+  'sphinx_rtd_theme',
+  'docutils>0.16',
+]
+
+
 
 [project.urls]
 Homepage = "https://github.com/open2c/pairtools"
