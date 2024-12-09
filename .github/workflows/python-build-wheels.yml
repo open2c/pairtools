@@ -50,8 +50,8 @@ jobs:
           # SO WE ARE BACK TO COMPILING PYSAM'S WHEEL (no-binary pysam)
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           
-          ## skip building pypy
-          CIBW_SKIP: pp*
+          ## skip building pypy and musllinux
+          CIBW_SKIP: pp* *muslinux*
 
           #PIP_NO_CACHE_DIR: "false"
           #PIP_NO_BUILD_ISOLATION: "false"

@@ -50,20 +50,27 @@ Requirements:
 - Python packages `cython`, `pysam`, `bioframe`, `pyyaml`, `numpy`, `scipy`, `pandas` and `click`.
 - Command-line utilities `sort` (the Unix version), `bgzip` (shipped with `samtools`)  and `samtools`. If available, `pairtools` can compress outputs with `pbgzip` and `lz4`.
 
-For the full list of recommended versions, see [requirements in the the GitHub repo](https://github.com/open2c/pairtools/blob/detect_mutations/requirements.txt). 
+For the full list of recommended versions, see [the requirements section in the pyproject.toml](https://github.com/open2c/pairtools/blob/main/pyproject.toml). 
 
 We highly recommend using the `conda` package manager to install `pairtools` together with all its dependencies. To get it, you can either install the full [Anaconda](https://www.continuum.io/downloads) Python distribution or just the standalone [conda](http://conda.pydata.org/miniconda.html) package manager.
 
 With `conda`, you can install `pairtools` and all of its dependencies from the [bioconda](https://bioconda.github.io/index.html) channel.
 ```sh
-$ conda install -c conda-forge -c bioconda pairtools
+$ conda install -c bioconda -c conda-forge pairtools
 ```
 
-Alternatively, install non-Python dependencies and `pairtools` with Python-only dependencies from PyPI using pip:
+Alternatively, install non-Python dependencies separately and download `pairtools` with Python dependencies from PyPI using pip:
 ```sh
-$ pip install numpy pysam cython
 $ pip install pairtools
 ```
+
+Finally, for development purposes, build `pairtools` from source via pip's "editable" mode:
+```sh
+$ git clone https://github.com/open2c/pairtools
+$ cd pairtools
+$ pip install -e ./ --no-build-isolation
+```
+
 
 ## Quick example
 
