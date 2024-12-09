@@ -20,17 +20,6 @@ except ImportError:
     print('Cython was not found!')
     HAVE_CYTHON = False
 
-classifiers = """\
-    Development Status :: 4 - Beta
-    Operating System :: OS Independent
-    Programming Language :: Python
-    Programming Language :: Python :: 3
-    Programming Language :: Python :: 3.8
-    Programming Language :: Python :: 3.9
-    Programming Language :: Python :: 3.10
-    Programming Language :: Python :: 3.11
-"""
-
 
 def _read(*parts, **kwargs):
     filepath = os.path.join(os.path.dirname(__file__), *parts)
@@ -47,11 +36,6 @@ def get_version():
         re.MULTILINE,
     ).group(1)
     return version
-
-
-long_description = _read("README.md")
-
-install_requires = [l for l in _read("requirements.txt").split("\n") if l]
 
 
 def get_ext_modules():
@@ -76,7 +60,6 @@ def get_ext_modules():
             )
         else:
             import pysam
-            print(pysam.get_libraries())
             ext_modules.append(
                 Extension(
                     name,
@@ -84,8 +67,6 @@ def get_ext_modules():
                     extra_link_args=pysam.get_libraries(),
                     include_dirs=pysam.get_include(),
                     define_macros=pysam.get_defines(),
-                    #libraries=['libchtslib'],
-                    #extra_objects=pysam.get_libraries(),
                 )
             )
 
@@ -121,27 +102,14 @@ class build_ext(_build_ext):
 
 
 setup(
-    name="pairtools",
-    author="Open2C",
-    author_email="open.chromosome.collective@gmail.com",
     version=get_version(),
-    license="MIT",
-    description="CLI tools to process mapped Hi-C data",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    keywords=["genomics", "bioinformatics", "Hi-C", "contact"],
-    url="https://github.com/open2c/pairtools",
     ext_modules=get_ext_modules(),
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
-    classifiers=[s.strip() for s in classifiers.split("\n") if s],
-    install_requires=install_requires,
-    python_requires=">=3.8",
-    entry_points={
-        "console_scripts": [
-            "pairtools = pairtools.cli:cli",
-            #'pairsamtools = pairtools.cli:cli',
-        ]
-    },
+    # entry_points={
+    #     "console_scripts": [
+    #         "pairtools = pairtools.cli:cli",
+    #     ]
+    # },
     packages=find_packages(),
 )
