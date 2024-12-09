@@ -54,6 +54,8 @@ jobs:
           ## skip building pypy and musllinux
           CIBW_SKIP: pp* *muslinux*
 
+          CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel repair -v -w {dest_dir} {wheel}'
+
           #PIP_NO_CACHE_DIR: "false"
           #PIP_NO_BUILD_ISOLATION: "false"
           #PIP_NO_BINARY: "pysam"
