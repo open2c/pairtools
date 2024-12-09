@@ -66,6 +66,7 @@ $ pip install pairtools
 
 Finally, for development purposes, build `pairtools` from source via pip's "editable" mode:
 ```sh
+$ pip install Cython pysam numpy
 $ git clone https://github.com/open2c/pairtools
 $ cd pairtools
 $ pip install -e ./ --no-build-isolation

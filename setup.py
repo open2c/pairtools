@@ -16,10 +16,9 @@ try:
 
     HAVE_CYTHON = True
 except ImportError:
-    from setuptools.command.build_ext import build_ext as _build_ext
+    #from setuptools.command.build_ext import build_ext as _build_ext
     print('Cython was not found!')
-    HAVE_CYTHON = False
-
+    raise ImportError('Cython is required to build the extension modules.')
 
 def _read(*parts, **kwargs):
     filepath = os.path.join(os.path.dirname(__file__), *parts)
