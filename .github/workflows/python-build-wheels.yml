@@ -41,6 +41,9 @@ jobs:
           CIBW_BUILD_FRONTEND: "build; args: -n"
           CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel -y;"
           CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam" 
+
+          CIBW_ARCHS_LINUX: "auto64"
+          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           #PIP_NO_CACHE_DIR: "false"
           #PIP_NO_BUILD_ISOLATION: "false"
           #PIP_NO_BINARY: "pysam"
