@@ -31,13 +31,13 @@ jobs:
           # Use the empty string ("") to ignore status or conclusion in the search
           workflow_conclusion: success
 
-      - name: Publish distribution 📦 to PyPI
+      - name: Publish sdist 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: cibw-sdist
           repository-url: https://test.pypi.org/legacy/
 
-      - name: Publish distribution 📦 to PyPI
+      - name: Publish wheels 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: cibw-wheels-ubuntu-latest-0
