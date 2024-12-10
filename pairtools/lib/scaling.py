@@ -48,12 +48,13 @@ def _to_float(arr_or_scalar):
 
 
 def assign_regs(chroms, pos, regs):
-    gb_regs = regs.sort_values(["chrom", "start", "end"]).groupby(["chrom"])
+    gb_regs = regs.sort_values(["chrom", "start", "end"]).groupby("chrom")
 
     regs_dict = {
         chrom.encode(): regs_per_chrom[["start", "end"]]
-        .values.flatten()
-        .astype(np.int64)
+            .values
+            .flatten()
+            .astype(np.int64)
         for chrom, regs_per_chrom in gb_regs
     }
 
