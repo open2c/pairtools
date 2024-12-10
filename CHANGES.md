@@ -1,3 +1,12 @@
+### 1.1.1 (2024-12-10) ###
+
+Bugfixes:
+- Migrating to pyproject.toml + cibuildwheel. pairtools will now release binary wheels for Linux. --no-build-isolation is a mandatory flag now.
+- Require Cython during build to avoid the "circular import" bug.
+- fix API incomplete functionality for read-side detection by @agalitsyna 
+
+**Full Changelog**: https://github.com/open2c/pairtools/compare/v1.1.0...v1.1.1
+
 ### 1.1.0 (2024-04-23) ###
 Major bugfixes:
 - Fix a major bug in sort that previously broke the sorting order. This bug was introduced in recent versions of pairtools #230
