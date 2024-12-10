@@ -50,11 +50,17 @@ Then, you can compile and install `pairtools` in
 `the development mode <https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_, 
 which installs the package without moving it to a system folder and thus allows
 immediate live-testing any changes in the python code. Please, make sure that you 
-have `cython` installed!
+have `cython` and `pysam` installed!
 
 .. code-block:: bash
 
+    $ pip install cython pysam numpy
     $ cd pairtools 
-    $ pip install -e ./
+    $ pip install -e ./ --no-build-isolation
 
-
+A few notes on the installation:
+  - `pairtools` have to use `--no-build-isolation`, because it extends `pysam` via Cython and 
+    re-compiles it during the build process. When build isolation is enabled, these `pysam` objects 
+    get lost after the build.
+  - Because of the `--no-build-isolation` flag, build does not install build-requires, so you have to 
+    install `cython`, `pysam` and `numpy` manually before the build.
