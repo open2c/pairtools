@@ -3,6 +3,26 @@ name: Build wheels
 on: [workflow_dispatch]
 
 jobs:
+  make_sdist:
+    name: Make SDist
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Optional, use if you use setuptools_scm
+        submodules: true  # Optional, use if you have submodules
+
+    - name: Install dependencies
+      run: python -m pip install cython numpy pysam
+
+    - name: Build SDist
+      run: pipx run build --sdist
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: cibw-sdist
+        path: dist/*.tar.gz
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -48,10 +68,10 @@ jobs:
           # skip building 32-bit wheels (i686)
           CIBW_ARCHS_LINUX: "auto64"
 
-          # use 2_28 to download pysam's wheel instead of compiling it ;
-          # THAT DIDN'T WORK THOUGH BECAUSE PYSAM DEPENDS ON LIBSSL, LIBNGHTTP2, ETC, WHICH CANNOT BE FOUND
+          # we could use 2_28 to download pysam's wheel instead of compiling it ;
+          # HOWEVER THAT DIDN'T WORK BECAUSE PYSAM DEPENDS ON LIBSSL, LIBNGHTTP2, ETC, WHICH CANNOT BE FOUND
           # SO WE ARE BACK TO COMPILING PYSAM'S WHEEL (no-binary pysam)
-          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
+          # CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           
           ## skip building pypy and musllinux
           CIBW_SKIP: pp* *musllinux*
