@@ -34,6 +34,13 @@ jobs:
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          packages-dir: cibw-sdist
+          repository-url: https://test.pypi.org/legacy/
+
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: cibw-wheels-ubuntu-latest-0
           repository-url: https://test.pypi.org/legacy/
     
 
