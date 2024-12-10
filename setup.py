@@ -9,16 +9,12 @@ import glob
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
-
 try:
     from Cython.Distutils import build_ext as _build_ext
     from Cython.Build import cythonize
-
-    HAVE_CYTHON = True
 except ImportError:
-    #from setuptools.command.build_ext import build_ext as _build_ext
-    print('Cython was not found!')
     raise ImportError('Cython is required to build the extension modules.')
+
 
 def _read(*parts, **kwargs):
     filepath = os.path.join(os.path.dirname(__file__), *parts)
@@ -38,7 +34,7 @@ def get_version():
 
 
 def get_ext_modules():
-    ext = ".pyx" if HAVE_CYTHON else ".c"
+    ext = ".pyx"
     src_files = glob.glob(
         #os.path.join(os.path.dirname(__file__), "pairtools", "lib", "*" + ext)
         os.path.join("pairtools", "lib", "*" + ext)
@@ -47,17 +43,8 @@ def get_ext_modules():
     ext_modules = []
     for src_file in src_files:
         name = "pairtools.lib." + os.path.splitext(os.path.basename(src_file))[0]
-        if not "pysam" in name and not "regions" in name:
-            ext_modules.append(Extension(name, [src_file]))
-        elif "regions" in name:
-            ext_modules.append(
-                Extension(
-                    name,
-                    [src_file],
-                    language="c++",
-                )
-            )
-        else:
+  
+        if 'pysam' in name:
             import pysam
             ext_modules.append(
                 Extension(
@@ -68,10 +55,19 @@ def get_ext_modules():
                     define_macros=pysam.get_defines(),
                 )
             )
+        elif "regions" in name:
+            ext_modules.append(
+                Extension(
+                    name,
+                    [src_file],
+                    language="c++",
+                )
+            )
 
-    if HAVE_CYTHON:
-        # .pyx to .c
-        ext_modules = cythonize(ext_modules)  # , annotate=True
+        else:
+            ext_modules.append(Extension(name, [src_file]))
+
+    ext_modules = cythonize(ext_modules)  # , annotate=True
 
     return ext_modules
 

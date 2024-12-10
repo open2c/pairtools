@@ -54,7 +54,7 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           
           ## skip building pypy and musllinux
-          CIBW_SKIP: pp* *muslinux*
+          CIBW_SKIP: pp* *musllinux*
 
           #CIBW_REPAIR_WHEEL_COMMAND: 'auditwheel -v repair -w {dest_dir} {wheel}'
 
@@ -62,7 +62,7 @@ jobs:
           #PIP_NO_BUILD_ISOLATION: "false"
           #PIP_NO_BINARY: "pysam"
 
-      # - uses: actions/upload-artifact@v4
-      #   with:
-      #     name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
-      #     path: ./wheelhouse/*.whl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
