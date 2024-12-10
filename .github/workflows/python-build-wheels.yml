@@ -40,6 +40,8 @@ jobs:
           #CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
           CIBW_BUILD_FRONTEND: "build; args: --no-isolation"
           CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel -y;"
+
+          # we have to recompile pysam so that repairwheel can later find various libraries (libssl, libnghttp2, etc)
           #CIBW_BEFORE_ALL: "yum install bzip2-devel xz-devel openssl-devel openldap-devel krb5-devel libssh-devel libnghttp2-devel -y;"
           CIBW_BEFORE_BUILD: "python -m pip install setuptools cython numpy pysam --no-binary pysam" 
 
