@@ -1,3 +1,8 @@
+### 1.1.2 (2024-12-11) ###
+
+Bugfixes:
+- Drop Cython-generated .c/.cpp files from the sdist
+
 ### 1.1.1 (2024-12-10) ###
 
 Bugfixes:

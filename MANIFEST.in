@@ -1,8 +1,8 @@
-include CHANGES.md
 include README.md
-include requirements.txt
-include requirements_doc.txt
+include CHANGES.md
 include LICENSE
+include pyproject.toml
+include pytest.ini
 
 graft tests
 graft doc
@@ -11,6 +11,8 @@ prune doc/_templates
 
 global-include *.pyx
 global-include *.pxd
+global-exclude *.c
+global-exclude *.cpp
 
 global-exclude __pycache__/*
 global-exclude *.so
