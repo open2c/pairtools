@@ -64,3 +64,17 @@ A few notes on the installation:
     get lost after the build.
   - Because of the `--no-build-isolation` flag, build does not install build-requires, so you have to 
     install `cython`, `pysam` and `numpy` manually before the build.
+
+
+Building on MacOS is not fully supported yet, but this tentative solution seems to work: 
+
+.. code-block:: bash
+
+    $ pip install build cython pysam numpy delocate
+    $ cd pairtools 
+    $ python -m build -n
+    $ DYLD_LIBRARY_PATH=$(python -c 'import pysam, os; print(os.path.dirname(pysam.get_libraries()[0]))') delocate-wheel -v dist/{wheel_name}.whl
+    $ pip install dist/{wheel_name}.whl
+
+Note that you need to change the `{wheel_name}` to the actual name of the wheel file.
+
