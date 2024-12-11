@@ -13,7 +13,7 @@ try:
     from Cython.Distutils import build_ext as _build_ext
     from Cython.Build import cythonize
 except ImportError:
-    raise ImportError('Cython is required to build the extension modules.')
+    raise ImportError('Cython is now required to build the extension modules.')
 
 
 def _read(*parts, **kwargs):
