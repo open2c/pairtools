@@ -11,7 +11,7 @@ build:
       - "pip install numpy cython pysam"
     pre_build:
       - "pip install --upgrade numpy"
-      - python setup.py build
+      - pip install -e .
       - python -c "import pairtools.lib.dedup_cython"
 
 sphinx:
