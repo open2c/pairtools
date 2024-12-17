@@ -9,6 +9,8 @@ build:
   jobs:
     post_create_environment:
       - "pip install numpy cython pysam"
+    pre_build:
+      - "pip install --upgrade numpy"
 
 sphinx:
   configuration: doc/conf.py
