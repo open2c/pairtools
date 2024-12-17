@@ -7,7 +7,7 @@ build:
   tools:
     python: "3.10"
   jobs:
-    pre_build:
+    post_create_environment:
       - "pip install numpy cython pysam"
 
 sphinx:
