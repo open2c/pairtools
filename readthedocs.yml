@@ -10,7 +10,9 @@ build:
     post_create_environment:
       - "pip install numpy cython pysam"
     pre_build:
+      - "python -c 'import pairtools.lib.dedup_cython'"
       - "pip install --upgrade numpy"
+      - "python -c 'import pairtools.lib.dedup_cython'"
 
 sphinx:
   configuration: doc/conf.py
