@@ -9,7 +9,7 @@ build:
   jobs:
     post_create_environment:
       - pip install numpy cython pysam
-      - pip install --no-build-isolation -e .
+      - pip install --no-build-isolation -e .[doc]
       - python -c "import pairtools.lib.dedup_cython"
 
 sphinx:
