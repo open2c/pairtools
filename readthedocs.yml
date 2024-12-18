@@ -8,18 +8,16 @@ build:
     python: "3.10"
   jobs:
     post_create_environment:
-      - "pip install numpy cython pysam"
-    pre_build:
-      - "pip install --upgrade numpy"
-      - pip install -e .
+      - pip install numpy cython pysam
+      - pip install --no-build-isolation -e .
       - python -c "import pairtools.lib.dedup_cython"
 
 sphinx:
   configuration: doc/conf.py
 
-python:
-  install:
-    - method: pip
-      path: .
-      extra_requirements:
-        - doc
+# python:
+#   install:
+#     - method: pip
+#       path: .
+#       extra_requirements:
+#         - doc
