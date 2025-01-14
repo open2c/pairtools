@@ -1090,7 +1090,7 @@ def parse_complex_walk(
     for i_overlapping in range(current_right_pair - 1):
         idx_left = n_algns1 - current_right_pair + i_overlapping
         idx_right = n_algns2 - 1 - i_overlapping
-        pair_index = (idx_left + 1, "R1&2")
+        pair_index = (idx_left + 1, "R1&R2")
         output_pairs.append(
             format_pair(
                 algns1[idx_left],
@@ -1169,9 +1169,9 @@ def expand_pairs(pairs_list, max_expansion_depth=None):
                     pair_type = "R1-2"
                 elif pair_type1 == pair_type2:
                     pair_type = pair_type1
-                elif pair_type1 == "R1&2":
+                elif pair_type1 == "R1&R2":
                     pair_type = pair_type2
-                elif pair_type2 == "R1&2":
+                elif pair_type2 == "R1&R2":
                     pair_type = pair_type1
                 else:
                     raise ValueError(
