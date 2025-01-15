@@ -750,13 +750,15 @@ def parse2_read(
             )
         else:
             # If no additional information, we assume each molecule is a single ligation with single unconfirmed pair:
-            algn2 = algns2[0]
-            if report_orientation == "walk":
-                algn2 = flip_orientation(algn2)
-            if report_position == "walk":
-                algn2 = flip_position(algn2)
             pair_index = (1, "R1-2")
-            return iter([(algns1[0], algn2, pair_index)]), algns1, algns2
+            algn1, algn2, pair_index = format_pair(
+                algns1[0],
+                algns2[0],
+                pair_index=pair_index,
+                report_position=report_position,
+                report_orientation=report_orientation,
+            )
+            return iter([(algn1, algn2, pair_index)]), algns1, algns2
 
 
 ####################
@@ -1090,7 +1092,7 @@ def parse_complex_walk(
     for i_overlapping in range(current_right_pair - 1):
         idx_left = n_algns1 - current_right_pair + i_overlapping
         idx_right = n_algns2 - 1 - i_overlapping
-        pair_index = (idx_left + 1, "R1&R2")
+        pair_index = (idx_left + 1, "R1&2")
         output_pairs.append(
             format_pair(
                 algns1[idx_left],
@@ -1169,9 +1171,9 @@ def expand_pairs(pairs_list, max_expansion_depth=None):
                     pair_type = "R1-2"
                 elif pair_type1 == pair_type2:
                     pair_type = pair_type1
-                elif pair_type1 == "R1&R2":
+                elif pair_type1 == "R1&2":
                     pair_type = pair_type2
-                elif pair_type2 == "R1&R2":
+                elif pair_type2 == "R1&2":
                     pair_type = pair_type1
                 else:
                     raise ValueError(
@@ -1363,12 +1365,12 @@ def format_pair(
         elif pair_type == "R1-2":
             hic_algn2 = flip_orientation(hic_algn2)
     elif report_orientation == "pair":
-        if pair_type == "R1" or pair_type == "R1&R2":
+        if pair_type == "R1" or pair_type == "R1&2":
             hic_algn2 = flip_orientation(hic_algn2)
         elif pair_type == "R2":
             hic_algn1 = flip_orientation(hic_algn1)
     elif report_orientation == "junction":
-        if pair_type == "R1" or pair_type == "R1&R2":
+        if pair_type == "R1" or pair_type == "R1&2":
             hic_algn1 = flip_orientation(hic_algn1)
         elif pair_type == "R2":
             hic_algn2 = flip_orientation(hic_algn2)
@@ -1385,18 +1387,20 @@ def format_pair(
         elif pair_type == "R1-2":
             hic_algn2 = flip_position(hic_algn2)
     elif report_position == "outer":
-        if pair_type == "R1" or pair_type == "R1&R2":
+        if pair_type == "R1" or pair_type == "R1&2":
             hic_algn2 = flip_position(hic_algn2)
         elif pair_type == "R2":
             hic_algn1 = flip_position(hic_algn1)
     elif report_position == "junction":
-        if pair_type == "R1" or pair_type == "R1&R2":
+        if pair_type == "R1" or pair_type == "R1&2":
             hic_algn1 = flip_position(hic_algn1)
         elif pair_type == "R2":
             hic_algn2 = flip_position(hic_algn2)
-        else:
+        elif pair_type == "R1-2":
             hic_algn1 = flip_position(hic_algn1)
             hic_algn2 = flip_position(hic_algn2)
+        else:
+            raise ValueError(f"Unknown pair type: {pair_type}")
 
     return [hic_algn1, hic_algn2, pair_index]
 
