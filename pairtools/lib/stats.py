@@ -18,10 +18,10 @@ def parse_number(s):
     elif s.replace(".", "", 1).isdigit():
         return float(s)
     else:
-        return s   
+        return s
 
 
-def flat_dict_to_nested(input_dict, sep='/'):
+def flat_dict_to_nested(input_dict, sep="/"):
     output_dict = {}
 
     for key, value in input_dict.items():
@@ -30,8 +30,10 @@ def flat_dict_to_nested(input_dict, sep='/'):
         elif type(key) == str:
             key_parts = key.split(sep)
         else:
-            raise ValueError(f"Key type can be either str or tuple. Found key {key} of type {type(key)}.")
-        
+            raise ValueError(
+                f"Key type can be either str or tuple. Found key {key} of type {type(key)}."
+            )
+
         current_dict = output_dict
         for key_part in key_parts[:-1]:
             current_dict = current_dict.setdefault(key_part, {})
@@ -40,7 +42,7 @@ def flat_dict_to_nested(input_dict, sep='/'):
     return output_dict
 
 
-def nested_dict_to_flat(d, tuple_keys=False, sep='/'):
+def nested_dict_to_flat(d, tuple_keys=False, sep="/"):
     """Flatten a nested dictionary to a flat dictionary.
 
     Parameters
@@ -56,27 +58,30 @@ def nested_dict_to_flat(d, tuple_keys=False, sep='/'):
     dict
         A flat dictionary.
     """
-    
+
     if tuple_keys:
-        join_keys = lambda k1,k2: (k1,) + k2
+        join_keys = lambda k1, k2: (k1,) + k2
     else:
-        join_keys = lambda k1,k2: (k1+sep+k2) if k2 else k1
+        join_keys = lambda k1, k2: (k1 + sep + k2) if k2 else k1
 
     out = {}
 
     for k1, v1 in d.items():
         if isinstance(v1, dict):
-            out.update({
-                join_keys(k1,k2): v2
-                for k2, v2 in nested_dict_to_flat(v1, tuple_keys, sep).items()
-            })
+            out.update(
+                {
+                    join_keys(k1, k2): v2
+                    for k2, v2 in nested_dict_to_flat(v1, tuple_keys, sep).items()
+                }
+            )
         else:
             if tuple_keys:
                 out[(k1,)] = v1
             else:
                 out[k1] = v1
-    
+
     return out
+
 
 def is_nested_dict(d):
     """Check if a dictionary is nested.
@@ -100,6 +105,7 @@ def is_nested_dict(d):
 
     return False
 
+
 def is_tuple_keyed_dict(d):
     """Check if a dictionary is tuple-keyed.
 
@@ -116,13 +122,14 @@ def is_tuple_keyed_dict(d):
     if not isinstance(d, dict):
         return False
 
-    for k,v in d.items():
+    for k, v in d.items():
         if not isinstance(k, tuple):
             return False
         if isinstance(v, dict):
             return False
 
     return True
+
 
 def is_str_keyed_dict(d):
     """Check if a dictionary is string-keyed.
@@ -140,7 +147,7 @@ def is_str_keyed_dict(d):
     if not isinstance(d, dict):
         return False
 
-    for k,v in d.keys():
+    for k, v in d.keys():
         if not isinstance(k, str):
             return False
         if isinstance(v, dict):
@@ -149,7 +156,7 @@ def is_str_keyed_dict(d):
     return True
 
 
-def swap_levels_nested_dict(nested_dict, level1, level2, sep='/'):
+def swap_levels_nested_dict(nested_dict, level1, level2, sep="/"):
     """Swap the order of two levels in a nested dictionary.
 
     Parameters
@@ -171,23 +178,26 @@ def swap_levels_nested_dict(nested_dict, level1, level2, sep='/'):
         for k1, v1 in nested_dict.items():
             k1_list = list(k1)
             k1_list[level1], k1_list[level2] = k1_list[level2], k1_list[level1]
-            out[tuple(k1_list)] = v1        
+            out[tuple(k1_list)] = v1
         return out
-    
+
     elif is_nested_dict(nested_dict):
         out = nested_dict_to_flat(nested_dict, tuple_keys=True)
         out = swap_levels_nested_dict(out, level1, level2)
         out = flat_dict_to_nested(out)
         return out
-    
+
     elif is_str_keyed_dict(nested_dict):
         out = nested_dict_to_flat(nested_dict, sep=sep)
         out = swap_levels_nested_dict(out, level1, level2)
-        out = {sep.join(k):v for k,v in out.items()}
+        out = {sep.join(k): v for k, v in out.items()}
         return out
-    
+
     else:
-        raise ValueError("Input dictionary must be either nested, string-keyed or tuple-keyed")
+        raise ValueError(
+            "Input dictionary must be either nested, string-keyed or tuple-keyed"
+        )
+
 
 class PairCounter(Mapping):
     """
@@ -205,7 +215,7 @@ class PairCounter(Mapping):
     DIST_FREQ_REL_DIFF_THRESHOLD = 0.05
     N_DIST_BINS_DECADE_DEFAULT = 8
     MIN_LOG10_DIST_DEFAULT = 0
-    MAX_LOG10_DIST_DEFAULT = 9    
+    MAX_LOG10_DIST_DEFAULT = 9
 
     def __init__(
         self,
@@ -234,7 +244,7 @@ class PairCounter(Mapping):
         # genomic distance bining for the ++/--/-+/+- distribution
         log10_dist_bin_step = 1.0 / n_dist_bins_decade
         self._dist_bins = np.unique(
-                np.r_[
+            np.r_[
                 0,
                 np.round(
                     10
@@ -261,7 +271,7 @@ class PairCounter(Mapping):
             self._stat[key]["cis"] = 0
             self._stat[key]["trans"] = 0
             self._stat[key]["pair_types"] = {}
-            
+
             # to be removed:
             # self._stat[key]["dedup"] = {}
 
@@ -306,7 +316,6 @@ class PairCounter(Mapping):
                 )
             )
         self._summaries_calculated = False
-
 
     def __getitem__(self, key, filter="no_filter"):
         if isinstance(key, str):
@@ -378,40 +387,45 @@ class PairCounter(Mapping):
         else:
             raise ValueError("{} is not a valid key".format(k))
 
-
     def __iter__(self):
         return iter(self._stat)
-
 
     def __len__(self):
         return len(self._stat)
 
-
     def find_dist_freq_convergence_distance(self, rel_threshold):
-        """Finds the largest distance at which the frequency of pairs of reads 
-        with different strands deviates from their average by the specified 
+        """Finds the largest distance at which the frequency of pairs of reads
+        with different strands deviates from their average by the specified
         relative threshold."""
-        
+
         out = {}
         all_strands = ["++", "--", "-+", "+-"]
 
         for filter in self.filters:
             out[filter] = {}
-            
+
             dist_freqs_by_strands = {
-                strands: np.array(list(self._stat[filter]["dist_freq"][strands].values()))
-                for strands in all_strands}
-            
+                strands: np.array(
+                    list(self._stat[filter]["dist_freq"][strands].values())
+                )
+                for strands in all_strands
+            }
+
             # Calculate the average frequency of pairs with different strands
-            avg_freq_all_strands = np.mean(np.vstack(list(dist_freqs_by_strands.values())), axis=0)
+            avg_freq_all_strands = np.mean(
+                np.vstack(list(dist_freqs_by_strands.values())), axis=0
+            )
 
             # Calculate the largest distance at which the frequency of pairs of at least one strand combination deviates from the average by the given threshold
-            rel_deviations = {strands: np.nan_to_num(
-                np.abs(dist_freqs_by_strands[strands] - avg_freq_all_strands) 
-                / avg_freq_all_strands)
-                  for strands in all_strands}
-            
-            idx_maxs = {strand:0 for strand in all_strands}
+            rel_deviations = {
+                strands: np.nan_to_num(
+                    np.abs(dist_freqs_by_strands[strands] - avg_freq_all_strands)
+                    / avg_freq_all_strands
+                )
+                for strands in all_strands
+            }
+
+            idx_maxs = {strand: 0 for strand in all_strands}
             for strands in all_strands:
                 bin_exceeds = rel_deviations[strands] > rel_threshold
                 if np.any(bin_exceeds):
@@ -419,62 +433,74 @@ class PairCounter(Mapping):
 
             # Find the largest distance and the strand combination where frequency of pairs deviates from the average by the given threshold:
             convergence_bin_idx = 0
-            convergence_strands = '??'
-            convergence_dist = '0'
+            convergence_strands = "??"
+            convergence_dist = "0"
 
             for strands in all_strands:
-                if (idx_maxs[strands] > convergence_bin_idx):
+                if idx_maxs[strands] > convergence_bin_idx:
                     convergence_bin_idx = idx_maxs[strands]
                     convergence_strands = strands
 
                     if idx_maxs[strands] < len(self._dist_bins):
-                        convergence_dist = self._dist_bins[convergence_bin_idx+1]
+                        convergence_dist = self._dist_bins[convergence_bin_idx + 1]
                     else:
                         convergence_dist = np.iinfo(np.int64)
-                    
-            
+
             out[filter]["convergence_dist"] = convergence_dist
             out[filter]["strands_w_max_convergence_dist"] = convergence_strands
-            out[filter]['convergence_rel_diff_threshold'] = rel_threshold
+            out[filter]["convergence_rel_diff_threshold"] = rel_threshold
 
-            out[filter]['n_cis_pairs_below_convergence_dist'] = {
-                strands:dist_freqs_by_strands[strands][:convergence_bin_idx+1].sum() for strands in all_strands
+            out[filter]["n_cis_pairs_below_convergence_dist"] = {
+                strands: dist_freqs_by_strands[strands][: convergence_bin_idx + 1].sum()
+                for strands in all_strands
                 for strands in all_strands
             }
 
-            out[filter]['n_cis_pairs_below_convergence_dist_all_strands'] = sum(
-                list(out[filter]['n_cis_pairs_below_convergence_dist'].values())) 
-
-            n_cis_pairs_above_convergence_dist = {
-                strands:dist_freqs_by_strands[strands][convergence_bin_idx+1:].sum() for strands in all_strands
-                for strands in all_strands
-            }
-            
-            out[filter]['n_cis_pairs_above_convergence_dist_all_strands'] = sum(
-                list(n_cis_pairs_above_convergence_dist.values())) 
-
-            norms = dict(
-                cis=self._stat[filter]['cis'],
-                total_mapped=self._stat[filter]['total_mapped']
+            out[filter]["n_cis_pairs_below_convergence_dist_all_strands"] = sum(
+                list(out[filter]["n_cis_pairs_below_convergence_dist"].values())
             )
 
-            if 'total_nodups' in self._stat[filter]:
-                norms['total_nodups'] = self._stat[filter]['total_nodups']
+            n_cis_pairs_above_convergence_dist = {
+                strands: dist_freqs_by_strands[strands][convergence_bin_idx + 1 :].sum()
+                for strands in all_strands
+                for strands in all_strands
+            }
+
+            out[filter]["n_cis_pairs_above_convergence_dist_all_strands"] = sum(
+                list(n_cis_pairs_above_convergence_dist.values())
+            )
+
+            norms = dict(
+                cis=self._stat[filter]["cis"],
+                total_mapped=self._stat[filter]["total_mapped"],
+            )
+
+            if "total_nodups" in self._stat[filter]:
+                norms["total_nodups"] = self._stat[filter]["total_nodups"]
 
             for key, norm_factor in norms.items():
-                out[filter][f'frac_{key}_in_cis_below_convergence_dist'] = {
-                    strands: n_cis_pairs / norm_factor 
-                    for strands, n_cis_pairs in out[filter]['n_cis_pairs_below_convergence_dist'].items()
+                out[filter][f"frac_{key}_in_cis_below_convergence_dist"] = {
+                    strands: n_cis_pairs / norm_factor
+                    for strands, n_cis_pairs in out[filter][
+                        "n_cis_pairs_below_convergence_dist"
+                    ].items()
                 }
 
-                out[filter][f'frac_{key}_in_cis_below_convergence_dist_all_strands'] = sum(
-                    list(out[filter][f'frac_{key}_in_cis_below_convergence_dist'].values()))
+                out[filter][f"frac_{key}_in_cis_below_convergence_dist_all_strands"] = (
+                    sum(
+                        list(
+                            out[filter][
+                                f"frac_{key}_in_cis_below_convergence_dist"
+                            ].values()
+                        )
+                    )
+                )
 
-                out[filter][f'frac_{key}_in_cis_above_convergence_dist_all_strands'] = (
-                    sum(list(n_cis_pairs_above_convergence_dist.values())) / norm_factor )
+                out[filter][f"frac_{key}_in_cis_above_convergence_dist_all_strands"] = (
+                    sum(list(n_cis_pairs_above_convergence_dist.values())) / norm_factor
+                )
 
         return out
-
 
     def calculate_summaries(self):
         """calculate summary statistics (fraction of cis pairs at different cutoffs,
@@ -482,7 +508,8 @@ class PairCounter(Mapping):
         self._stat["filter_name"]['summary"]
         """
         convergence_stats = self.find_dist_freq_convergence_distance(
-            self.DIST_FREQ_REL_DIFF_THRESHOLD)
+            self.DIST_FREQ_REL_DIFF_THRESHOLD
+        )
 
         for filter_name in self.filters.keys():
             for cis_count in (
@@ -495,23 +522,33 @@ class PairCounter(Mapping):
                 "cis_40kb+",
             ):
                 self._stat[filter_name]["summary"][f"frac_{cis_count}"] = (
-                    (self._stat[filter_name][cis_count] / self._stat[filter_name]["total_nodups"])
+                    (
+                        self._stat[filter_name][cis_count]
+                        / self._stat[filter_name]["total_nodups"]
+                    )
                     if self._stat[filter_name]["total_nodups"] > 0
                     else 0
                 )
 
-            self._stat[filter_name]["summary"]["dist_freq_convergence"] = convergence_stats[filter_name]
+            self._stat[filter_name]["summary"]["dist_freq_convergence"] = (
+                convergence_stats[filter_name]
+            )
 
             self._stat[filter_name]["summary"]["frac_dups"] = (
-                (self._stat[filter_name]["total_dups"] / self._stat[filter_name]["total_mapped"])
+                (
+                    self._stat[filter_name]["total_dups"]
+                    / self._stat[filter_name]["total_mapped"]
+                )
                 if self._stat[filter_name]["total_mapped"] > 0
                 else 0
             )
 
-            self._stat[filter_name]["summary"][
-                "complexity_naive"
-            ] = estimate_library_complexity(
-                self._stat[filter_name]["total_mapped"], self._stat[filter_name]["total_dups"], 0
+            self._stat[filter_name]["summary"]["complexity_naive"] = (
+                estimate_library_complexity(
+                    self._stat[filter_name]["total_mapped"],
+                    self._stat[filter_name]["total_dups"],
+                    0,
+                )
             )
 
             if filter_name == "no_filter" and self._save_bytile_dups:
@@ -534,7 +571,6 @@ class PairCounter(Mapping):
                     )
 
             self._summaries_calculated = True
-
 
     @classmethod
     def from_file(cls, file_handle, n_dist_bins_decade=N_DIST_BINS_DECADE_DEFAULT):
@@ -562,28 +598,31 @@ class PairCounter(Mapping):
                     "{} is not a valid stats file".format(file_handle.name)
                 )
             raw_stat[key_val_pair[0]] = parse_number(key_val_pair[1])
-        
 
-        ## TODO: check if raw_stat does not contain any unknown keys 
+        ## TODO: check if raw_stat does not contain any unknown keys
 
         # Convert flat dict to nested dict
-        stat_from_file._stat[default_filter].update(flat_dict_to_nested(raw_stat, sep=cls._KEY_SEP))
-
-        stat_from_file._stat[default_filter]['chrom_freq'] = nested_dict_to_flat(
-            stat_from_file._stat[default_filter]['chrom_freq'], tuple_keys=True)   
-
-        bin_to_left_val = lambda bin: int(bin.rstrip('+') if ('+' in bin) else bin.split('-')[0])
-
-        stat_from_file._stat[default_filter]['dist_freq'] = {
-            bin_to_left_val(k): v
-            for k,v in stat_from_file._stat[default_filter]['dist_freq'].items()
-        }  
-
-        stat_from_file._stat[default_filter]['dist_freq'] = swap_levels_nested_dict(
-            stat_from_file._stat[default_filter]['dist_freq'], 0, 1
+        stat_from_file._stat[default_filter].update(
+            flat_dict_to_nested(raw_stat, sep=cls._KEY_SEP)
         )
 
-            
+        stat_from_file._stat[default_filter]["chrom_freq"] = nested_dict_to_flat(
+            stat_from_file._stat[default_filter]["chrom_freq"], tuple_keys=True
+        )
+
+        bin_to_left_val = lambda bin: int(
+            bin.rstrip("+") if ("+" in bin) else bin.split("-")[0]
+        )
+
+        stat_from_file._stat[default_filter]["dist_freq"] = {
+            bin_to_left_val(k): v
+            for k, v in stat_from_file._stat[default_filter]["dist_freq"].items()
+        }
+
+        stat_from_file._stat[default_filter]["dist_freq"] = swap_levels_nested_dict(
+            stat_from_file._stat[default_filter]["dist_freq"], 0, 1
+        )
+
         return stat_from_file
 
     @classmethod
@@ -601,7 +640,9 @@ class PairCounter(Mapping):
         stat = yaml.safe_load(file_handle)
         stat_from_file = cls(
             n_dist_bins_decade=n_dist_bins_decade,
-            filters={key: val.get("filter_expression", "") for key, val in stat.items()}
+            filters={
+                key: val.get("filter_expression", "") for key, val in stat.items()
+            },
         )
 
         for key, filter in stat.items():
@@ -613,7 +654,6 @@ class PairCounter(Mapping):
             stat[key]["chrom_freq"] = chromdict
         stat_from_file._stat = stat
         return stat_from_file
-
 
     def add_pair(
         self,
@@ -679,13 +719,11 @@ class PairCounter(Mapping):
                     for dist_kb in [1, 2, 4, 10, 20, 40]:
                         if dist >= dist_kb * 1000:
                             self._stat[filter][f"cis_{dist_kb}kb+"] += 1
-                        
 
                 else:
                     self._stat[filter]["trans"] += 1
         else:
             self._stat[filter]["total_single_sided_mapped"] += 1
-
 
     def add_pairs_from_dataframe(self, df, unmapped_chrom="!"):
         """Gather statistics for Hi-C pairs in a dataframe and add to the PairCounter.
@@ -834,7 +872,7 @@ class PairCounter(Mapping):
                 sum_stat._stat[filter][k] = (
                     self._stat[filter][k] + other._stat[filter][k]
                 )
-            
+
             # sum nested dicts/arrays in a context dependet manner:
             else:
                 if k in ["pair_types", "dedup"]:
@@ -848,7 +886,7 @@ class PairCounter(Mapping):
                     sum_stat._stat[filter][k] = sum_dicts(
                         self._stat[filter][k], other._stat[filter][k]
                     )
-                
+
                 elif k == "chrom_freq":
                     # union list of keys (chr1,chr2) with potential duplicates:
                     union_keys_with_dups = list(self._stat[filter][k].keys()) + list(
@@ -863,7 +901,7 @@ class PairCounter(Mapping):
                         sum_stat._stat[filter][k][union_key] = self._stat[filter][
                             k
                         ].get(union_key, 0) + other._stat[filter][k].get(union_key, 0)
-                
+
                 elif k == "dist_freq":
                     for dirs in sum_stat[k]:
                         from functools import reduce
@@ -879,7 +917,7 @@ class PairCounter(Mapping):
                             {},
                         )
                         # sum_stat[k][dirs] = self._stat[filter][k][dirs] + other._stat[filter][k][dirs]
-                
+
                 elif k == "chromsizes":
                     if k in self._stat[filter] and k in other._stat[filter]:
                         if self._stat[filter][k] == other._stat[filter][k]:
@@ -933,7 +971,7 @@ class PairCounter(Mapping):
                     for i in range(len(self._dist_bins)):
                         for dirs, freqs in v.items():
                             dist = self._dist_bins[i]
-                            
+
                             # last bin is treated differently: "100000+" vs "1200-3000":
                             if i < len(self._dist_bins) - 1:
                                 dist_next = self._dist_bins[i + 1]
@@ -945,24 +983,36 @@ class PairCounter(Mapping):
                                     ["{}", "{}+", "{}"]
                                 ).format(k, dist, dirs)
                             else:
-                                raise ValueError("There is a mismatch between dist_freq bins in the instance")
-                            
+                                raise ValueError(
+                                    "There is a mismatch between dist_freq bins in the instance"
+                                )
+
                             # store key,value pair:
-                            try:                        
+                            try:
                                 flat_stat[formatted_key] = freqs[dist]
                             except:
                                 # in some previous versions of stats, last bin was not reported, so we need to skip it now:
-                                if (dist not in freqs) and (i == len(self._dist_bins) - 1):
-                                    flat_stat[formatted_key] = 0 
+                                if (dist not in freqs) and (
+                                    i == len(self._dist_bins) - 1
+                                ):
+                                    flat_stat[formatted_key] = 0
                                 else:
-                                    raise ValueError(f"Error in {k} {dirs} {dist} {dist_next} {freqs}: source and destination bins do not match")
-                
-                elif (k in ["pair_types", "dedup", "chromsizes", 'summary']) and v:
+                                    raise ValueError(
+                                        f"Error in {k} {dirs} {dist} {dist_next} {freqs}: source and destination bins do not match"
+                                    )
+
+                elif (k in ["pair_types", "dedup", "chromsizes", "summary"]) and v:
                     # 'pair_types' and 'dedup' are simple dicts inside,
                     # treat them the exact same way:
                     flat_stat.update(
-                        {k+self._KEY_SEP+k2 : v2 for k2,v2 in nested_dict_to_flat(v, sep=self._KEY_SEP).items()})
-                
+                        {
+                            k + self._KEY_SEP + k2: v2
+                            for k2, v2 in nested_dict_to_flat(
+                                v, sep=self._KEY_SEP
+                            ).items()
+                        }
+                    )
+
                 elif (k == "chrom_freq") and v:
                     for (chrom1, chrom2), freq in v.items():
                         formatted_key = self._KEY_SEP.join(["{}", "{}", "{}"]).format(
@@ -985,8 +1035,8 @@ class PairCounter(Mapping):
         # Storing statistics for each filter
         for filter_name in self.filters.keys():
             for k, v in self._stat[filter_name].items():
-                if (k == "chrom_freq"):
-                    v = {self._KEY_SEP.join(k2):v2 for k2, v2 in v.items()}
+                if k == "chrom_freq":
+                    v = {self._KEY_SEP.join(k2): v2 for k2, v2 in v.items()}
                 if v:
                     formatted_stat[filter_name][k] = deepcopy(v)
             # return formatted dict
@@ -1031,7 +1081,6 @@ class PairCounter(Mapping):
             for k, v in data.items():
                 outstream.write("{}{}{}\n".format(k, self._SEP, v))
 
-
     def save_bytile_dups(self, outstream):
         """save bytile duplication counts to a tab-delimited text file.
         Parameters
@@ -1063,9 +1112,19 @@ def do_merge(output, files_to_merge, **kwargs):
         )
         # use a factory method to instanciate PairCounter
         if kwargs.get("yaml", False):
-            stat = PairCounter.from_yaml(f, n_dist_bins_decade=kwargs.get('n_dist_bins_decade', PairCounter.N_DIST_BINS_DECADE_DEFAULT))
+            stat = PairCounter.from_yaml(
+                f,
+                n_dist_bins_decade=kwargs.get(
+                    "n_dist_bins_decade", PairCounter.N_DIST_BINS_DECADE_DEFAULT
+                ),
+            )
         else:
-            stat = PairCounter.from_file(f, n_dist_bins_decade=kwargs.get('n_dist_bins_decade', PairCounter.N_DIST_BINS_DECADE_DEFAULT))
+            stat = PairCounter.from_file(
+                f,
+                n_dist_bins_decade=kwargs.get(
+                    "n_dist_bins_decade", PairCounter.N_DIST_BINS_DECADE_DEFAULT
+                ),
+            )
         stats.append(stat)
         f.close()
 
