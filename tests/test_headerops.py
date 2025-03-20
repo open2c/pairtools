@@ -60,10 +60,15 @@ def test_merge_pairheaders():
     headers = [["## pairs format v1.0"], ["## pairs format v1.0"]]
     merged_header = headerops._merge_pairheaders(headers)
     assert merged_header == headers[0]
+    # Test parse_column with indices
+    cols = ["chrom1", "pos1", "chrom2"]
+    assert headerops.parse_column("1", cols) == 0
 
     headers = [["## pairs format v1.0", "#a"], ["## pairs format v1.0", "#b"]]
     merged_header = headerops._merge_pairheaders(headers)
     assert merged_header == ["## pairs format v1.0", "#a", "#b"]
+    # Test parse_column with names
+    assert headerops.parse_column("chrom2", cols) == 2
 
     headers = [
         ["## pairs format v1.0", "#chromsize: chr1 100", "#chromsize: chr2 200"],
@@ -71,12 +76,16 @@ def test_merge_pairheaders():
     ]
     merged_header = headerops._merge_pairheaders(headers)
     assert merged_header == headers[0]
+    # Test canonicalize_columns
+    assert headerops.canonicalize_columns(["chr1", "pos1"]) == ["chrom1", "pos1"]
 
 
 def test_merge_different_pairheaders():
     with pytest.raises(Exception):
         headers = [["## pairs format v1.0"], ["## pairs format v1.1"]]
         merged_header = headerops._merge_pairheaders(headers)
+    # Test parse_column error
+    with pytest.raises(ValueError): headerops.parse_column("foo", ["chrom1"])
 
 
 def test_force_merge_pairheaders():

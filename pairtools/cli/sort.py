@@ -12,7 +12,6 @@ from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_sort"
 
-
 @cli.command()
 @click.argument("pairs_path", type=str, required=False)
 @click.option(
@@ -27,37 +26,39 @@ UTIL_NAME = "pairtools_sort"
 @click.option(
     "--c1",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[1],
-    help=f"Chrom 1 column; default {pairsam_format.COLUMNS_PAIRS[1]}"
+    default="1",
+    help="Chrom 1 column; default 1 (1-based index or column name, e.g., 'chrom1')"
     "[input format option]",
 )
 @click.option(
     "--c2",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[3],
-    help=f"Chrom 2 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
+    default="3",
+    help="Chrom 2 column; default 3 (1-based index or column name, e.g., 'chrom2')"
     "[input format option]",
 )
 @click.option(
     "--p1",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[2],
-    help=f"Position 1 column; default {pairsam_format.COLUMNS_PAIRS[2]}"
+    default="2",
+    help="Position 1 column; default 2 (1-based index or column name, e.g., 'pos1')"
     "[input format option]",
 )
 @click.option(
     "--p2",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[4],
-    help=f"Position 2 column; default {pairsam_format.COLUMNS_PAIRS[4]}"
+    default="4",
+    help="Position 2 column; default 4 (1-based index or column name, e.g., 'pos2')"
     "[input format option]",
 )
 @click.option(
     "--pt",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[7],
-    help=f"Pair type column; default {pairsam_format.COLUMNS_PAIRS[7]}"
+    default="7",
+    help="Pair type column; default 7 (1-based index or column name, e.g., 'pair_type'). "
+    "If not provided or empty, sorting will exclude pair_type. "
     "[input format option]",
+    required=False,
 )
 @click.option(
     "--extra-col",
@@ -141,7 +142,6 @@ def sort(
         **kwargs,
     )
 
-
 def sort_py(
     pairs_path,
     output,
@@ -157,7 +157,6 @@ def sort_py(
     compress_program,
     **kwargs,
 ):
-
     instream = fileio.auto_open(
         pairs_path,
         mode="r",
@@ -190,15 +189,16 @@ def sort_py(
             )
             compress_program = "gzip"
 
-    column_names = headerops.extract_column_names(header)
-    columns = [c1, c2, p1, p2, pt] + list(extra_col)
-    # Now generating the "-k <i>,<i><mode>" expressions for all columns.
-    # If column name is in the default pairsam format and has an integer dtype there, do numerical sorting
+    column_names = headerops.canonicalize_columns(headerops.extract_column_names(header))
+    # Core columns are always included; pt is optional
+    columns = [c1, c2, p1, p2] + ([pt] if pt and pt.strip() else []) + list(extra_col)
+    # Generate the "-k <i>,<i><mode>" expressions for all columns using parse_column
     cols = []
     for col in columns:
-        colindex = int(col) if col.isnumeric() else column_names.index(col) + 1
+        colindex = headerops.parse_column(col, column_names) + 1  # Convert to 1-based for sort command
+        colname = column_names[colindex - 1]  # Get the canonical column name
         cols.append(
-            f"-k {colindex},{colindex}{'n' if issubclass(pairsam_format.DTYPES_PAIRSAM.get(column_names[colindex-1], str), int) else ''}"
+            f"-k {colindex},{colindex}{'n' if issubclass(pairsam_format.DTYPES_PAIRSAM.get(colname, str), int) else ''}"
         )
     cols = " ".join(cols)
     command = rf"""
@@ -227,7 +227,6 @@ def sort_py(
 
     if outstream != sys.stdout:
         outstream.close()
-
 
 if __name__ == "__main__":
     sort()

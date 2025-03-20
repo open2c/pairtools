@@ -20,8 +20,6 @@ SEP_COLS = " "
 SEP_CHROMS = " "
 COMMENT_CHAR = "#"
 
-
-
 def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
     """Returns a header from the stream and an the reaminder of the stream
     with the actual data.
@@ -70,14 +68,12 @@ def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
 
     return header, instream
 
-
 def extract_fields(header, field_name, save_rest=False):
     """
     Extract the specified fields from the pairs header and return
     a list of corresponding values, even if a single field was found.
     Additionally, can return the list of intact non-matching entries.
     """
-
     fields = []
     rest = []
     for l in header:
@@ -91,7 +87,6 @@ def extract_fields(header, field_name, save_rest=False):
     else:
         return fields
 
-
 def extract_column_names(header):
     """
     Extract column names from header lines.
@@ -102,7 +97,6 @@ def extract_column_names(header):
         return columns[0].split(SEP_COLS)
     else:
         return []
-
 
 def validate_cols(stream, columns):
     """
@@ -120,7 +114,6 @@ def validate_cols(stream, columns):
     -------
     True if the number of columns is identical between file and columns
     """
-
     comment_byte = COMMENT_CHAR.encode()
     readline_f, peek_f = get_stream_handlers(stream)
 
@@ -144,13 +137,10 @@ def validate_cols(stream, columns):
 
     return ncols_body == ncols_reference
 
-
 def validate_header_cols(stream, header):
     """Validate that the number of columns corresponds between the stream and header"""
-
     columns = extract_column_names(header)
     return validate_cols(stream, header)
-
 
 def is_empty_header(header):
     if len(header) == 0:
@@ -160,12 +150,10 @@ def is_empty_header(header):
     else:
         return False
 
-
 def extract_chromsizes(header):
     """
     Extract chromosome sizes from header lines.
     """
-
     chromsizes_str = extract_fields(header, "chromsize")
     chromsizes_str = list(zip(*[s.split(SEP_CHROMS) for s in chromsizes_str]))
     chromsizes = pd.Series(data=chromsizes_str[1], index=chromsizes_str[0]).astype(
@@ -173,7 +161,6 @@ def extract_chromsizes(header):
     )
 
     return chromsizes
-
 
 def get_chromsizes_from_pysam_header(samheader):
     """Convert pysam header to pairtools chromosomes dict (ordered by Python default since 3.7).
@@ -191,7 +178,6 @@ def get_chromsizes_from_pysam_header(samheader):
     chromsizes = [(sq["SN"], int(sq["LN"])) for sq in SQs]
     return dict(chromsizes)
 
-
 def get_chromsizes_from_file(chroms_file):
     """
     Produce an "enumeration" of chromosomes based on the list
@@ -204,24 +190,6 @@ def get_chromsizes_from_file(chroms_file):
             chrom_sizes[chrom] = int(size)
 
     return chrom_sizes
-
-
-def get_chromsizes_from_pysam_header(samheader):
-    """Convert pysam header to pairtools chromosomes (ordered dict).
-
-    Example of pysam header converted to dict:
-    dict([
-        ('SQ', [{'SN': 'chr1', 'LN': 248956422},
-         {'SN': 'chr10', 'LN': 133797422},
-         {'SN': 'chr11', 'LN': 135086622},
-         {'SN': 'chr12', 'LN': 133275309}]),
-        ('PG', [{'ID': 'bwa', 'PN': 'bwa', 'VN': '0.7.17-r1188', 'CL': 'bwa mem -t 8 -SP -v1 hg38.fa test_1.1.fastq.gz test_2.1.fastq.gz'}])
-    ])
-    """
-    SQs = samheader.to_dict()["SQ"]
-    chromsizes = [(sq["SN"], int(sq["LN"])) for sq in SQs]
-    return dict(chromsizes)
-
 
 def get_chrom_order(chroms_file, sam_chroms=None):
     """
@@ -247,7 +215,6 @@ def get_chrom_order(chroms_file, sam_chroms=None):
             i += 1
 
     return chrom_enum
-
 
 def make_standard_pairsheader(
     assembly=None,
@@ -275,7 +242,6 @@ def make_standard_pairsheader(
 
     return header
 
-
 def subset_chroms_in_pairsheader(header, chrom_subset):
     new_header = []
     for line in header:
@@ -292,7 +258,6 @@ def subset_chroms_in_pairsheader(header, chrom_subset):
             new_header.append(line)
     return new_header
 
-
 def insert_samheader(header, samheader):
     """Insert samheader into header."""
     new_header = [l for l in header if not l.startswith("#columns")]
@@ -301,7 +266,6 @@ def insert_samheader(header, samheader):
     new_header += [l for l in header if l.startswith("#columns")]
     return new_header
 
-
 def insert_samheader_pysam(header, samheader):
     """Insert samheader into header,pysam version."""
     new_header = [l for l in header if not l.startswith("#columns")]
@@ -309,7 +273,6 @@ def insert_samheader_pysam(header, samheader):
         new_header += ["#samheader: " + l for l in str(samheader).strip().split("\n")]
     new_header += [l for l in header if l.startswith("#columns")]
     return new_header
-
 
 def mark_header_as_sorted(header):
     header = copy.deepcopy(header)
@@ -326,7 +289,6 @@ def mark_header_as_sorted(header):
             header[i] = "#chromosomes: {}".format(SEP_CHROMS.join(sorted(chroms)))
     return header
 
-
 def append_new_pg(header, ID="", PN="", VN=None, CL=None, force=False):
     header = copy.deepcopy(header)
     if is_empty_header(header):
@@ -335,7 +297,6 @@ def append_new_pg(header, ID="", PN="", VN=None, CL=None, force=False):
     new_samheader = _add_pg_to_samheader(samheader, ID, PN, VN, CL, force)
     new_header = insert_samheader(other_header, new_samheader)
     return new_header
-
 
 def _update_header_entry(header, field, new_value):
     header = copy.deepcopy(header)
@@ -351,7 +312,6 @@ def _update_header_entry(header, field, new_value):
         else:
             header.append(newline)
     return header
-
 
 def _add_pg_to_samheader(samheader, ID="", PN="", VN=None, CL=None, force=False):
     """Append a @PG record to an existing sam header. If the header comes
@@ -375,7 +335,6 @@ def _add_pg_to_samheader(samheader, ID="", PN="", VN=None, CL=None, force=False)
     new_header : list of str
         A list of new headers lines, stripped of newline characters.
     """
-
     if VN is None:
         VN = __version__
     if CL is None:
@@ -412,7 +371,6 @@ def _add_pg_to_samheader(samheader, ID="", PN="", VN=None, CL=None, force=False)
 
     return new_header
 
-
 def _format_pg(**kwargs):
     out = ["@PG"] + [
         "{}:{}".format(field, kwargs[field])
@@ -420,7 +378,6 @@ def _format_pg(**kwargs):
         if field in kwargs
     ]
     return "\t".join(out)
-
 
 def _parse_pg_chains(header, force=False):
     pg_chains = []
@@ -486,7 +443,6 @@ def _parse_pg_chains(header, force=False):
 
     return pg_chains
 
-
 def _toposort(dag, tie_breaker):
     """
     Topological sort on a directed acyclic graph
@@ -519,7 +475,6 @@ def _toposort(dag, tie_breaker):
     Based in part on activestate recipe:
     <http://code.activestate.com/recipes/578272-topological-sort/> by Sam
     Denton (MIT licensed).
-
     """
     # Drop self-edges.
     for k, v in dag.items():
@@ -547,7 +502,6 @@ def _toposort(dag, tie_breaker):
     if len(dag) != 0:
         raise ValueError("Circular dependencies exist: {} ".format(list(dag.items())))
 
-
 def merge_chrom_lists(*lsts):
     sentinel = "!NONE!"
 
@@ -565,7 +519,6 @@ def merge_chrom_lists(*lsts):
         chrom_list.remove(sentinel)
     chrom_list = sorted(chrom_list)
     return chrom_list
-
 
 def _merge_samheaders(samheaders, force=False):
     # first, append an HD line if it is present in any files
@@ -633,7 +586,6 @@ def _merge_samheaders(samheaders, force=False):
 
     return new_header
 
-
 def _merge_pairheaders(pairheaders, force=False):
     new_header = []
 
@@ -700,13 +652,11 @@ def _merge_pairheaders(pairheaders, force=False):
 
     return new_header
 
-
 def all_same_columns(pairheaders):
     key_target = "#columns:"
     lines = [[l for l in header if l.startswith(key_target)] for header in pairheaders]
     all_same = all([l == lines[0] for l in lines])
     return all_same
-
 
 def merge_headers(headers, force=False):
     samheaders, pairheaders = zip(
@@ -720,7 +670,6 @@ def merge_headers(headers, force=False):
     new_header = insert_samheader(new_pairheader, new_samheader)
 
     return new_header
-
 
 def append_columns(header, columns):
     """
@@ -740,7 +689,6 @@ def append_columns(header, columns):
             header[i] += SEP_COLS + SEP_COLS.join(columns)
     return header
 
-
 def get_colnames(header):
     """
     Get column names of the header, separated by SEP_COLS
@@ -758,7 +706,6 @@ def get_colnames(header):
             columns = header[i].split(SEP_COLS)[1:]
             return columns
     return []
-
 
 def set_columns(header, columns):
     """
@@ -778,6 +725,53 @@ def set_columns(header, columns):
             header[i] = "#columns:" + SEP_COLS + SEP_COLS.join(columns)
     return header
 
+# New functions for Step 2
+def parse_column(col, column_names):
+    """
+    Convert a column specification (int as str or str) to a 0-based index.
+    
+    Args:
+        col (str): Column name (e.g., 'chrom1') or 1-based index as str (e.g., '1').
+        column_names (list): List of column names from the header.
+    
+    Returns:
+        int: 0-based index of the column.
+    
+    Raises:
+        ValueError: If the column specification is invalid.
+    """
+    if col.isdigit():
+        idx = int(col) - 1  # Convert 1-based to 0-based
+        if 0 <= idx < len(column_names):
+            return idx
+        else:
+            raise ValueError(f"Column index '{col}' is out of range for {column_names}")
+    elif col in column_names:
+        return column_names.index(col)
+    else:
+        raise ValueError(f"Column name '{col}' not found in {column_names}")
+
+def canonicalize_columns(column_names):
+    """
+    Standardize column names to a canonical form (e.g., 'chr1' -> 'chrom1').
+    
+    Args:
+        column_names (list): List of column names from the header.
+    
+    Returns:
+        list: Canonicalized column names.
+    """
+    canonical_map = {
+        'chr1': 'chrom1',
+        'chr2': 'chrom2',
+        'pos1': 'pos1',      # Identity mapping for completeness
+        'pos2': 'pos2',
+        'strand1': 'strand1',
+        'strand2': 'strand2',
+        'pair_type': 'pair_type',
+        'readID': 'readID'
+    }
+    return [canonical_map.get(col, col) for col in column_names]
 
 # def _guess_genome_assembly(samheader):
 #    PG = [l for l in samheader if l.startswith('@PG') and '\tID:bwa' in l][0]

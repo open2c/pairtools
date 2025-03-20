@@ -13,6 +13,10 @@ def test_mock_pairsam():
         result = subprocess.check_output(
             ["python", "-m", "pairtools", "sort", mock_pairsam_path],
         ).decode("ascii")
+        # Test sort with names
+        result_names = subprocess.check_output(
+            ["python", "-m", "pairtools", "sort", "--c1", "chrom1", "--pt", "pair_type", mock_pairsam_path],
+        ).decode("ascii")
     except subprocess.CalledProcessError as e:
         print(e.output)
         print(sys.exc_info())
@@ -24,6 +28,7 @@ def test_mock_pairsam():
         l.strip() for l in open(mock_pairsam_path, "r") if l.startswith("#")
     ]
     output_header = [l.strip() for l in result.split("\n") if l.startswith("#")]
+    output_header_names = [l.strip() for l in result_names.split("\n") if l.startswith("#")]
 
     print(output_header)
     print(pairsam_header)
@@ -34,6 +39,8 @@ def test_mock_pairsam():
                 or l.startswith("#sorted")
                 or l.startswith("#chromosomes")
             )
+    # Verify header with names
+    assert any("#columns:" in l for l in output_header_names)
 
     pairsam_body = [
         l.strip()
@@ -43,9 +50,17 @@ def test_mock_pairsam():
     output_body = [
         l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
     ]
+    output_body_names = [
+        l.strip() for l in result_names.split("\n") if not l.startswith("#") and l.strip()
+    ]
 
     # check that all pairsam entries survived sorting:
     assert len(pairsam_body) == len(output_body)
+    # Test no pair_type
+    result_no_pt = subprocess.check_output(
+        ["python", "-m", "pairtools", "sort", "--pt", "", mock_pairsam_path]
+    ).decode("ascii")
+    assert len(pairsam_body) == len([l for l in result_no_pt.split("\n") if not l.startswith("#") and l.strip()])
 
     # check the sorting order of the output:
     prev_pair = None

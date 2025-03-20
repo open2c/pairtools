@@ -18,7 +18,6 @@ from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_dedup"
 
-
 @cli.command()
 @click.argument("pairs_path", type=str, required=False)
 
@@ -180,43 +179,43 @@ UTIL_NAME = "pairtools_dedup"
 @click.option(
     "--c1",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[1],
-    help=f"Chrom 1 column; default {pairsam_format.COLUMNS_PAIRS[1]}"
+    default="1",
+    help="Chrom 1 column; default 1 (1-based index or column name, e.g., 'chrom1')"
     "[input format option]",
 )
 @click.option(
     "--c2",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[3],
-    help=f"Chrom 2 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
+    default="3",
+    help="Chrom 2 column; default 3 (1-based index or column name, e.g., 'chrom2')"
     "[input format option]",
 )
 @click.option(
     "--p1",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[2],
-    help=f"Position 1 column; default {pairsam_format.COLUMNS_PAIRS[2]}"
+    default="2",
+    help="Position 1 column; default 2 (1-based index or column name, e.g., 'pos1')"
     "[input format option]",
 )
 @click.option(
     "--p2",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[4],
-    help=f"Position 2 column; default {pairsam_format.COLUMNS_PAIRS[4]}"
+    default="4",
+    help="Position 2 column; default 4 (1-based index or column name, e.g., 'pos2')"
     "[input format option]",
 )
 @click.option(
     "--s1",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[5],
-    help=f"Strand 1 column; default {pairsam_format.COLUMNS_PAIRS[5]}"
+    default="5",
+    help="Strand 1 column; default 5 (1-based index or column name, e.g., 'strand1')"
     "[input format option]",
 )
 @click.option(
     "--s2",
     type=str,
-    default=pairsam_format.COLUMNS_PAIRS[6],
-    help=f"Strand 2 column; default {pairsam_format.COLUMNS_PAIRS[6]}"
+    default="6",
+    help="Strand 2 column; default 6 (1-based index or column name, e.g., 'strand2')"
     "[input format option]",
 )
 @click.option(
@@ -350,10 +349,6 @@ def dedup(
         n_proc,
         **kwargs,
     )
-
-
-if __name__ == "__main__":
-    dedup()
 
 
 def dedup_py(
@@ -502,13 +497,15 @@ def dedup_py(
     ):
         outstream_unmapped.writelines((l + "\n" for l in header))
 
-    column_names = headerops.extract_column_names(header)
+    column_names = headerops.canonicalize_columns(headerops.extract_column_names(header))
     extra_cols1 = []
     extra_cols2 = []
     if extra_col_pair is not None:
         for col1, col2 in extra_col_pair:
-            extra_cols1.append(column_names[col1] if col1.isnumeric() else col1)
-            extra_cols2.append(column_names[col2] if col2.isnumeric() else col2)
+            idx1 = headerops.parse_column(col1, column_names)
+            idx2 = headerops.parse_column(col2, column_names)
+            extra_cols1.append(column_names[idx1])  # Store canonical name
+            extra_cols2.append(column_names[idx2])  # Store canonical name
 
     if backend == "cython":
         # warnings.warn(
@@ -516,14 +513,14 @@ def dedup_py(
         #     " for backwards compatibility",
         #     DeprecationWarning,
         # )
-        extra_cols1 = [column_names.index(col) for col in extra_cols1]
-        extra_cols2 = [column_names.index(col) for col in extra_cols2]
-        c1 = column_names.index(c1)
-        c2 = column_names.index(c2)
-        p1 = column_names.index(p1)
-        p2 = column_names.index(p2)
-        s1 = column_names.index(s1)
-        s2 = column_names.index(s2)
+        extra_cols1 = [headerops.parse_column(col, column_names) for col in extra_cols1]
+        extra_cols2 = [headerops.parse_column(col, column_names) for col in extra_cols2]
+        c1 = headerops.parse_column(c1, column_names)
+        c2 = headerops.parse_column(c2, column_names)
+        p1 = headerops.parse_column(p1, column_names)
+        p2 = headerops.parse_column(p2, column_names)
+        s1 = headerops.parse_column(s1, column_names)
+        s2 = headerops.parse_column(s2, column_names)
         streaming_dedup_cython(
             method,
             max_mismatch,
@@ -604,3 +601,6 @@ def dedup_py(
 
     if out_stats_stream:
         out_stats_stream.close()
+
+if __name__ == "__main__":
+    dedup()
