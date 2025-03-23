@@ -32,6 +32,7 @@ max_mismatch = 1
 @pytest.fixture
 def setup_dedup():
     try:
+        # Correct column specifications for mock.4dedup.pairsam
         result = subprocess.run(
             [
                 "python",
@@ -47,6 +48,12 @@ def setup_dedup():
                 unmapped_path,
                 "--max-mismatch",
                 str(max_mismatch),
+                "--c1", "chrom1",
+                "--p1", "pos1",
+                "--s1", "strand1",
+                "--c2", "chrom2",
+                "--p2", "pos2",
+                "--s2", "strand2",
             ],
             capture_output=True,
             text=True,
@@ -72,6 +79,12 @@ def setup_dedup():
                 str(max_mismatch),
                 "--backend",
                 "cython",
+                "--c1", "chrom1",
+                "--p1", "pos1",
+                "--s1", "strand1",
+                "--c2", "chrom2",
+                "--p2", "pos2",
+                "--s2", "strand2",
             ],
             capture_output=True,
             text=True,
@@ -97,6 +110,12 @@ def setup_dedup():
                 str(max_mismatch),
                 "--method",
                 "max",
+                "--c1", "chrom1",
+                "--p1", "pos1",
+                "--s1", "strand1",
+                "--c2", "chrom2",
+                "--p2", "pos2",
+                "--s2", "strand2",
             ],
             capture_output=True,
             text=True,
@@ -121,6 +140,12 @@ def setup_dedup():
                 unmapped_markdups_path,
                 "--max-mismatch",
                 str(max_mismatch),
+                "--c1", "chrom1",
+                "--p1", "pos1",
+                "--s1", "strand1",
+                "--c2", "chrom2",
+                "--p2", "pos2",
+                "--s2", "strand2",
             ],
             capture_output=True,
             text=True,
@@ -145,18 +170,12 @@ def setup_dedup():
                 unmapped_path_diff_colnames,
                 "--max-mismatch",
                 str(max_mismatch),
-                "--c1",
-                "chrom1",
-                "--c2",
-                "chrom2",
-                "--p1",
-                "p1",
-                "--p2",
-                "p2",
-                "--s1",
-                "str1",
-                "--s2",
-                "str2",
+                "--c1", "chrom1",
+                "--c2", "chrom2",
+                "--p1", "p1",
+                "--p2", "p2",
+                "--s1", "str1",
+                "--s2", "str2",
             ],
             capture_output=True,
             text=True,
@@ -202,5 +221,5 @@ def test_mock_pairsam(setup_dedup):
             for l in open(dp, "r")
             if not l.startswith("#") and l.strip()
         ]
-        assert len(dedup_pairs) > 0
-        assert len(dup_pairs) > 0
+        assert len(dedup_pairs) > 0, f"No deduplicated pairs found in {ddp}"
+        assert len(dup_pairs) > 0, f"No duplicate pairs found in {dp}"
