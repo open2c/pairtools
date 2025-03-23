@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import logging
+logger = logging.getLogger(__name__)
 
 import scipy.spatial
 from scipy.sparse import coo_matrix
@@ -33,12 +35,7 @@ def streaming_dedup(
     mark_dups,
     max_mismatch,
     extra_col_pairs,
-    unmapped_chrom,
-    outstream,
-    outstream_dups,
-    outstream_unmapped,
     keep_parent_id,
-    out_stat,
     backend,
     n_proc,
     c1="chrom1",
@@ -47,6 +44,7 @@ def streaming_dedup(
     p2="pos2",
     s1="strand1",
     s2="strand2",
+    unmapped_chrom="!",
 ):
     deduped_chunks = _dedup_stream(
         in_stream=in_stream,
@@ -74,57 +72,7 @@ def streaming_dedup(
 
     for df_chunk in deduped_chunks:
         N += df_chunk.shape[0]
-
-        # Write the stats if requested:
-        if out_stat is not None:
-            out_stat.add_pairs_from_dataframe(df_chunk, unmapped_chrom=unmapped_chrom)
-
-        # Define masks of unmapped and duplicated reads:
-        mask_mapped = np.logical_and(
-            (df_chunk[c1] != unmapped_chrom),
-            (df_chunk[c2] != unmapped_chrom),
-        )
-        mask_duplicates = df_chunk["duplicate"]
-
-        # Clean up dataframe:
-        df_chunk = df_chunk.drop(columns=["duplicate"])
-
-        # Save the pairs:
-
-        # Stream unmapped:
-        if outstream_unmapped:
-            df_chunk.loc[~mask_mapped, :].to_csv(
-                outstream_unmapped,
-                index=False,
-                header=False,
-                sep="\t",
-                quoting=QUOTE_NONE,
-            )
-
-        # If outstream_dups is the same as outstream, we save the mapped pairs to the same file
-        if outstream_dups == outstream:
-            df_chunk.loc[mask_mapped, :].to_csv(
-                outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
-            )
-        else:
-            # Save the dups:
-            if outstream_dups:
-                df_chunk.loc[mask_duplicates, :].to_csv(
-                    outstream_dups,
-                    index=False,
-                    header=False,
-                    sep="\t",
-                    quoting=QUOTE_NONE,
-                )
-            # Drop readID if it was created (not needed for nodup and unmapped pairs):
-            if keep_parent_id:
-                df_chunk = df_chunk.drop(columns=["parent_readID"])
-
-            # Save unique:
-            if outstream:
-                df_chunk.loc[mask_mapped & (~mask_duplicates), :].to_csv(
-                    outstream, index=False, header=False, sep="\t", quoting=QUOTE_NONE
-                )
+        yield df_chunk
 
     t1 = time.time()
     t = t1 - t0
@@ -155,7 +103,6 @@ def _dedup_stream(
     s2,
     unmapped_chrom,
 ):
-    # Stream the input dataframe:
     dfs = pd.read_table(
         in_stream,
         comment=None,
@@ -165,49 +112,78 @@ def _dedup_stream(
         sep="\t",
     )
 
-    # Set up the carryover dataframe:
     df_prev_nodups = pd.DataFrame([])
     prev_i = 0
 
-    # Iterate over chunks:
     for df in dfs:
+        logger.debug(f"Chunk size: {len(df)}")
         df["carryover"] = False
         input_chunk = pd.concat(
             [df_prev_nodups, df], axis=0, ignore_index=True
         ).reset_index(drop=True)
-        df_marked = _dedup_chunk(
-            input_chunk,
-            r=max_mismatch,
-            method=method,
-            keep_parent_id=keep_parent_id,
-            extra_col_pairs=extra_col_pairs,
-            backend=backend,
-            n_proc=n_proc,
-            c1=c1,
-            c2=c2,
-            p1=p1,
-            p2=p2,
-            s1=s1,
-            s2=s2,
-            unmapped_chrom=unmapped_chrom,
-        )
+        logger.debug(f"Input chunk size: {len(input_chunk)}")
 
-        df_marked = (
-            df_marked[~df_marked["carryover"]]
-            .drop(columns=["carryover"])
-            .reset_index(drop=True)
+        mask_unmapped = (input_chunk[c1] == unmapped_chrom) | (
+            input_chunk[c2] == unmapped_chrom
         )
+        df_unmapped = input_chunk[mask_unmapped].copy()
+        df_mapped = input_chunk[~mask_unmapped].copy()
+        logger.debug(f"Unmapped size: {len(df_unmapped)}, Mapped size: {len(df_mapped)}")
 
-        mask_duplicated = df_marked["duplicate"]
+        if not df_mapped.empty:
+            df_mapped[p1] = pd.to_numeric(df_mapped[p1], errors="coerce")
+            df_mapped[p2] = pd.to_numeric(df_mapped[p2], errors="coerce")
+            df_mapped = df_mapped.dropna(subset=[p1, p2])
+            logger.debug(f"Mapped after dropna: {len(df_mapped)}")
+
+        if not df_mapped.empty:
+            df_marked = _dedup_chunk(
+                df_mapped,
+                r=max_mismatch,
+                method=method,
+                keep_parent_id=keep_parent_id,
+                extra_col_pairs=extra_col_pairs,
+                backend=backend,
+                n_proc=n_proc,
+                c1=c1,
+                c2=c2,
+                p1=p1,
+                p2=p2,
+                s1=s1,
+                s2=s2,
+                unmapped_chrom=unmapped_chrom,
+            )
+            if "carryover" not in df_marked.columns:
+                df_marked["carryover"] = False
+            if "duplicate" not in df_marked.columns:
+                df_marked["duplicate"] = False
+            logger.debug(f"Marked size: {len(df_marked)}")
+        else:
+            df_marked = pd.DataFrame(columns=colnames + ["duplicate"])
+            df_marked["carryover"] = False
+            df_marked["duplicate"] = False
+
+        if "duplicate" not in df_unmapped.columns:
+            df_unmapped["duplicate"] = False
+
+        df_result = pd.concat([df_marked, df_unmapped]).reset_index(drop=True)
+        logger.debug(f"Result size before carryover filter: {len(df_result)}")
+
+        mask_carryover = df_result["carryover"].fillna(False)
+        df_result = df_result[~mask_carryover]
+        if "carryover" in df_result.columns:
+            df_result = df_result.drop(columns=["carryover"])
+        df_result = df_result.reset_index(drop=True)
+        logger.debug(f"Result size after carryover filter: {len(df_result)}")
+
+        mask_duplicated = df_result["duplicate"].fillna(False).astype(bool)
         if mark_dups:
-            df_marked.loc[mask_duplicated, "pair_type"] = "DD"
+            df_result.loc[mask_duplicated, "pair_type"] = "DD"
 
-        yield df_marked
+        logger.debug(f"Deduplicated rows: {len(df_result[~mask_duplicated])}, Duplicates: {len(df_result[mask_duplicated])}")
+        yield df_result
 
-        # Filter out duplicates and store specific columns:
-        df_nodups = df_marked.loc[~mask_duplicated, colnames]
-
-        # Re-define carryover pairs:
+        df_nodups = df_result.loc[~mask_duplicated, colnames]
         df_prev_nodups = df_nodups.tail(carryover).reset_index(drop=True)
         df_prev_nodups["carryover"] = True
         prev_i = len(df_prev_nodups)
@@ -523,9 +499,9 @@ def streaming_dedup_cython(
     extra_cols2: extra columns for right alignment in a pair to add
     unmapped_chrom: Symbol of the chromosome for the unmapped alignment
     instream: input stream of pair file
-    outstream: output stram of deduplicated pairs
+    outstream: output stream of deduplicated pairs
     outstream_dups: output stream of duplicates (optionally with added parent_id, see keep_parent_id option)
-    outstream_unmapped: output stram of unmapped pairs
+    outstream_unmapped: output stream of unmapped pairs
     out_stat: output statistics
     mark_dups: if True, will add "DD" as the pair_type
     keep_parent_id: if True, additional column "parent_readID will be added to the output, can be useful for optical duplicates search
@@ -533,7 +509,6 @@ def streaming_dedup_cython(
 
     Returns
     -------
-
     """
     maxind = max(c1ind, c2ind, p1ind, p2ind, s1ind, s2ind)
     if bool(extra_cols1) and bool(extra_cols2):
@@ -543,7 +518,6 @@ def streaming_dedup_cython(
     all_scols2 = [s2ind] + extra_cols2
 
     # if we do stats in the dedup, we need PAIR_TYPE
-    # i do not see way around this:
     if out_stat:
         ptind = pairsam_format.COL_PTYPE
         maxind = max(maxind, ptind)
@@ -587,20 +561,30 @@ def streaming_dedup_cython(
                     + " expected {} columns, got {}".format(maxind, len(cols))
                 )
 
-            if (cols[c1ind] == unmapped_chrom) or (cols[c2ind] == unmapped_chrom):
+            # Check if the read is unmapped (either chrom or pos is invalid)
+            is_unmapped = (
+                (cols[c1ind] == unmapped_chrom)
+                or (cols[c2ind] == unmapped_chrom)
+                or not cols[p1ind].isdigit()
+                or not cols[p2ind].isdigit()
+            )
+
+            if is_unmapped:
                 if outstream_unmapped:
                     outstream_unmapped.write(stripline)
-                    # don't forget terminal newline
                     outstream_unmapped.write("\n")
 
                 # add a pair to PairCounter if stats output is requested:
                 if out_stat:
+                    # Use defaults for positions if they're non-numeric
+                    pos1 = int(cols[p1ind]) if cols[p1ind].isdigit() else 0
+                    pos2 = int(cols[p2ind]) if cols[p2ind].isdigit() else 0
                     out_stat.add_pair(
                         cols[c1ind],
-                        int(cols[p1ind]),
+                        pos1,
                         cols[s1ind],
                         cols[c2ind],
-                        int(cols[p2ind]),
+                        pos2,
                         cols[s2ind],
                         cols[ptind],
                         unmapped_chrom=unmapped_chrom,
@@ -638,7 +622,6 @@ def streaming_dedup_cython(
                     ar(s1, 32),
                     ar(s2, 32),
                 )
-
             else:
                 res = dd.push(
                     ar(c1, 32),
@@ -653,7 +636,6 @@ def streaming_dedup_cython(
                 if keep_parent_id:
                     res_tmp, parents_tmp = dd.finish()
                     parents = np.concatenate([parents, parents_tmp])
-
                 else:
                     res_tmp = dd.finish()
                 res = np.concatenate([res, res_tmp])
@@ -662,7 +644,6 @@ def streaming_dedup_cython(
                 # not duplicated pair:
                 if not res[i]:
                     outstream.write(line_buffer[i])
-                    # don't forget terminal newline
                     outstream.write("\n")
                     if out_stat:
                         out_stat.add_pair(
@@ -701,8 +682,6 @@ def streaming_dedup_cython(
                             output = sep.join([output, parent_readID])
 
                         outstream_dups.write(output)
-
-                        # don't forget terminal newline
                         outstream_dups.write("\n")
 
             # flush buffers and perform necessary checks here:
@@ -725,7 +704,6 @@ def streaming_dedup_cython(
         # process next line ...
 
     # all lines have been processed at this point.
-    # streaming_dedup is over.
     t1 = time.time()
     t = t1 - t0
     logger.debug(f"total time: {t}")

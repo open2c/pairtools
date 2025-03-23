@@ -46,7 +46,7 @@ UTIL_NAME = "pairtools_dedup"
     default="",
     help="output file for unmapped pairs. "
     "If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed. "
-    "If the path is the same as in --output or -, output unmapped pairs together "
+    "If the path is the same as --output or -, output unmapped pairs together "
     "with deduped pairs. If the path is the same as --output-dups, output "
     "unmapped reads together with dups. By default, unmapped pairs are dropped.",
 )
@@ -351,6 +351,23 @@ def dedup(
     )
 
 
+from pairtools.lib import fileio, headerops, pairsam_format
+from pairtools.lib.dedup import streaming_dedup, streaming_dedup_cython
+import sys
+import pathlib
+import ast
+from pairtools.lib.stats import PairCounter
+import logging
+
+from .._logging import get_logger
+import logging
+
+# Set logging level to DEBUG
+logging.basicConfig(level=logging.DEBUG)
+logger = get_logger()
+
+import click
+
 def dedup_py(
     pairs_path,
     output,
@@ -378,7 +395,6 @@ def dedup_py(
     n_proc,
     **kwargs,
 ):
-
     sep = ast.literal_eval('"""' + sep + '"""')
     send_header_to_dedup = send_header_to in ["both", "dedup"]
     send_header_to_dup = send_header_to in ["both", "dups"]
@@ -417,18 +433,15 @@ def dedup_py(
             )
             keep_parent_id = True
 
-    # generate empty PairCounter if stats output is requested:
     if output_stats:
         filter = kwargs.get("filter", None)
-        # Define filters and their properties
-        first_filter_name = "no_filter"  # default filter name for full output
+        first_filter_name = "no_filter"
         if filter is not None and len(filter) > 0:
             first_filter_name = filter[0].split(":", 1)[0]
             if len(filter) > 1 and not kwargs.get("yaml", False):
                 logger.warn(
                     f"Output the first filter only in non-YAML output: {first_filter_name}"
                 )
-
             filter = dict([f.split(":", 1) for f in filter])
         else:
             filter = None
@@ -436,8 +449,8 @@ def dedup_py(
         out_stat = PairCounter(
             bytile_dups=bytile_dups,
             filters=filter,
-            startup_code=kwargs.get("startup_code", ""),  # for evaluation of filters
-            type_cast=kwargs.get("type_cast", ()),  # for evaluation of filters
+            startup_code=kwargs.get("startup_code", ""),
+            type_cast=kwargs.get("type_cast", ()),
             engine=kwargs.get("engine", "pandas"),
         )
     else:
@@ -504,33 +517,35 @@ def dedup_py(
         for col1, col2 in extra_col_pair:
             idx1 = headerops.parse_column(col1, column_names)
             idx2 = headerops.parse_column(col2, column_names)
-            extra_cols1.append(column_names[idx1])  # Store canonical name
-            extra_cols2.append(column_names[idx2])  # Store canonical name
+            extra_cols1.append(column_names[idx1])
+            extra_cols2.append(column_names[idx2])
+
+    c1_name = column_names[headerops.parse_column(c1, column_names)]
+    c2_name = column_names[headerops.parse_column(c2, column_names)]
+    p1_name = column_names[headerops.parse_column(p1, column_names)]
+    p2_name = column_names[headerops.parse_column(p2, column_names)]
+    s1_name = column_names[headerops.parse_column(s1, column_names)]
+    s2_name = column_names[headerops.parse_column(s2, column_names)]
 
     if backend == "cython":
-        # warnings.warn(
-        #     "'cython' backend is deprecated and provided only"
-        #     " for backwards compatibility",
-        #     DeprecationWarning,
-        # )
         extra_cols1 = [headerops.parse_column(col, column_names) for col in extra_cols1]
         extra_cols2 = [headerops.parse_column(col, column_names) for col in extra_cols2]
-        c1 = headerops.parse_column(c1, column_names)
-        c2 = headerops.parse_column(c2, column_names)
-        p1 = headerops.parse_column(p1, column_names)
-        p2 = headerops.parse_column(p2, column_names)
-        s1 = headerops.parse_column(s1, column_names)
-        s2 = headerops.parse_column(s2, column_names)
+        c1_idx = headerops.parse_column(c1, column_names)
+        c2_idx = headerops.parse_column(c2, column_names)
+        p1_idx = headerops.parse_column(p1, column_names)
+        p2_idx = headerops.parse_column(p2, column_names)
+        s1_idx = headerops.parse_column(s1, column_names)
+        s2_idx = headerops.parse_column(s2, column_names)
         streaming_dedup_cython(
             method,
             max_mismatch,
             sep,
-            c1,
-            c2,
-            p1,
-            p2,
-            s1,
-            s2,
+            c1_idx,
+            c2_idx,
+            p1_idx,
+            p2_idx,
+            s1_idx,
+            s2_idx,
             extra_cols1,
             extra_cols2,
             unmapped_chrom,
@@ -543,7 +558,12 @@ def dedup_py(
             keep_parent_id,
         )
     elif backend in ("scipy", "sklearn"):
-        streaming_dedup(
+        print(f"Starting streaming_dedup with backend: {backend}")
+        print(f"Input file: {pairs_path}")
+        print(f"Column names from header: {column_names}")
+        print(f"Specified columns: c1={c1_name}, p1={p1_name}, s1={s1_name}, c2={c2_name}, p2={p2_name}, s2={s2_name}")
+        
+        deduped_chunks = streaming_dedup(
             in_stream=body_stream,
             colnames=column_names,
             chunksize=chunksize,
@@ -551,33 +571,80 @@ def dedup_py(
             method=method,
             mark_dups=mark_dups,
             max_mismatch=max_mismatch,
-            extra_col_pairs=list(extra_col_pair),
+            extra_col_pairs=list(extra_col_pair) if extra_col_pair else [],
             keep_parent_id=keep_parent_id,
-            unmapped_chrom=unmapped_chrom,
-            outstream=outstream,
-            outstream_dups=outstream_dups,
-            outstream_unmapped=outstream_unmapped,
-            out_stat=out_stat,
             backend=backend,
             n_proc=n_proc,
-            c1=c1,
-            c2=c2,
-            p1=p1,
-            p2=p2,
-            s1=s1,
-            s2=s2,
+            c1=c1_name,
+            c2=c2_name,
+            p1=p1_name,
+            p2=p2_name,
+            s1=s1_name,
+            s2=s2_name,
+            unmapped_chrom=unmapped_chrom,
         )
+
+        chunk_count = 0
+        for df_chunk in deduped_chunks:
+            chunk_count += 1
+            if not df_chunk.empty:
+                print(f"Chunk {chunk_count} columns: {df_chunk.columns.tolist()}")
+                print(f"Chunk {chunk_count} size: {len(df_chunk)}")
+                print(f"Chunk {chunk_count} deduped rows: {len(df_chunk[~df_chunk['duplicate']])}")
+                print(f"Chunk {chunk_count} duplicate rows: {len(df_chunk[df_chunk['duplicate']])}")
+                print(f"Chunk {chunk_count} unmapped rows: {len(df_chunk[(df_chunk[c1_name] == unmapped_chrom) | (df_chunk[c2_name] == unmapped_chrom)])}")
+                print(f"Chunk {chunk_count} head:\n{df_chunk.head().to_string()}")
+
+                output_columns = column_names
+                if keep_parent_id:
+                    output_columns = column_names + ["parent_readID"]
+
+                if outstream:
+                    df_chunk[~df_chunk["duplicate"]][output_columns].to_csv(
+                        outstream,
+                        sep="\t",
+                        header=False,
+                        index=False,
+                        na_rep="!",
+                    )
+                if outstream_dups and "duplicate" in df_chunk.columns:
+                    df_chunk[df_chunk["duplicate"]][output_columns].to_csv(
+                        outstream_dups,
+                        sep="\t",
+                        header=False,
+                        index=False,
+                        na_rep="!",
+                    )
+                if outstream_unmapped:
+                    unmapped_mask = (df_chunk[c1_name] == unmapped_chrom) | (df_chunk[c2_name] == unmapped_chrom)
+                    df_chunk[unmapped_mask][output_columns].to_csv(
+                        outstream_unmapped,
+                        sep="\t",
+                        header=False,
+                        index=False,
+                        na_rep="!",
+                    )
+                if out_stat:
+                    for _, row in df_chunk.iterrows():
+                        out_stat.add_pair(
+                            row[c1_name],
+                            row[p1_name],
+                            row[s1_name],
+                            row[c2_name],
+                            row[p2_name],
+                            row[s2_name],
+                            "DD" if row["duplicate"] else row["pair_type"],
+                            unmapped_chrom=unmapped_chrom,
+                        )
+        print(f"Processed {chunk_count} chunks from streaming_dedup")
     else:
         raise ValueError("Unknown backend")
 
-    # save statistics to a file if it was requested:
     if out_stat:
         out_stat.save(
             out_stats_stream,
-            yaml=kwargs.get("yaml", False),  # format as yaml
-            filter=(
-                first_filter_name if not kwargs.get("yaml", False) else None
-            ),  # output only the first filter if non-YAML output
+            yaml=kwargs.get("yaml", False),
+            filter=(first_filter_name if not kwargs.get("yaml", False) else None),
         )
 
     if bytile_dups:
@@ -602,5 +669,8 @@ def dedup_py(
     if out_stats_stream:
         out_stats_stream.close()
 
+    if output_bytile_stats:
+        out_bytile_stats_stream.close()
+        
 if __name__ == "__main__":
     dedup()
