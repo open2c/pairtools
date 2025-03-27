@@ -725,7 +725,6 @@ def set_columns(header, columns):
             header[i] = "#columns:" + SEP_COLS + SEP_COLS.join(columns)
     return header
 
-# New functions for Step 2
 def parse_column(col, column_names):
     """
     Convert a column specification (int as str or str) to a 0-based index.
@@ -772,6 +771,36 @@ def canonicalize_columns(column_names):
         'readID': 'readID'
     }
     return [canonical_map.get(col, col) for col in column_names]
+
+def map_columns(column_names, col_specs):
+    """
+    Map column specifications to 0-based indices based on column_names.
+    
+    Args:
+        column_names (list): List of column names from the header.
+        col_specs (dict): Dictionary of column specs (e.g., {'c1': '1', 'p1': '2'} or {'c1': 'chrom1'}).
+    
+    Returns:
+        dict: Mapping of canonical names to 0-based indices (e.g., {'chrom1': 1, 'pos1': 2}).
+    
+    Raises:
+        ValueError: If a column specification is invalid.
+    """
+    result = {}
+    key_to_canonical = {
+        'c1': 'chrom1',
+        'c2': 'chrom2',
+        'p1': 'pos1',
+        'p2': 'pos2',
+        'pt': 'pair_type'
+    }
+    for key, value in col_specs.items():
+        canonical_name = key_to_canonical[key]
+        if not value or value.strip() == "":
+            result[canonical_name] = None
+        else:
+            result[canonical_name] = parse_column(value, column_names)
+    return result
 
 # def _guess_genome_assembly(samheader):
 #    PG = [l for l in samheader if l.startswith('@PG') and '\tID:bwa' in l][0]

@@ -6,7 +6,6 @@ import pytest
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
-
 def test_mock_pairsam():
     mock_pairsam_path = os.path.join(testdir, "data", "mock.pairsam")
     try:
@@ -65,14 +64,13 @@ def test_mock_pairsam():
     # check the sorting order of the output:
     prev_pair = None
     for l in output_body:
-        cur_pair = l.split("\t")[1:8]
+        cur_pair = l.split("\t")[1:8]  # [chrom1, pos1, chrom2, pos2, strand1, strand2, pair_type]
         if prev_pair is not None:
-            assert cur_pair[0] >= prev_pair[0]
+            assert cur_pair[0] >= prev_pair[0]  # chrom1
             if cur_pair[0] == prev_pair[0]:
-                assert cur_pair[2] >= prev_pair[2]
-                if cur_pair[2] == prev_pair[2]:
-                    assert int(cur_pair[1]) >= int(prev_pair[1])
-                    if int(cur_pair[1]) == int(prev_pair[1]):
-                        assert int(cur_pair[3]) >= int(prev_pair[3])
-
+                assert int(cur_pair[1]) >= int(prev_pair[1])  # pos1
+                if cur_pair[1] == prev_pair[1]:
+                    assert cur_pair[2] >= prev_pair[2]  # chrom2
+                    if cur_pair[2] == prev_pair[2]:
+                        assert int(cur_pair[3]) >= int(prev_pair[3])  # pos2
         prev_pair = cur_pair
