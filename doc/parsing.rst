@@ -284,6 +284,20 @@ Note that expanded pairs have modified pair type, "E{separation}_{pair type}", e
 - "E4_R1-2" is a pair obtained by combining left alignment of some pair in R1 read and right alignment of some pair in R1 sequence, separated by at least 4 alignments in between.
 Note that "-" in the pair type means that pair is separated by unsequenced gap, which may contain other pairs.
 
+Aligner settings
+-----------------
+
+We recommended using local DNA sequence aligners, such as `BWA-MEM <http://bio-bwa.sourceforge.net/>`_ and `Bowtie2 <http://bowtie-bio.sourceforge.net/bowtie2/index.shtml>`_ (in the local alignment mode), 
+as opposed to global aligners (e.g. Bowtie2 in the end-to-end mode). 
+Local aligners assume that DNA molecules may contain fragments aligning to different locations in the genome and thus are better suited for mapping chimeric Hi-C molecules.
+
+Aligning Hi-C reads may further require adjusting aligner settings.
+Some aligners assume DNA libraries contain only contiguous fragments, leading to 'mate rescue' where one read's alignment is modified or even forced based on its pair's alignment. 
+This behavior is incompatible with Hi-C, which produces chimeric molecules with unrelated alignments on each side. 
+To avoid erroneous results, disable mate rescue/pairing and align reads pairs independently. 
+In `bwa mem`, use the '-SP' flags to achieve this.
+
+
 .. [1] Following the lead of `C-walks <https://www.nature.com/articles/nature20158>`_
 
 .. [2] This procedure was first introduced in `HiC-Pro <https://github.com/nservant/HiC-Pro>`_ 

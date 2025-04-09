@@ -5,7 +5,7 @@ import sys
 import click
 import pandas as pd
 
-from ..lib import fileio, pairsam_format, headerops
+from ..lib import fileio
 from . import cli, common_io_options
 
 from ..lib.scaling import compute_scaling
@@ -39,21 +39,21 @@ UTIL_NAME = "pairtools_scaling"
 @click.option(
     "--dist-range",
     type=click.Tuple([int, int]),
-    default=(10, 1_000_000_000),
+    default=(1, 1_000_000_000),
     show_default=True,
     required=False,
     help="Distance range. ",
 )
 @click.option(
-    "--n-dist-bins",
+    "--n-dist-bins-decade",
     type=int,
-    default=128,
+    default=8,
     show_default=True,
     required=False,
-    help="Number of distance bins to split the distance range. ",
+    help="Number of bins to split the distance range in log10-space, specified per a factor of 10 difference.",
 )
 @common_io_options
-def scaling(input_path, output, view, chunksize, dist_range, n_dist_bins, **kwargs):
+def scaling(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs):
     """Calculate pairs scalings.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
@@ -63,10 +63,10 @@ def scaling(input_path, output, view, chunksize, dist_range, n_dist_bins, **kwar
 
     Output is .tsv file with scaling stats (both cis scalings and trans levels).
     """
-    scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins, **kwargs)
+    scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs)
 
 
-def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins, **kwargs):
+def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs):
 
     if len(input_path) == 0:
         raise ValueError(f"No input paths: {input_path}")
@@ -93,13 +93,13 @@ def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins, **k
         regions=view,
         chromsizes=None,
         dist_range=dist_range,
-        n_dist_bins=n_dist_bins,
+        n_dist_bins_decade=n_dist_bins_decade,
         chunksize=chunksize,
     )
     summary_stats = pd.concat([cis_scalings, trans_levels])
 
     # save statistics to the file
-    summary_stats.to_csv(outstream, sep="\t")
+    summary_stats.to_csv(outstream, sep="\t", index=False)
 
     if instream != sys.stdin:
         instream.close()

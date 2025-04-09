@@ -76,7 +76,7 @@ def evaluate_stream(
     match_func = compile(condition, "<string>", "eval")
 
     for line in headerless_stream:
-        COLS = line.rstrip().split(pairsam_format.PAIRSAM_SEP)
+        COLS = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
 
         # Evaluate filtering expression:
         filter_passed = eval(match_func)

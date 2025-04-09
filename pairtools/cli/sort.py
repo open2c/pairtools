@@ -25,6 +25,50 @@ UTIL_NAME = "pairtools_sort"
     "or lz4, correspondingly. By default, the output is printed into stdout.",
 )
 @click.option(
+    "--c1",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[1],
+    help=f"Chrom 1 column; default {pairsam_format.COLUMNS_PAIRS[1]}"
+    "[input format option]",
+)
+@click.option(
+    "--c2",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[3],
+    help=f"Chrom 2 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
+    "[input format option]",
+)
+@click.option(
+    "--p1",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[2],
+    help=f"Position 1 column; default {pairsam_format.COLUMNS_PAIRS[2]}"
+    "[input format option]",
+)
+@click.option(
+    "--p2",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[4],
+    help=f"Position 2 column; default {pairsam_format.COLUMNS_PAIRS[4]}"
+    "[input format option]",
+)
+@click.option(
+    "--pt",
+    type=str,
+    default=pairsam_format.COLUMNS_PAIRS[7],
+    help=f"Pair type column; default {pairsam_format.COLUMNS_PAIRS[7]}"
+    "[input format option]",
+)
+@click.option(
+    "--extra-col",
+    nargs=1,
+    type=str,
+    multiple=True,
+    help="Extra column (name or numerical index) that is also used for sorting."
+    "The option can be provided multiple times."
+    'Example: --extra-col "phase1" --extra-col "phase2". [output format option]',
+)
+@click.option(
     "--nproc",
     type=int,
     default=8,
@@ -56,7 +100,21 @@ UTIL_NAME = "pairtools_sort"
     "otherwise.",
 )
 @common_io_options
-def sort(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
+def sort(
+    pairs_path,
+    output,
+    c1,
+    c2,
+    p1,
+    p2,
+    pt,
+    extra_col,
+    nproc,
+    tmpdir,
+    memory,
+    compress_program,
+    **kwargs,
+):
     """Sort a .pairs/.pairsam file.
 
     Sort pairs in the lexicographic order along chrom1 and chrom2, in the
@@ -67,10 +125,38 @@ def sort(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
     input is decompressed by bgzip or lz4c, correspondingly. By default, the
     input is read as text from stdin.
     """
-    sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs)
+    sort_py(
+        pairs_path,
+        output,
+        c1,
+        c2,
+        p1,
+        p2,
+        pt,
+        extra_col,
+        nproc,
+        tmpdir,
+        memory,
+        compress_program,
+        **kwargs,
+    )
 
 
-def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwargs):
+def sort_py(
+    pairs_path,
+    output,
+    c1,
+    c2,
+    p1,
+    p2,
+    pt,
+    extra_col,
+    nproc,
+    tmpdir,
+    memory,
+    compress_program,
+    **kwargs,
+):
 
     instream = fileio.auto_open(
         pairs_path,
@@ -104,35 +190,29 @@ def sort_py(pairs_path, output, nproc, tmpdir, memory, compress_program, **kwarg
             )
             compress_program = "gzip"
 
-    command = r"""
+    column_names = headerops.extract_column_names(header)
+    columns = [c1, c2, p1, p2, pt] + list(extra_col)
+    # Now generating the "-k <i>,<i><mode>" expressions for all columns.
+    # If column name is in the default pairsam format and has an integer dtype there, do numerical sorting
+    cols = []
+    for col in columns:
+        colindex = int(col) if col.isnumeric() else column_names.index(col) + 1
+        cols.append(
+            f"-k {colindex},{colindex}{'n' if issubclass(pairsam_format.DTYPES_PAIRSAM.get(column_names[colindex-1], str), int) else ''}"
+        )
+    cols = " ".join(cols)
+    command = rf"""
         /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort 
-        -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
+        {cols}
         --stable
-        --field-separator=$'\''{5}'\'' 
-        {6}
-        {7}
-        -S {8}
-        {9}
+        --field-separator=$'\''{pairsam_format.PAIRSAM_SEP_ESCAPE}'\''
+        --parallel={nproc}
+        {f'--temporary-directory={tmpdir}' if tmpdir else ''}
+        -S {memory}
+        {f'--compress-program={compress_program}' if compress_program else ''}'
         """.replace(
         "\n", " "
-    ).format(
-        pairsam_format.COL_C1 + 1,
-        pairsam_format.COL_C2 + 1,
-        pairsam_format.COL_P1 + 1,
-        pairsam_format.COL_P2 + 1,
-        pairsam_format.COL_PTYPE + 1,
-        pairsam_format.PAIRSAM_SEP_ESCAPE,
-        " --parallel={} ".format(nproc) if nproc > 0 else " ",
-        " --temporary-directory={} ".format(tmpdir) if tmpdir else " ",
-        memory,
-        (
-            " --compress-program={} ".format(compress_program)
-            if compress_program
-            else " "
-        ),
     )
-    command += "'"
-
     with subprocess.Popen(
         command, stdin=subprocess.PIPE, bufsize=-1, shell=True, stdout=outstream
     ) as process:

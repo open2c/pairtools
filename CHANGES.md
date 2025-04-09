@@ -1,3 +1,68 @@
+### 1.1.3 (2025-01-31) ###
+
+Bugfixes of parse2:
+- Standartiation of complex pair types: names R1&2 and R1-2 are now uniform in the code.
+This was inconistent before leading to the bugs at the positions assignment for R1&2.
+
+- Walk policies are applied not only to complex walks but also to non-chimeric reads in parse2.
+
+
+Bugfizes of pairtools select: 
+- Empty columns at the end of the .pairs file are not truncated anymore.
+
+New tests: 
+- parse2 tests for R1&2 and R2 reads (read25/27). 
+- parse2 tests for correct flipping (read25/26).
+
+### 1.1.2 (2024-12-11) ###
+
+Bugfixes:
+- Drop Cython-generated .c/.cpp files from the sdist
+
+### 1.1.1 (2024-12-10) ###
+
+Bugfixes:
+- Migrating to pyproject.toml + cibuildwheel. pairtools will now release binary wheels for Linux. --no-build-isolation is a mandatory flag now.
+- Require Cython during build to avoid the "circular import" bug.
+- fix API incomplete functionality for read-side detection by @agalitsyna 
+
+**Full Changelog**: https://github.com/open2c/pairtools/compare/v1.1.0...v1.1.1
+
+### 1.1.0 (2024-04-23) ###
+Major bugfixes:
+- Fix a major bug in sort that previously broke the sorting order. This bug was introduced in recent versions of pairtools #230
+- Fix a major bug in dedup that caused pair duplication and broken sorting order in non-Cython backends
+
+New features:
+- stats: calculate the distance of P(s) divergence between pairs of different directionalities #222
+- dedup: allow column names in all backends, and allow sorting by arbitrary columns #162
+
+New behavior and default settings:
+- dedup: turn mark-dups on by default #211
+- parse: change the default --walks-policy to 5unique
+- parse: pair types are now always in upper case. Previously, letters in pair types were converted to lowercase if the corresponding side contained chimeric alignments.
+
+Minor bugfixes:
+- dedup: allow inputs with quotes #194
+- dedup: allow empty input pairs file #201
+- stats: minor bugfixes #200
+
+Documentation:
+- a new notebook with the statistics of distances between PCR duplicates #233
+- clean up phase walkthrough #218
+- a new chapter on building workflows with pairtools #219 #226 #231
+- a major cleanup
+
+Code updates:
+- make pairsio.py to read (and, in the future, write) .pairs files #195
+- minor refactoring of parse #223
+
+New Contributors:
+- @hkariti made their first contribution in #194
+
+### 1.0.3 (2023-11-20) ###
+- [x] `pairtools dedup`: update default chunksize to 10,000 to prevent memory overflow on datasets with high duplication rate 
+
 ### 1.0.2 (2022-11-XX) ###
 
 - [x] `pairtools select` regex update 
