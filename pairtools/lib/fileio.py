@@ -69,7 +69,7 @@ class CommandFormatter():
     def form_notfounderror_text(searched_tools: tp.List[str], is_read: bool) -> str:
         tools_article = 'is' if len(searched_tools) == 1 else 'are'
         tools_defenition = 'compress output' if is_read else 'decompress input'
-        tools_list = f'{', '.join(searched_tools[:-1])} and {searched_tools[-1]}' if len(searched_tools) > 1 else searched_tools[0]
+        tools_list = f'{"", "".join(searched_tools[:-1])} and {searched_tools[-1]}' if len(searched_tools) > 1 else searched_tools[0]
         return f"{tools_list} {tools_article} not found, cannot {tools_defenition}"
 
     def __post_init__(self):
