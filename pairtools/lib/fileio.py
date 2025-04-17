@@ -62,7 +62,6 @@ class CommandRunResult:
             return self.input
         if self.mode=='w' or self.mode=='a':
             return self.output
-    outfile: tp.Optional[tp.TextIO]
 
 
 @dataclass
