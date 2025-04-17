@@ -51,15 +51,24 @@ COMMANDS = {
 
 @dataclass
 class CommandRunResult:
-    errors: tp.Optional[bytes]
-    output: tp.Optional[bytes]
+    errors: tp.Optional[tp.TextIO]
+    output: tp.Optional[tp.TextIO]
+    input: tp.Optional[tp.TextIO]
+    mode: tp.Optional[tp.Literal['r', 'w', 'a']]
+
+    @property
+    def outfile(self) -> tp.Optional[tp.TextIO]:
+        if self.mode=='r':
+            return self.input
+        if self.mode=='w' or self.mode=='a':
+            return self.output
     outfile: tp.Optional[tp.TextIO]
 
 
 @dataclass
 class CommandFormatter():
 
-    mode: tp.Optional[tp.Literal['r', 'w', 'a']]
+    mode: tp.Literal['r', 'w', 'a']
     path: tp.Optional[str]=None
     command: tp.Optional[tp.Union[tp.List[str], str]]=None
     nproc: int=1
@@ -109,27 +118,22 @@ class CommandFormatter():
     def __form_command(self):
         self.__process_file = open(self.path, self.file_mode)
         if self.mode == 'r':
-            print('read')
-            cmd=subprocess.Popen(self.__command_to_sp, stdin=self.__process_file, stdout=subprocess.PIPE)
+            cmd=subprocess.Popen(self.__command_to_sp, stdin=self.__process_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
-            print('write')
-            cmd=subprocess.Popen(self.__command_to_sp, stdout=self.__process_file, stdin=subprocess.PIPE)
+            cmd=subprocess.Popen(self.__command_to_sp, stdout=self.__process_file, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         return cmd
     
     def __call__(self):
         if not self.path or self.path == "-":
-            if self.mode == "r":
-                return CommandRunResult(errors=None, output=None, outfile=sys.stdin)
-            if self.mode == "w":
-                return CommandRunResult(errors=None, output=None, outfile=sys.stdout)
-            if self.mode == "r":
-                return ValueError(f'Zero input file can not to be opened in a')
+            return CommandRunResult(input=sys.stdin, errors=None, output=sys.stdout, mode=self.mode)
         if self.__nocommand:
-            return CommandRunResult(errors=None, output=None, outfile=open(self.path, self.file_mode))
+            self.__process_file = open(self.path, self.file_mode)
+            if self.mode=='r':
+                return CommandRunResult(input=self.__process_file, errors=None, output=None, mode=self.mode)
+            return CommandRunResult(input=None, errors=None, output=self.__process_file, mode=self.mode)
         self.__convert_command()
         process = self.__form_command()
-        out, err = process.communicate()
-        return CommandRunResult(errors=err, output=out, outfile=self.__process_file)
+        return CommandRunResult(input=process.stdin, errors=process.stderr, output=process.stdout, mode=self.mode)
 
 
 def auto_open(path, mode, nproc=1, command=None):
