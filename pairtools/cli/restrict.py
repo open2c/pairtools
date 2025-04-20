@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sys
-import click
 import warnings
 
+import click
 import numpy as np
 
-from ..lib import fileio, pairsam_format, headerops
-from . import cli, common_io_options
-
+from ..lib import fileio, headerops, pairsam_format
 from ..lib.restrict import find_rfrag
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_restrict"
 
@@ -96,7 +95,7 @@ def restrict_py(pairs_path, frags, output, **kwargs):
     }
 
     for line in body_stream:
-        cols = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
         chrom1, pos1 = cols[pairsam_format.COL_C1], int(cols[pairsam_format.COL_P1])
         rfrag_idx1, rfrag_start1, rfrag_end1 = find_rfrag(rfrags, chrom1, pos1)
         chrom2, pos2 = cols[pairsam_format.COL_C2], int(cols[pairsam_format.COL_P2])

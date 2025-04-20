@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8  -*-
 
-import sys
 import ast
 import pathlib
+import sys
 
 from .._logging import get_logger
 
@@ -188,7 +188,7 @@ UTIL_NAME = "pairtools_dedup"
     "--c2",
     type=str,
     default=pairsam_format.COLUMNS_PAIRS[3],
-    help=f"Chrom 2 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
+    help=f"Chrom 1 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
     "[input format option]",
 )
 @click.option(
@@ -484,11 +484,11 @@ def dedup_py(
         logger.warning(
             "Pairs file appears not to be sorted, dedup might produce wrong results."
         )
-    
+
     # Canonicalize column names for flexible matching
     column_names = headerops.extract_column_names(header)
     column_names = headerops.canonicalize_columns(column_names)
-    
+
     # Get column indices with fallbacks
     try:
         col1 = headerops.get_column_index(column_names, c1)
@@ -497,17 +497,31 @@ def dedup_py(
         colp2 = headerops.get_column_index(column_names, p2)
         cols1 = headerops.get_column_index(column_names, s1)
         cols2 = headerops.get_column_index(column_names, s2)
-        
+
+        # Convert to column names for streaming_dedup
+        c1_name = column_names[col1]
+        c2_name = column_names[col2]
+        p1_name = column_names[colp1]
+        p2_name = column_names[colp2]
+        s1_name = column_names[cols1]
+        s2_name = column_names[cols2]
+
         # Handle extra column pairs
         extra_cols1 = []
         extra_cols2 = []
         if extra_col_pair is not None:
             for col1_spec, col2_spec in extra_col_pair:
                 try:
-                    extra_cols1.append(headerops.get_column_index(column_names, col1_spec))
-                    extra_cols2.append(headerops.get_column_index(column_names, col2_spec))
+                    extra_cols1.append(
+                        headerops.get_column_index(column_names, col1_spec)
+                    )
+                    extra_cols2.append(
+                        headerops.get_column_index(column_names, col2_spec)
+                    )
                 except ValueError:
-                    logger.warning(f"Extra column pair ({col1_spec}, {col2_spec}) not found in header, skipping")
+                    logger.warning(
+                        f"Extra column pair ({col1_spec}, {col2_spec}) not found in header, skipping"
+                    )
                     continue
     except ValueError as e:
         raise ValueError(f"Column error: {str(e)}") from e
@@ -522,6 +536,7 @@ def dedup_py(
         outstream.writelines((l + "\n" for l in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
         outstream_dups.writelines((l + "\n" for l in dups_header))
+
     if (
         outstream_unmapped
         and (outstream_unmapped != outstream)
@@ -569,12 +584,12 @@ def dedup_py(
             out_stat=out_stat,
             backend=backend,
             n_proc=n_proc,
-            c1=col1,
-            c2=col2,
-            p1=colp1,
-            p2=colp2,
-            s1=cols1,
-            s2=cols2,
+            c1=c1_name,
+            c2=c2_name,
+            p1=p1_name,
+            p2=p2_name,
+            s1=s1_name,
+            s2=s2_name,
         )
     else:
         raise ValueError("Unknown backend")

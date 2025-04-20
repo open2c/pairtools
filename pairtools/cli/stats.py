@@ -2,15 +2,14 @@
 # -*- coding: utf-8 -*-
 import io
 import sys
+
 import click
-
 import pandas as pd
-from ..lib import fileio, pairsam_format, headerops
-from . import cli, common_io_options
-
-from ..lib.stats import PairCounter, do_merge
 
 from .._logging import get_logger
+from ..lib import fileio, headerops, pairsam_format
+from ..lib.stats import PairCounter, do_merge
+from . import cli, common_io_options
 
 logger = get_logger()
 
@@ -115,7 +114,14 @@ UTIL_NAME = "pairtools_stats"
 )
 @common_io_options
 def stats(
-    input_path, output, merge, n_dist_bins_decade, bytile_dups, output_bytile_stats, filter, **kwargs
+    input_path,
+    output,
+    merge,
+    n_dist_bins_decade,
+    bytile_dups,
+    output_bytile_stats,
+    filter,
+    **kwargs,
 ):
     """Calculate pairs statistics.
 
@@ -140,7 +146,14 @@ def stats(
 
 
 def stats_py(
-    input_path, output, merge, n_dist_bins_decade, bytile_dups, output_bytile_stats, filter, **kwargs
+    input_path,
+    output,
+    merge,
+    n_dist_bins_decade,
+    bytile_dups,
+    output_bytile_stats,
+    filter,
+    **kwargs,
 ):
     if merge:
         do_merge(output, input_path, n_dist_bins_decade=n_dist_bins_decade, **kwargs)
@@ -213,9 +226,9 @@ def stats_py(
     stats.save(
         outstream,
         yaml=kwargs.get("yaml", False),  # format as yaml
-        filter=first_filter_name
-        if not kwargs.get("yaml", False)
-        else None,  # output only the first filter if non-YAML output
+        filter=(
+            first_filter_name if not kwargs.get("yaml", False) else None
+        ),  # output only the first filter if non-YAML output
     )
 
     if instream != sys.stdin:

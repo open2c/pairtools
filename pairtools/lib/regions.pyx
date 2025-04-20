@@ -1,16 +1,18 @@
 """ Moved from pairlib, library for fast regions assignment """
-from cython.operator cimport dereference, postincrement, postdecrement
-
 from cpython cimport array
+from cython.operator cimport dereference, postdecrement, postincrement
+
 import cython
 
-from libcpp.map cimport map
 from libcpp.algorithm cimport lower_bound, upper_bound
+from libcpp.map cimport map
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 
 import numpy as np
+
 cimport numpy as np
+
 
 cpdef np.ndarray assign_regs_c(np.ndarray chroms, np.ndarray pos, dict reg_dict):
     assert len(chroms) == len(pos)

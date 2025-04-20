@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import io
-import sys
-import click
-import subprocess
 import shutil
+import subprocess
+import sys
 import warnings
-from .._logging import get_logger
 
-from ..lib import fileio, pairsam_format, headerops
+import click
+
+from .._logging import get_logger
+from ..lib import fileio, headerops, pairsam_format
 from . import cli, common_io_options
 
 logger = get_logger()
@@ -200,13 +201,13 @@ def sort_py(
         col2 = headerops.get_column_index(column_names, c2)
         colp1 = headerops.get_column_index(column_names, p1)
         colp2 = headerops.get_column_index(column_names, p2)
-        
+
         # Make pair_type optional
         try:
             colpt = headerops.get_column_index(column_names, pt) if pt else None
         except ValueError:
             colpt = None
-            
+
         extra_cols = []
         for col in extra_col:
             try:
@@ -219,15 +220,20 @@ def sort_py(
 
     # Generate sort command columns
     cols = []
-    for i, col in enumerate([col1, colp1, col2, colp2, colpt] + extra_cols):
+    sort_columns = [
+        col1,
+        col2,
+        colp1,
+        colp2,
+        colpt,
+    ] + extra_cols  # Order: chrom1, chrom2, pos1, pos2, pair_type
+    for col in sort_columns:
         if col is None:
-            continue  # Skip optional columns that weren't found
+            continue  # Skip optional columns
         dtype = pairsam_format.DTYPES_PAIRSAM.get(column_names[col], str)
-        cols.append(
-            f"-k {col+1},{col+1}{'n' if issubclass(dtype, int) else ''}"
-        )
+        cols.append(f"-k {col+1},{col+1}{'n' if issubclass(dtype, int) else ''}")
     cols = " ".join(cols)
-    
+
     command = rf"""
         /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort 
         {cols}
@@ -237,8 +243,10 @@ def sort_py(
         {f'--temporary-directory={tmpdir}' if tmpdir else ''}
         -S {memory}
         {f'--compress-program={compress_program}' if compress_program else ''}'
-        """.replace("\n", " ")
-        
+        """.replace(
+        "\n", " "
+    )
+
     with subprocess.Popen(
         command, stdin=subprocess.PIPE, bufsize=-1, shell=True, stdout=outstream
     ) as process:

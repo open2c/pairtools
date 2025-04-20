@@ -1,9 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import fnmatch
+import re
 import sys
-import click
-import re, fnmatch
 import warnings
 
-from ..lib import fileio, pairsam_format, headerops
+import click
+
+from ..lib import fileio, headerops, pairsam_format
 from ..lib.select import evaluate_stream
 from . import cli, common_io_options
 
@@ -30,16 +34,6 @@ UTIL_NAME = "pairtools_select"
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed."
     " By default, such pairs are dropped.",
 )
-
-# Deprecated option to be removed in the future:
-# @click.option(
-#     "--send-comments-to",
-#     type=click.Choice(['selected', 'rest', 'both', 'none']),
-#     default="both",
-#     help="Which of the outputs should receive header and comment lines",
-#     show_default=True)
-
-
 @click.option(
     "--chrom-subset",
     type=str,
@@ -80,7 +74,7 @@ def select(
     condition,
     pairs_path,
     output,
-    output_rest,  # send_comments_to,
+    output_rest,
     chrom_subset,
     startup_code,
     type_cast,
@@ -110,25 +104,23 @@ def select(
     e.g. wildcard_match(pair_type, 'C*')
 
     - regex_match(x, regex) - True if variable x matches a Python-flavor regex,
-    e.g. regex_match(chrom1, 'chr\d')
+    e.g. regex_match(chrom1, r'chr\\d+')
 
-    \b
     Examples:
     pairtools select '(pair_type=="UU") or (pair_type=="UR") or (pair_type=="RU")'
     pairtools select 'chrom1==chrom2'
     pairtools select 'COLS[1]==COLS[3]'
     pairtools select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
     pairtools select '(chrom1=="!") and (chrom2!="!")'
-    pairtools select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
+    pairtools select 'regex_match(chrom1, r"chr\\d+") and regex_match(chrom2, r"chr\\d+")'
 
     pairtools select 'True' --chrom-subset mm9.reduced.chromsizes
-
     """
     select_py(
         condition,
         pairs_path,
         output,
-        output_rest,  # send_comments_to,
+        output_rest,
         chrom_subset,
         startup_code,
         type_cast,
@@ -141,14 +133,13 @@ def select_py(
     condition,
     pairs_path,
     output,
-    output_rest,  # send_comments_to,
+    output_rest,
     chrom_subset,
     startup_code,
     type_cast,
     remove_columns,
     **kwargs,
 ):
-
     instream = fileio.auto_open(
         pairs_path,
         mode="r",
@@ -229,7 +220,7 @@ def select_py(
     for filter_passed, line in evaluate_stream(
         body_stream, condition, column_names, type_cast, startup_code
     ):
-        COLS = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
+        COLS = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
 
         if remove_columns:
             COLS = [

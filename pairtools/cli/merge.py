@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-import sys
 import glob
 import math
 import subprocess
+import sys
+
 import click
 
-from ..lib import fileio, pairsam_format, headerops
+from ..lib import fileio, headerops, pairsam_format
 from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_merge"

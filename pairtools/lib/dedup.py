@@ -1,18 +1,16 @@
+from csv import QUOTE_NONE
+
 import numpy as np
 import pandas as pd
-
 import scipy.spatial
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
-from csv import QUOTE_NONE
-
-from . import dedup_cython, pairsam_format
 
 from .._logging import get_logger
+from . import dedup_cython, pairsam_format
 
 logger = get_logger()
 import time
-
 # Ignore pandas future warnings:
 import warnings
 

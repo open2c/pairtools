@@ -1,8 +1,9 @@
-import numpy as np
 import warnings
 
-from .dedup import mark_split_pair_as_dup
+import numpy as np
+
 from . import pairsam_format
+from .dedup import mark_split_pair_as_dup
 
 
 def fetchadd(key, mydict):

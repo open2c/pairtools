@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
+import subprocess
 import sys
 
 import pytest
-
-import subprocess
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -129,7 +128,6 @@ def test_mock_pysam_parse2_pair():
 
 
 def test_mock_pysam_parse2_single_end():
-    
     """Testing single-end mode for parse2, no-flip mode.
     --report-position is outer (parse2 default)
     --report-orientation is pair (parse2 default)
@@ -196,7 +194,6 @@ def test_mock_pysam_parse2_single_end():
 
 
 def test_mock_pysam_parse2_single_end_expand():
-    
     """Testing single-end mode for parse2, no-flip mode, with --expand.
     --report-position is outer (parse2 default)
     --report-orientation is pair (parse2 default)

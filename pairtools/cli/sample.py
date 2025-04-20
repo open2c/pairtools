@@ -1,9 +1,9 @@
+import random
 import sys
+
 import click
 
-import random
-
-from ..lib import fileio, pairsam_format, headerops
+from ..lib import fileio, headerops, pairsam_format
 from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_sample"

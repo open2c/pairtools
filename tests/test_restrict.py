@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
+import subprocess
 import sys
 
 import pytest
-
-import subprocess
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 

@@ -1,9 +1,10 @@
 import sys
+import warnings
+
 import click
 
-from ..lib import fileio, pairsam_format, headerops
+from ..lib import fileio, headerops, pairsam_format
 from . import cli, common_io_options
-import warnings
 
 UTIL_NAME = "pairtools_flip"
 
@@ -101,7 +102,7 @@ def flip_py(pairs_path, chroms_path, output, **kwargs):
     ]
 
     for line in body_stream:
-        cols = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
 
         is_annotated1 = cols[chrom1_col] in chrom_enum.keys()
         is_annotated2 = cols[chrom2_col] in chrom_enum.keys()

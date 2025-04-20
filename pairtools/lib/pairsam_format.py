@@ -102,8 +102,7 @@ EXTRA_COLUMNS = [
     "mismatches",  # Format: "{ref_letter}:{mut_letter}:{phred}:{ref_position}:{read_position}"
     "read_side",
     "algn_idx",
-    "same_side_algn_count"
-    
+    "same_side_algn_count",
 ]
 
 DTYPES_EXTRA_COLUMNS = {

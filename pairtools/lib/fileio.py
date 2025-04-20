@@ -1,7 +1,8 @@
-import shutil
 import pipes
+import shutil
 import subprocess
 import sys
+
 
 class ParseError(Exception):
     pass
@@ -261,5 +262,3 @@ def get_stream_handlers(instream):
     else:
         raise ValueError("Cannot find the peek() function of the provided stream!")
     return readline_f, peek_f
-
-

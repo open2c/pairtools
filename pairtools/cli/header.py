@@ -1,12 +1,12 @@
-import sys
-import click
-import warnings
 import subprocess
+import sys
+import warnings
 
-from ..lib import fileio, pairsam_format, headerops
+import click
+
+from ..lib import fileio, headerops, pairsam_format
 from ..lib.parse_pysam import AlignmentFilePairtoolized
 from . import cli, common_io_options
-
 
 UTIL_NAME = "pairtools_header"
 

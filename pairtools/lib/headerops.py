@@ -1,17 +1,16 @@
-from collections import defaultdict
-import sys
 import copy
 import itertools
+import sys
 import warnings
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
 
 from .. import __version__
+from .._logging import get_logger
 from . import pairsam_format
 from .fileio import ParseError, get_stream_handlers
-
-from .._logging import get_logger
 
 logger = get_logger()
 
@@ -21,51 +20,57 @@ SEP_CHROMS = " "
 COMMENT_CHAR = "#"
 
 
-
 def canonicalize_columns(columns):
     """Convert between common column name variants."""
     canonical_map = {
-        'chr1': 'chrom1',
-        'chr2': 'chrom2',
-        'chrom1': 'chrom1',  # Ensure identity mapping
-        'chrom2': 'chrom2',
-        'pt': 'pair_type',
-        'pair_type': 'pair_type'
+        "chr1": "chrom1",
+        "chr2": "chrom2",
+        "chrom1": "chrom1",  # Ensure identity mapping
+        "chrom2": "chrom2",
+        "pt": "pair_type",
+        "pair_type": "pair_type",
     }
     return [canonical_map.get(col.lower(), col) for col in columns]
 
+
 def get_column_index(column_names, column_spec):
     """Get column index with flexible name matching."""
+    # Canonicalize column names to ensure consistent matching
+    canonical_columns = canonicalize_columns(column_names)
+
     if isinstance(column_spec, int):
         if -len(column_names) <= column_spec < len(column_names):
             return column_spec % len(column_names)  # Handle negative indices
         raise ValueError(f"Column index {column_spec} out of range")
-    
+
     if not isinstance(column_spec, (str, int)):
-        raise AttributeError(f"Column spec must be string or integer, got {type(column_spec)}")
+        raise AttributeError(
+            f"Column spec must be string or integer, got {type(column_spec)}"
+        )
 
     # Try direct match first
     try:
         return column_names.index(column_spec)
     except ValueError:
         pass
-        
+
     # Try canonical name
     canonical = canonicalize_columns([column_spec])[0]
     try:
-        return column_names.index(canonical)
+        return canonical_columns.index(canonical)
     except ValueError:
         pass
-        
+
     # Try case-insensitive
-    lower_columns = [c.lower() for c in column_names]
+    lower_columns = [c.lower() for c in canonical_columns]
     try:
         return lower_columns.index(canonical.lower())
     except ValueError:
-        available = ', '.join(f"'{c}'" for c in column_names)
+        available = ", ".join(f"'{c}'" for c in column_names)
         raise ValueError(
             f"Column '{column_spec}' not found. Available columns: {available}"
         )
+
 
 def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
     """Returns a header from the stream and an the reaminder of the stream
@@ -102,7 +107,7 @@ def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
         if isinstance(line, bytes):
             line = line.decode()
         # append line to header, since it does start with header
-        header.append(line.rstrip('\n'))
+        header.append(line.rstrip("\n"))
         # peek into the remainder of the instream
         current_peek = peek_f(1)
     # apparently, next line does not start with the comment
@@ -127,7 +132,7 @@ def extract_fields(header, field_name, save_rest=False):
     rest = []
     for l in header:
         if l.lstrip(COMMENT_CHAR).startswith(field_name + ":"):
-            fields.append(l.split(":", 1)[1].rstrip('\n').lstrip())
+            fields.append(l.split(":", 1)[1].rstrip("\n").lstrip())
         elif save_rest:
             rest.append(l)
 

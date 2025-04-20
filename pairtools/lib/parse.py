@@ -34,8 +34,10 @@ II. python-based data types are parsed from pysam-based ones:
         Additionally, these functions also output all alignments for each side.
 
 """
+
 from . import pairsam_format
 from .parse_pysam import get_mismatches_c
+
 
 def streaming_classify(
     instream, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
@@ -94,7 +96,13 @@ def streaming_classify(
 
     ### Iterate over input pysam:
     instream = iter(instream)
-    for (readID, (sams1, sams2)) in read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True, readID_transform=readID_transform):
+    for readID, (sams1, sams2) in read_alignment_block(
+        instream,
+        sort=True,
+        group_by_side=True,
+        return_readID=True,
+        readID_transform=readID_transform,
+    ):
 
         ### Parse
         if not parse2:  # regular parser:
@@ -129,7 +137,7 @@ def streaming_classify(
 
         ### Write:
         read_has_alignments = False
-        for (algn1, algn2, pair_index) in pairstream:
+        for algn1, algn2, pair_index in pairstream:
             read_has_alignments = True
 
             # Alignment end defaults to 5' if report_alignment_end is unspecified:
@@ -175,14 +183,13 @@ def streaming_classify(
 
         # write all alignments:
         if out_alignments_stream and read_has_alignments:
-            write_all_algnments(
-                readID, all_algns1, all_algns2, out_alignments_stream
-            )
+            write_all_algnments(readID, all_algns1, all_algns2, out_alignments_stream)
 
 
 ############################
 ### Alignment utilities: ###
 ############################
+
 
 def empty_alignment():
     return {
@@ -208,6 +215,7 @@ def empty_alignment():
         "mismatches": "",
     }
 
+
 def group_alignments_by_side(sams):
     """Group pysam AlignedSegments (sams) into left-read (R1) and right-read (R2) sam entries"""
 
@@ -222,14 +230,16 @@ def group_alignments_by_side(sams):
     return sams1, sams2
 
 
-def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True, readID_transform=None):
+def read_alignment_block(
+    instream, sort=True, group_by_side=True, return_readID=True, readID_transform=None
+):
     sams = []
 
     prev_readID = None
     while True:
         sam_entry = next(instream, None)
         readID = sam_entry.query_name if sam_entry else None
-        if readID_transform is not None and readID is not None: 
+        if readID_transform is not None and readID is not None:
             readID = eval(readID_transform)
 
         # Read is fully populated, then parse and write:
@@ -239,14 +249,15 @@ def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=
             out = sams if not group_by_side else group_alignments_by_side(sams)
             out = out if not return_readID else (prev_readID, out)
             yield out
-            
+
             sams.clear()
-            
+
         if sam_entry is None:
             break
         else:
             sams.append(sam_entry)
             prev_readID = readID
+
 
 def parse_pysam_entry(
     sam,
@@ -410,7 +421,6 @@ def flip_position(hic_algn):
     return hic_algn
 
 
-
 def _convert_gaps_into_alignments(sorted_algns, max_inter_align_gap):
     """
     Inplace conversion of gaps longer than max_inter_align_gap into alignments
@@ -437,9 +447,11 @@ def _convert_gaps_into_alignments(sorted_algns, max_inter_align_gap):
             i += 1
 
 
-def normalize_alignment_list(algns, side, sort_by="dist_to_5", max_inter_align_gap=None):
+def normalize_alignment_list(
+    algns, side, sort_by="dist_to_5", max_inter_align_gap=None
+):
     """
-    Normalize the alignment list: insert empty alignments in gaps between alignments, 
+    Normalize the alignment list: insert empty alignments in gaps between alignments,
     sort by distance to the 5' end, add read side, alignment index.
 
     Args:
@@ -467,7 +479,6 @@ def normalize_alignment_list(algns, side, sort_by="dist_to_5", max_inter_align_g
         algn["same_side_algn_count"] = len(algns)
 
     return algns
-            
 
 
 ####################
@@ -531,9 +542,12 @@ def parse_read(
         for sam in sams2
     ]
 
-    algns1 = normalize_alignment_list(algns1, 1, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap)
-    algns2 = normalize_alignment_list(algns2, 2, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap)
-
+    algns1 = normalize_alignment_list(
+        algns1, 1, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap
+    )
+    algns2 = normalize_alignment_list(
+        algns2, 2, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap
+    )
 
     # By default, assume each molecule is a single pair with single unconfirmed pair:
     hic_algn1 = algns1[0]
@@ -666,8 +680,10 @@ def parse2_read(
             )
             for sam in sams2  # note sams2, that's how these reads are typically parsed
         ]
-        
-        algns1 = normalize_alignment_list(algns1, 1, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap)
+
+        algns1 = normalize_alignment_list(
+            algns1, 1, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap
+        )
         algns2 = []  # Empty alignment dummy
 
         if len(algns1) > 1:
@@ -725,8 +741,12 @@ def parse2_read(
             for sam in sams2
         ]
 
-        algns1 = normalize_alignment_list(algns1, 1, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap)
-        algns2 = normalize_alignment_list(algns2, 2, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap)
+        algns1 = normalize_alignment_list(
+            algns1, 1, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap
+        )
+        algns2 = normalize_alignment_list(
+            algns2, 2, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap
+        )
 
         is_chimeric_1 = len(algns1) > 1
         is_chimeric_2 = len(algns2) > 1
@@ -1009,12 +1029,12 @@ def parse_complex_walk(
         if not is_overlap:
             current_right_pair = 1
 
-    if (n_algns2 == 0):
+    if n_algns2 == 0:
         last_reported_alignment_left = 1
         last_reported_alignment_right = 0
     else:
         # II. Search of partial overlap if there are less than 2 alignments at either sides, or no overlaps found
-        if (current_right_pair == 1):
+        if current_right_pair == 1:
             last_reported_alignment_left = last_reported_alignment_right = 1
             if partial_overlap(
                 algns1[-1],
@@ -1070,9 +1090,9 @@ def parse_complex_walk(
                 )
 
         else:  # there was an overlap, set some pointers:
-            last_reported_alignment_left = (
-                last_reported_alignment_right
-            ) = current_right_pair
+            last_reported_alignment_left = last_reported_alignment_right = (
+                current_right_pair
+            )
 
     # III. Report all remaining alignments.
     # Report all unique alignments on left read (sequential):
@@ -1338,17 +1358,13 @@ def format_pair(
     hic_algn1["type"] = (
         "N"
         if not hic_algn1["is_mapped"]
-        else "M"
-        if not hic_algn1["is_unique"]
-        else "U"
+        else "M" if not hic_algn1["is_unique"] else "U"
     )
 
     hic_algn2["type"] = (
         "N"
         if not hic_algn2["is_mapped"]
-        else "M"
-        if not hic_algn2["is_unique"]
-        else "U"
+        else "M" if not hic_algn2["is_unique"] else "U"
     )
 
     # Change orientation and positioning of pair for reporting:

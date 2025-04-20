@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 import io
 import sys
+
 import click
 import pandas as pd
 
 from ..lib import fileio
-from . import cli, common_io_options
-
 from ..lib.scaling import compute_scaling
-
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_scaling"
 
@@ -53,7 +52,9 @@ UTIL_NAME = "pairtools_scaling"
     help="Number of bins to split the distance range in log10-space, specified per a factor of 10 difference.",
 )
 @common_io_options
-def scaling(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs):
+def scaling(
+    input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs
+):
     """Calculate pairs scalings.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
@@ -63,10 +64,14 @@ def scaling(input_path, output, view, chunksize, dist_range, n_dist_bins_decade,
 
     Output is .tsv file with scaling stats (both cis scalings and trans levels).
     """
-    scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs)
+    scaling_py(
+        input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs
+    )
 
 
-def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs):
+def scaling_py(
+    input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs
+):
 
     if len(input_path) == 0:
         raise ValueError(f"No input paths: {input_path}")
