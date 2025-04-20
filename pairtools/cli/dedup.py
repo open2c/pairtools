@@ -4,11 +4,6 @@
 import ast
 import pathlib
 import sys
-
-from .._logging import get_logger
-
-logger = get_logger()
-
 import click
 
 from ..lib import fileio, headerops, pairsam_format
@@ -16,12 +11,16 @@ from ..lib.dedup import streaming_dedup, streaming_dedup_cython
 from ..lib.stats import PairCounter
 from . import cli, common_io_options
 
+from .._logging import get_logger
+
+logger = get_logger()
+
+
 UTIL_NAME = "pairtools_dedup"
 
 
 @cli.command()
 @click.argument("pairs_path", type=str, required=False)
-
 ### Output files:
 @click.option(
     "-o",
@@ -72,7 +71,6 @@ UTIL_NAME = "pairtools_dedup"
     " If file exists, it will be open in the append mode. "
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.",
 )
-
 ### Set the dedup method:
 @click.option(
     "--max-mismatch",
@@ -107,7 +105,6 @@ UTIL_NAME = "pairtools_dedup"
     " 1 mln has the lowest memory requirements. [dedup option]",
     # " 'cython' is deprecated and provided for backwards compatibility",
 )
-
 ### Scipy and sklearn-specific options:
 @click.option(
     "--chunksize",
@@ -136,7 +133,6 @@ UTIL_NAME = "pairtools_dedup"
     help="Number of cores to use. Only applies with sklearn backend."
     "Still needs testing whether it is ever useful. [dedup option]",
 )
-
 ### Output options:
 @click.option(
     "--mark-dups/--no-mark-dups",
@@ -162,7 +158,6 @@ UTIL_NAME = "pairtools_dedup"
     "multiple times if multiple column pairs must match. "
     'Example: --extra-col-pair "phase1" "phase2". [output format option]',
 )
-
 ### Input options:
 @click.option(
     "--sep",
@@ -227,7 +222,6 @@ UTIL_NAME = "pairtools_dedup"
         pairsam_format.UNMAPPED_CHROM
     ),
 )
-
 # Output stats option
 @click.option(
     "--yaml/--no-yaml",
@@ -235,7 +229,6 @@ UTIL_NAME = "pairtools_dedup"
     default=False,
     help="Output stats in yaml format instead of table. [output stats format option]",
 )
-
 # Filtering options for reporting stats:
 @click.option(
     "--filter",
