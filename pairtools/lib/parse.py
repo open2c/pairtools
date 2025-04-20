@@ -8,9 +8,7 @@ I. pysam-based:
         Because we read sam entries from .sam/.bam files automatically with modified pysam,
         each sam entry is in fact special AlignedSegmentPairtoolized Cython object
         that has alignment attributes and can be easily accessed from Python.
-    
-        Sam entries are gathered into reads by `group_alignments_by_side` function.
-    
+        Sam entries are gathered into reads by `group_alignments_by_side` function.    
     2. **read** is a collection of sam entries corresponding to a single Hi-C molecule.
         It is represented by three variables:
         readID, sams1 and sams2, which keep left and right sam entries, correspondingly.
@@ -21,11 +19,9 @@ II. python-based data types are parsed from pysam-based ones:
 
     1. **alignment** is a continuous aligned fragment represented as dictionary with relevant fields,
         such as "chrom", "pos5", "pos3", "strand", "type", etc.
-        
         `empty_alignment` creates empty alignment,
         `parse_pysam_entry` create new alignments from pysam entries,
-        `mask_alignment` clears some fields of the alignment to match the default "unmapped" state.
-        
+        `mask_alignment` clears some fields of the alignment to match the default "unmapped" state.        
         `flip_alignment`, `flip_orientation` and `flip_ends` are useful functions that help to orient alignments.
 
     2. **pair** of two alignments is represented by three variables:

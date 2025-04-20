@@ -68,24 +68,24 @@ def test_mock_pairsam(setup_sort_two):
 
     # check that all pairsam entries survived sorting:
     pairsam_body_1 = [
-        l.strip()
-        for l in open(mock_pairsam_path_1, "r")
-        if not l.startswith("#") and l.strip()
+        line.strip()
+        for line in open(mock_pairsam_path_1, "r")
+        if not line.startswith("#") and line.strip()
     ]
     pairsam_body_2 = [
-        l.strip()
-        for l in open(mock_pairsam_path_2, "r")
-        if not l.startswith("#") and l.strip()
+        line.strip()
+        for line in open(mock_pairsam_path_2, "r")
+        if not line.startswith("#") and line.strip()
     ]
     output_body = [
-        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
+        line.strip() for line in result.split("\n") if not line.startswith("#") and line.strip()
     ]
     assert len(pairsam_body_1) + len(pairsam_body_2) == len(output_body)
 
     # check the sorting order of the output:
     prev_pair = None
-    for l in output_body:
-        cur_pair = l.split("\t")[1:8]
+    for line in output_body:
+        cur_pair = line.split("\t")[1:8]
         if prev_pair is not None:
             assert cur_pair[0] >= prev_pair[0]
             if cur_pair[0] == prev_pair[0]:
@@ -117,17 +117,12 @@ def test_mock_pairsam(setup_sort_two):
 
     # check the headers:
     pairsam_header_1 = [
-        l.strip()
-        for l in open(mock_sorted_pairsam_path_1, "r")
-        if l.startswith("#") and l.strip()
-    ]
-    pairsam_header_2 = [
-        l.strip()
-        for l in open(mock_sorted_pairsam_path_2, "r")
-        if l.startswith("#") and l.strip()
+        line.strip()
+        for line in open(mock_sorted_pairsam_path_1, "r")
+        if line.startswith("#") and line.strip()
     ]
     output_header = [
-        l.strip() for l in result.split("\n") if l.startswith("#") and l.strip()
+        line.strip() for line in result.split("\n") if line.startswith("#") and line.strip()
     ]
 
     assert len(pairsam_header_1) + 1 == len(output_header)

@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-import pytest
+# import pytest
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 

@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 import pandas as pd
-import pytest
+# import pytest
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 

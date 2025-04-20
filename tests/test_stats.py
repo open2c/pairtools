@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 import yaml
 
+from pairtools.lib.stats import PairCounter
+
 testdir = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -133,9 +135,6 @@ def test_merge_stats():
         print(e.output)
         print(sys.exc_info())
         raise e
-
-
-from pairtools.lib.stats import PairCounter
 
 
 @pytest.fixture

@@ -473,7 +473,7 @@ def dedup_py(
         )
 
     header, body_stream = headerops.get_header(instream)
-    if not any([l.startswith("#sorted") for l in header]):
+    if not any([line.startswith("#sorted") for line in header]):
         logger.warning(
             "Pairs file appears not to be sorted, dedup might produce wrong results."
         )
@@ -526,16 +526,16 @@ def dedup_py(
     if outstream == outstream_dups:
         header = dups_header
     if send_header_to_dedup:
-        outstream.writelines((l + "\n" for l in header))
+        outstream.writelines((line + "\n" for line in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
-        outstream_dups.writelines((l + "\n" for l in dups_header))
+        outstream_dups.writelines((line + "\n" for line in dups_header))
 
     if (
         outstream_unmapped
         and (outstream_unmapped != outstream)
         and (outstream_unmapped != outstream_dups)
     ):
-        outstream_unmapped.writelines((l + "\n" for l in header))
+        outstream_unmapped.writelines((line + "\n" for line in header))
 
     if backend == "cython":
         streaming_dedup_cython(
