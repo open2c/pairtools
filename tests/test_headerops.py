@@ -4,6 +4,104 @@ from pairtools.lib import headerops
 import pytest
 
 
+import pytest
+from pairtools.lib.headerops import (
+    canonicalize_columns,
+    get_column_index,
+    extract_column_names,
+)
+
+def test_canonicalize_columns():
+    # Test basic canonicalization
+    assert canonicalize_columns(['chr1', 'chr2']) == ['chrom1', 'chrom2']
+    assert canonicalize_columns(['chrom1', 'chrom2']) == ['chrom1', 'chrom2']
+    assert canonicalize_columns(['pt', 'other']) == ['pair_type', 'other']
+    
+    # Test mixed case
+    assert canonicalize_columns(['Chr1', 'CHR2']) == ['chrom1', 'chrom2']
+    assert canonicalize_columns(['CHR1', 'chr2']) == ['chrom1', 'chrom2']
+    
+    # Test no changes needed
+    assert canonicalize_columns(['readID', 'pos1']) == ['readID', 'pos1']
+    
+    # Test empty input
+    assert canonicalize_columns([]) == []
+    
+    # Test all known aliases
+    assert canonicalize_columns(['chr1', 'Chr2', 'PT']) == ['chrom1', 'chrom2', 'pair_type']
+
+def test_get_column_index():
+    # Setup test columns
+    columns = ['readID', 'chr1', 'pos1', 'chr2', 'pos2', 'strand1', 'strand2', 'pair_type']
+    
+    # Test string lookup - direct matches
+    assert get_column_index(columns, 'chr1') == 1
+    assert get_column_index(columns, 'pos2') == 4
+    assert get_column_index(columns, 'pair_type') == 7
+    
+    # Test string lookup - canonicalized matches
+    assert get_column_index(columns, 'chrom1') == 1
+    assert get_column_index(columns, 'CHROM2') == 3
+    assert get_column_index(columns, 'PT') == 7
+    
+    # Test case insensitive matches
+    assert get_column_index(columns, 'CHR1') == 1
+    assert get_column_index(columns, 'ChR2') == 3
+    
+    # Test integer lookup
+    assert get_column_index(columns, 0) == 0
+    assert get_column_index(columns, 3) == 3
+    assert get_column_index(columns, 7) == 7
+    
+    # Test error cases
+    with pytest.raises(ValueError, match="Column 'nonexistent' not found"):
+        get_column_index(columns, 'nonexistent')
+        
+    with pytest.raises(ValueError, match="Column index 100 out of range"):
+        get_column_index(columns, 100)
+        
+    with pytest.raises(AttributeError, match="Column spec must be string or integer"):
+        get_column_index(columns, 3.14)
+
+def test_integration_with_extract_column_names():
+    # Test with actual header format
+    header = [
+        "## pairs format v1.0",
+        "#columns: readID chr1 pos1 chr2 pos2 strand1 strand2 pair_type",
+        "#chromsize: chr1 1000",
+        "#chromsize: chr2 800"
+    ]
+    
+    columns = extract_column_names(header)
+    assert columns == ['readID', 'chr1', 'pos1', 'chr2', 'pos2', 'strand1', 'strand2', 'pair_type']
+    
+    # Test canonicalized column access
+    assert get_column_index(columns, 'chrom1') == 1
+    assert get_column_index(columns, 'chrom2') == 3
+    assert get_column_index(columns, 'pt') == 7
+    
+    # Test with alternative header format
+    header2 = [
+        "## pairs format v1.0",
+        "#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type",
+    ]
+    columns2 = extract_column_names(header2)
+    assert get_column_index(columns2, 'chr1') == 1
+    assert get_column_index(columns2, 'chr2') == 3
+
+def test_edge_cases():
+    # Test empty columns
+    with pytest.raises(ValueError):
+        get_column_index([], 'chrom1')
+    
+    # Test invalid column spec type
+    with pytest.raises(AttributeError):
+        get_column_index(['a', 'b', 'c'], 3.14)  # float not supported
+        
+    # Test negative indices
+    assert get_column_index(['a', 'b', 'c'], -1) == 2  # Python-style negative indexing
+
+
 def test_make_standard_header():
     header = headerops.make_standard_pairsheader()
 
