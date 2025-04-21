@@ -1,11 +1,12 @@
 import logging
 
-_loggers = {}
+# _loggers = {}
 
 
 def get_logger(name="pairtools"):
     # Based on ipython traitlets
-    global _loggers
+    # global _loggers
+    _loggers = {}
 
     if name not in _loggers:
         _loggers[name] = logging.getLogger(name)
