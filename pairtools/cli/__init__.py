@@ -187,6 +187,19 @@ def common_io_options(func):
     return wrapper
 
 
-from . import (dedup, filterbycov, flip, header, markasdup, merge, parse,
-               parse2, phase, restrict, sample, scaling, select, sort, split,
+from . import (dedup, 
+               filterbycov, 
+               flip, 
+               header, 
+               markasdup, 
+               merge, 
+               parse,
+               parse2, 
+               phase, 
+               restrict, 
+               sample, 
+               scaling, 
+               select, 
+               sort, 
+               split,
                stats)
