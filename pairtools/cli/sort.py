@@ -68,9 +68,9 @@ UTIL_NAME = "pairtools_sort"
     nargs=1,
     type=str,
     multiple=True,
-    help="Extra column (name or numerical index) that is also used for sorting."
-    "The option can be provided multiple times."
-    'Example: --extra-col "phase1" --extra-col "phase2". [output format option]',
+    help="Extra column (name or numerical index) to sort by. "
+         "If not defined in pairsam format, treated as a string and a warning is issued. "
+         "Can be provided multiple times, e.g., --extra-col phase1 --extra-col phase2.",
 )
 @click.option(
     "--nproc",
@@ -230,8 +230,14 @@ def sort_py(
     for col in sort_columns:
         if col is None:
             continue  # Skip optional columns
-        dtype = pairsam_format.DTYPES_PAIRSAM.get(column_names[col], str)
-        cols.append(f"-k {col+1},{col+1}{'n' if issubclass(dtype, int) else ''}")
+        col_name = column_names[col]
+        dtype = pairsam_format.DTYPES_PAIRSAM.get(col_name, str)
+        if col_name not in pairsam_format.DTYPES_PAIRSAM:
+            logger.warning(
+                f"Column '{col_name}' not found in pairsam format definitions. "
+                "Assuming string type for sorting, which may affect sort order if numeric."
+            )
+        cols.append(f"-k {col + 1},{col + 1}{'n' if issubclass(dtype, int) else ''}")
     cols = " ".join(cols)
 
     command = rf"""
