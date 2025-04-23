@@ -1,17 +1,16 @@
-from collections import defaultdict
-import sys
 import copy
-import itertools
+# import itertools
+import sys
 import warnings
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
 
 from .. import __version__
+from .._logging import get_logger
 from . import pairsam_format
 from .fileio import ParseError, get_stream_handlers
-
-from .._logging import get_logger
 
 logger = get_logger()
 
@@ -20,6 +19,57 @@ SEP_COLS = " "
 SEP_CHROMS = " "
 COMMENT_CHAR = "#"
 
+
+def canonicalize_columns(columns):
+    """Convert between common column name variants."""
+    canonical_map = {
+        "chr1": "chrom1",
+        "chr2": "chrom2",
+        "chrom1": "chrom1",  # Ensure identity mapping
+        "chrom2": "chrom2",
+        "pt": "pair_type",
+        "pair_type": "pair_type",
+    }
+    return [canonical_map.get(col.lower(), col) for col in columns]
+
+
+def get_column_index(column_names, column_spec):
+    """Get column index with flexible name matching."""
+    # Canonicalize column names to ensure consistent matching
+    canonical_columns = canonicalize_columns(column_names)
+
+    if isinstance(column_spec, int):
+        if -len(column_names) <= column_spec < len(column_names):
+            return column_spec % len(column_names)  # Handle negative indices
+        raise ValueError(f"Column index {column_spec} out of range")
+
+    if not isinstance(column_spec, (str, int)):
+        raise AttributeError(
+            f"Column spec must be string or integer, got {type(column_spec)}"
+        )
+
+    # Try direct match first
+    try:
+        return column_names.index(column_spec)
+    except ValueError:
+        pass
+
+    # Try canonical name
+    canonical = canonicalize_columns([column_spec])[0]
+    try:
+        return canonical_columns.index(canonical)
+    except ValueError:
+        pass
+
+    # Try case-insensitive
+    lower_columns = [c.lower() for c in canonical_columns]
+    try:
+        return lower_columns.index(canonical.lower())
+    except ValueError:
+        available = ", ".join(f"'{c}'" for c in column_names)
+        raise ValueError(
+            f"Column '{column_spec}' not found. Available columns: {available}"
+        )
 
 
 def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
@@ -57,7 +107,7 @@ def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
         if isinstance(line, bytes):
             line = line.decode()
         # append line to header, since it does start with header
-        header.append(line.rstrip('\n'))
+        header.append(line.rstrip("\n"))
         # peek into the remainder of the instream
         current_peek = peek_f(1)
     # apparently, next line does not start with the comment
@@ -80,11 +130,11 @@ def extract_fields(header, field_name, save_rest=False):
 
     fields = []
     rest = []
-    for l in header:
-        if l.lstrip(COMMENT_CHAR).startswith(field_name + ":"):
-            fields.append(l.split(":", 1)[1].rstrip('\n').lstrip())
+    for line in header:
+        if line.lstrip(COMMENT_CHAR).startswith(field_name + ":"):
+            fields.append(line.split(":", 1)[1].rstrip("\n").lstrip())
         elif save_rest:
-            rest.append(l)
+            rest.append(line)
 
     if save_rest:
         return fields, rest
@@ -96,10 +146,10 @@ def extract_column_names(header):
     """
     Extract column names from header lines.
     """
-    columns = extract_fields(header, "columns")
+    columns_lines = extract_fields(header, "columns")
 
-    if len(columns) != 0:
-        return columns[0].split(SEP_COLS)
+    if len(columns_lines) != 0:
+        return columns_lines[0].split(SEP_COLS)
     else:
         return []
 
@@ -139,7 +189,7 @@ def validate_cols(stream, columns):
 
     ncols_body = len(line.split(pairsam_format.PAIRSAM_SEP))
     ncols_reference = (
-        len(columns) if isinstance(columns, list) else columns.split(SEP_COLS)
+        len(columns) if isinstance(columns, list) else len(columns.split(SEP_COLS))
     )
 
     return ncols_body == ncols_reference
@@ -149,7 +199,7 @@ def validate_header_cols(stream, header):
     """Validate that the number of columns corresponds between the stream and header"""
 
     columns = extract_column_names(header)
-    return validate_cols(stream, header)
+    return validate_cols(stream, columns)
 
 
 def is_empty_header(header):
@@ -204,23 +254,6 @@ def get_chromsizes_from_file(chroms_file):
             chrom_sizes[chrom] = int(size)
 
     return chrom_sizes
-
-
-def get_chromsizes_from_pysam_header(samheader):
-    """Convert pysam header to pairtools chromosomes (ordered dict).
-
-    Example of pysam header converted to dict:
-    dict([
-        ('SQ', [{'SN': 'chr1', 'LN': 248956422},
-         {'SN': 'chr10', 'LN': 133797422},
-         {'SN': 'chr11', 'LN': 135086622},
-         {'SN': 'chr12', 'LN': 133275309}]),
-        ('PG', [{'ID': 'bwa', 'PN': 'bwa', 'VN': '0.7.17-r1188', 'CL': 'bwa mem -t 8 -SP -v1 hg38.fa test_1.1.fastq.gz test_2.1.fastq.gz'}])
-    ])
-    """
-    SQs = samheader.to_dict()["SQ"]
-    chromsizes = [(sq["SN"], int(sq["LN"])) for sq in SQs]
-    return dict(chromsizes)
 
 
 def get_chrom_order(chroms_file, sam_chroms=None):
@@ -283,11 +316,11 @@ def subset_chroms_in_pairsheader(header, chrom_subset):
             if line.strip().split()[1] in chrom_subset:
                 new_header.append(line)
         elif line.startswith("#chromosomes:"):
-            line = SEP_CHROMS.join(
+            chromosomes_line = SEP_CHROMS.join(
                 ["#chromosomes:"]
                 + [c for c in line.strip().split()[1:] if c in chrom_subset]
             )
-            new_header.append(line)
+            new_header.append(chromosomes_line)
         else:
             new_header.append(line)
     return new_header
@@ -295,19 +328,19 @@ def subset_chroms_in_pairsheader(header, chrom_subset):
 
 def insert_samheader(header, samheader):
     """Insert samheader into header."""
-    new_header = [l for l in header if not l.startswith("#columns")]
+    new_header = [line for line in header if not line.startswith("#columns")]
     if samheader:
-        new_header += ["#samheader: " + l for l in samheader]
-    new_header += [l for l in header if l.startswith("#columns")]
+        new_header += ["#samheader: " + line for line in samheader]
+    new_header += [line for line in header if line.startswith("#columns")]
     return new_header
 
 
 def insert_samheader_pysam(header, samheader):
     """Insert samheader into header,pysam version."""
-    new_header = [l for l in header if not l.startswith("#columns")]
+    new_header = [line for line in header if not line.startswith("#columns")]
     if samheader:
-        new_header += ["#samheader: " + l for l in str(samheader).strip().split("\n")]
-    new_header += [l for l in header if l.startswith("#columns")]
+        new_header += ["#samheader: " + line for line in str(samheader).strip().split("\n")]
+    new_header += [line for line in header if line.startswith("#columns")]
     return new_header
 
 
@@ -315,7 +348,7 @@ def mark_header_as_sorted(header):
     header = copy.deepcopy(header)
     if is_empty_header(header):
         raise Exception("Input file is not valid .pairs, has no header or is empty.")
-    if not any([l.startswith("#sorted") for l in header]):
+    if not any([line.startswith("#sorted") for line in header]):
         if header[0].startswith("##"):
             header.insert(1, "#sorted: chr1-chr2-pos1-pos2")
         else:
@@ -426,19 +459,19 @@ def _parse_pg_chains(header, force=False):
     pg_chains = []
 
     parsed_pgs = []
-    for l in header:
-        if l.startswith("@PG"):
-            tag_value_pairs = l.strip().split("\t")[1:]
+    for line in header:
+        if line.startswith("@PG"):
+            tag_value_pairs = line.strip().split("\t")[1:]
             if not all(":" in tvp for tvp in tag_value_pairs):
                 warnings.warn(
-                    f"Skipping the following @PG line, as it does not follow the SAM header standard of TAG:VALUE: {l}"
+                    f"Skipping the following @PG line, as it does not follow the SAM header standard of TAG:VALUE: {line}"
                 )
                 continue
             parsed_tvp = dict(
                 [tvp.split(":", maxsplit=1) for tvp in tag_value_pairs if ":" in tvp]
             )
             if parsed_tvp:
-                parsed_tvp["raw"] = l.strip()
+                parsed_tvp["raw"] = line.strip()
                 parsed_pgs.append(parsed_tvp)
 
     while True:
@@ -646,11 +679,11 @@ def _merge_pairheaders(pairheaders, force=False):
         "#columns:",
     ]
 
-    keys_orginal = [l.split()[0] for header in pairheaders for l in header]
+    keys_original = [line.split()[0] for header in pairheaders for line in header]
 
     for k in keys_expected_identical:
-        lines = [[l for l in header if l.startswith(k)] for header in pairheaders]
-        same = all([l == lines[0] for l in lines])
+        lines = [[line for line in header if line.startswith(k)] for header in pairheaders]
+        same = all([line == lines[0] for line in lines])
         if not (same or force):
             raise ParseError(
                 "The following header entries must be the same "
@@ -671,7 +704,7 @@ def _merge_pairheaders(pairheaders, force=False):
         chrom_lists.append(chromlist)
 
     chroms_merged = merge_chrom_lists(*chrom_lists)
-    if "#chromosomes:" in keys_orginal:
+    if "#chromosomes:" in keys_original:
         chrom_line = "#chromosomes: {}".format(" ".join(chroms_merged))
         new_header.extend([chrom_line])
 
@@ -683,11 +716,11 @@ def _merge_pairheaders(pairheaders, force=False):
     # finally, add a sorted list of other unique fields
     other_lines = sorted(
         set(
-            l
-            for h in pairheaders
-            for l in h
+            line
+            for header in pairheaders
+            for line in header
             if not any(
-                l.startswith(k)
+                line.startswith(k)
                 for k in keys_expected_identical + ["#chromosomes", "#chromsize"]
             )
         )
@@ -703,8 +736,8 @@ def _merge_pairheaders(pairheaders, force=False):
 
 def all_same_columns(pairheaders):
     key_target = "#columns:"
-    lines = [[l for l in header if l.startswith(key_target)] for header in pairheaders]
-    all_same = all([l == lines[0] for l in lines])
+    lines = [[line for line in header if line.startswith(key_target)] for header in pairheaders]
+    all_same = all([line == lines[0] for line in lines])
     return all_same
 
 

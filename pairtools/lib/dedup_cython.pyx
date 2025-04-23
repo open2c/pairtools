@@ -10,11 +10,11 @@ Note that for both methods data types are fixed:
     * position is int32
     * strand is int32, which is basically the same as C type "char".
 """
-import numpy as np
 import cython
+import numpy as np
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
 
 
 ### Online deduplicator used in pairtools.dedup Cython:

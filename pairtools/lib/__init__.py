@@ -1,11 +1,2 @@
-from . import fileio
-from . import dedup
-from . import filterbycov
-from . import headerops
-from . import pairsio
-from . import pairsam_format
-from . import parse
-from . import parse_pysam
-from . import restrict
-from . import stats
-from . import select
+from . import (dedup, fileio, filterbycov, headerops, pairsam_format, pairsio,
+               parse, parse_pysam, restrict, select, stats)

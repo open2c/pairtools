@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 import pipes
+import sys
+
 import click
 
-from ..lib import fileio, pairsam_format, headerops
+from ..lib import fileio, headerops, pairsam_format
 from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_split"
@@ -113,7 +114,7 @@ def split_py(pairsam_path, output_pairs, output_sam, **kwargs):
     sam1 = None
     sam2 = None
     for line in body_stream:
-        cols = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
         if has_sams:
             if sam1col < sam2col:
                 sam2 = cols.pop(sam2col)

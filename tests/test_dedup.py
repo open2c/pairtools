@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
 import subprocess
-import pytest
+import sys
 import tempfile
+
+import pytest
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -39,7 +40,9 @@ dups_path_diff_colnames = os.path.join(tmpdir_name, "dups.diff_colnames.pairsam"
 
 max_mismatch = 1
 
-mock_empty_pairsam_path_dedup = os.path.join(testdir, "data", "mock_empty.4dedup.pairsam")
+mock_empty_pairsam_path_dedup = os.path.join(
+    testdir, "data", "mock_empty.4dedup.pairsam"
+)
 
 
 @pytest.fixture
@@ -161,7 +164,7 @@ def test_mock_pairsam(setup_dedup):
         for l in open(mock_pairsam_path_dedup, "r")
         if not l.startswith("#") and l.strip()
     ]
-    for (ddp, up, dp) in [
+    for ddp, up, dp in [
         (dedup_path, unmapped_path, dups_path),
         (dedup_max_path, unmapped_max_path, dups_max_path),
         (dedup_markdups_path, unmapped_markdups_path, dups_markdups_path),

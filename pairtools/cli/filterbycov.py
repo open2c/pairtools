@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8  -*-
-import sys
 import ast
-import warnings
 import pathlib
+import sys
+import warnings
 
 import click
 
-from ..lib import fileio, pairsam_format, headerops, dedup
-from . import cli, common_io_options
-
+from ..lib import dedup, fileio, headerops, pairsam_format
 from ..lib.filterbycov import streaming_filterbycov
 from ..lib.stats import PairCounter
-
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_filterbycov"
 
@@ -166,7 +164,7 @@ def filterbycov(
     s2,
     unmapped_chrom,
     mark_multi,
-    **kwargs
+    **kwargs,
 ):
     """Remove pairs from regions of high coverage.
 
@@ -199,7 +197,7 @@ def filterbycov(
         s2,
         unmapped_chrom,
         mark_multi,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -223,7 +221,7 @@ def filterbycov_py(
     s2,
     unmapped_chrom,
     mark_multi,
-    **kwargs
+    **kwargs,
 ):
 
     ## Prepare input, output streams based on selected outputs

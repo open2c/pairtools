@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
 import subprocess
+import sys
+
 import numpy as np
+import pytest
 import yaml
 
-import pytest
-
+from pairtools.lib.stats import PairCounter
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -136,15 +137,13 @@ def test_merge_stats():
         raise e
 
 
-from pairtools.lib.stats import PairCounter
-
 @pytest.fixture
 def pair_counter():
     counter = PairCounter(filters={"f1": "filter1", "f2": "filter2"})
     counter._dist_bins = np.array([1, 1000, 10000, 100000, 1000000])
     # Populate the counter with some sample data
     counter._stat["f1"]["dist_freq"] = {
-        "++": {1: 80, 1000: 80,   10000: 91, 100000: 95},
+        "++": {1: 80, 1000: 80, 10000: 91, 100000: 95},
         "--": {1: 100, 1000: 100, 10000: 100, 100000: 100},
         "-+": {1: 100, 1000: 100, 10000: 100, 100000: 100},
         "+-": {1: 120, 1000: 120, 10000: 109, 100000: 105},
@@ -156,7 +155,7 @@ def pair_counter():
         "-+": {1: 210, 1000: 185, 10000: 165, 100000: 145},
         "+-": {1: 230, 1000: 195, 10000: 175, 100000: 155},
     }
- 
+
     return counter
 
 
@@ -183,7 +182,6 @@ def test_find_dist_freq_convergence_distance(pair_counter):
     assert f1_result["convergence_rel_diff_threshold"] == 0.1
     assert f1_result["convergence_dist"] == 10000
     assert f1_result["strands_w_max_convergence_dist"] == "++"
-    
 
     # f2_result = result["f2"]
     # assert "convergence_dist" in f2_result

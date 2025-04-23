@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
-
-import pytest
-
 import subprocess
+import sys
 
 testdir = os.path.dirname(os.path.realpath(__file__))
 
@@ -31,10 +28,10 @@ def test_restrict():
         raise e
 
     # check if the header got transferred correctly
-    true_header = [l.strip() for l in open(mock_pairs_path, "r") if l.startswith("@")]
-    output_header = [l.strip() for l in result.split("\n") if l.startswith("#")]
-    for l in true_header:
-        assert any([l in l2 for l2 in output_header])
+    true_header = [line.strip() for line in open(mock_pairs_path, "r") if line.startswith("@")]
+    output_header = [line.strip() for line in result.split("\n") if line.startswith("#")]
+    for header_line in true_header:
+        assert any([header_line in output_line for output_line in output_header])
 
     # check that the pairs got assigned properly
     cols = [x for x in output_header if x.startswith("#columns")][0].split(" ")[1:]
@@ -44,10 +41,10 @@ def test_restrict():
     COL_RFRAG1_OUTPUT = cols.index("rfrag1")
     COL_RFRAG2_OUTPUT = cols.index("rfrag2")
 
-    for l in result.split("\n"):
-        if l.startswith("#") or not l:
+    for line in result.split("\n"):
+        if line.startswith("#") or not line:
             continue
 
-        line = l.split()
-        assert line[COL_RFRAG1_TRUE] == line[COL_RFRAG1_OUTPUT]
-        assert line[COL_RFRAG2_TRUE] == line[COL_RFRAG2_OUTPUT]
+        line_data = line.split()
+        assert line_data[COL_RFRAG1_TRUE] == line_data[COL_RFRAG1_OUTPUT]
+        assert line_data[COL_RFRAG2_TRUE] == line_data[COL_RFRAG2_OUTPUT]

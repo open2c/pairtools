@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8  -*-
 
-import sys
 import ast
 import pathlib
-
-from .._logging import get_logger
-
-logger = get_logger()
-
+import sys
 import click
 
 from ..lib import fileio, headerops, pairsam_format
@@ -16,12 +11,16 @@ from ..lib.dedup import streaming_dedup, streaming_dedup_cython
 from ..lib.stats import PairCounter
 from . import cli, common_io_options
 
+from .._logging import get_logger
+
+logger = get_logger()
+
+
 UTIL_NAME = "pairtools_dedup"
 
 
 @cli.command()
 @click.argument("pairs_path", type=str, required=False)
-
 ### Output files:
 @click.option(
     "-o",
@@ -72,7 +71,6 @@ UTIL_NAME = "pairtools_dedup"
     " If file exists, it will be open in the append mode. "
     " If the path ends with .gz or .lz4, the output is bgzip-/lz4c-compressed.",
 )
-
 ### Set the dedup method:
 @click.option(
     "--max-mismatch",
@@ -107,7 +105,6 @@ UTIL_NAME = "pairtools_dedup"
     " 1 mln has the lowest memory requirements. [dedup option]",
     # " 'cython' is deprecated and provided for backwards compatibility",
 )
-
 ### Scipy and sklearn-specific options:
 @click.option(
     "--chunksize",
@@ -136,7 +133,6 @@ UTIL_NAME = "pairtools_dedup"
     help="Number of cores to use. Only applies with sklearn backend."
     "Still needs testing whether it is ever useful. [dedup option]",
 )
-
 ### Output options:
 @click.option(
     "--mark-dups/--no-mark-dups",
@@ -162,7 +158,6 @@ UTIL_NAME = "pairtools_dedup"
     "multiple times if multiple column pairs must match. "
     'Example: --extra-col-pair "phase1" "phase2". [output format option]',
 )
-
 ### Input options:
 @click.option(
     "--sep",
@@ -188,7 +183,7 @@ UTIL_NAME = "pairtools_dedup"
     "--c2",
     type=str,
     default=pairsam_format.COLUMNS_PAIRS[3],
-    help=f"Chrom 2 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
+    help=f"Chrom 1 column; default {pairsam_format.COLUMNS_PAIRS[3]}"
     "[input format option]",
 )
 @click.option(
@@ -227,7 +222,6 @@ UTIL_NAME = "pairtools_dedup"
         pairsam_format.UNMAPPED_CHROM
     ),
 )
-
 # Output stats option
 @click.option(
     "--yaml/--no-yaml",
@@ -235,7 +229,6 @@ UTIL_NAME = "pairtools_dedup"
     default=False,
     help="Output stats in yaml format instead of table. [output stats format option]",
 )
-
 # Filtering options for reporting stats:
 @click.option(
     "--filter",
@@ -383,7 +376,6 @@ def dedup_py(
     n_proc,
     **kwargs,
 ):
-
     sep = ast.literal_eval('"""' + sep + '"""')
     send_header_to_dedup = send_header_to in ["both", "dedup"]
     send_header_to_dup = send_header_to in ["both", "dups"]
@@ -481,10 +473,52 @@ def dedup_py(
         )
 
     header, body_stream = headerops.get_header(instream)
-    if not any([l.startswith("#sorted") for l in header]):
+    if not any([line.startswith("#sorted") for line in header]):
         logger.warning(
             "Pairs file appears not to be sorted, dedup might produce wrong results."
         )
+
+    # Canonicalize column names for flexible matching
+    column_names = headerops.extract_column_names(header)
+    column_names = headerops.canonicalize_columns(column_names)
+
+    # Get column indices with fallbacks
+    try:
+        col1 = headerops.get_column_index(column_names, c1)
+        col2 = headerops.get_column_index(column_names, c2)
+        colp1 = headerops.get_column_index(column_names, p1)
+        colp2 = headerops.get_column_index(column_names, p2)
+        cols1 = headerops.get_column_index(column_names, s1)
+        cols2 = headerops.get_column_index(column_names, s2)
+
+        # Convert to column names for streaming_dedup
+        c1_name = column_names[col1]
+        c2_name = column_names[col2]
+        p1_name = column_names[colp1]
+        p2_name = column_names[colp2]
+        s1_name = column_names[cols1]
+        s2_name = column_names[cols2]
+
+        # Handle extra column pairs
+        extra_cols1 = []
+        extra_cols2 = []
+        if extra_col_pair is not None:
+            for col1_spec, col2_spec in extra_col_pair:
+                try:
+                    extra_cols1.append(
+                        headerops.get_column_index(column_names, col1_spec)
+                    )
+                    extra_cols2.append(
+                        headerops.get_column_index(column_names, col2_spec)
+                    )
+                except ValueError:
+                    logger.warning(
+                        f"Extra column pair ({col1_spec}, {col2_spec}) not found in header, skipping"
+                    )
+                    continue
+    except ValueError as e:
+        raise ValueError(f"Column error: {str(e)}") from e
+
     header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     dups_header = header.copy()
     if keep_parent_id and len(dups_header) > 0:
@@ -492,48 +526,28 @@ def dedup_py(
     if outstream == outstream_dups:
         header = dups_header
     if send_header_to_dedup:
-        outstream.writelines((l + "\n" for l in header))
+        outstream.writelines((line + "\n" for line in header))
     if send_header_to_dup and outstream_dups and (outstream_dups != outstream):
-        outstream_dups.writelines((l + "\n" for l in dups_header))
+        outstream_dups.writelines((line + "\n" for line in dups_header))
+
     if (
         outstream_unmapped
         and (outstream_unmapped != outstream)
         and (outstream_unmapped != outstream_dups)
     ):
-        outstream_unmapped.writelines((l + "\n" for l in header))
-
-    column_names = headerops.extract_column_names(header)
-    extra_cols1 = []
-    extra_cols2 = []
-    if extra_col_pair is not None:
-        for col1, col2 in extra_col_pair:
-            extra_cols1.append(column_names[col1] if col1.isnumeric() else col1)
-            extra_cols2.append(column_names[col2] if col2.isnumeric() else col2)
+        outstream_unmapped.writelines((line + "\n" for line in header))
 
     if backend == "cython":
-        # warnings.warn(
-        #     "'cython' backend is deprecated and provided only"
-        #     " for backwards compatibility",
-        #     DeprecationWarning,
-        # )
-        extra_cols1 = [column_names.index(col) for col in extra_cols1]
-        extra_cols2 = [column_names.index(col) for col in extra_cols2]
-        c1 = column_names.index(c1)
-        c2 = column_names.index(c2)
-        p1 = column_names.index(p1)
-        p2 = column_names.index(p2)
-        s1 = column_names.index(s1)
-        s2 = column_names.index(s2)
         streaming_dedup_cython(
             method,
             max_mismatch,
             sep,
-            c1,
-            c2,
-            p1,
-            p2,
-            s1,
-            s2,
+            col1,
+            col2,
+            colp1,
+            colp2,
+            cols1,
+            cols2,
             extra_cols1,
             extra_cols2,
             unmapped_chrom,
@@ -554,7 +568,7 @@ def dedup_py(
             method=method,
             mark_dups=mark_dups,
             max_mismatch=max_mismatch,
-            extra_col_pairs=list(extra_col_pair),
+            extra_col_pairs=list(zip(extra_cols1, extra_cols2)) if extra_cols1 else [],
             keep_parent_id=keep_parent_id,
             unmapped_chrom=unmapped_chrom,
             outstream=outstream,
@@ -563,12 +577,12 @@ def dedup_py(
             out_stat=out_stat,
             backend=backend,
             n_proc=n_proc,
-            c1=c1,
-            c2=c2,
-            p1=p1,
-            p2=p2,
-            s1=s1,
-            s2=s2,
+            c1=c1_name,
+            c2=c2_name,
+            p1=p1_name,
+            p2=p2_name,
+            s1=s1_name,
+            s2=s2_name,
         )
     else:
         raise ValueError("Unknown backend")

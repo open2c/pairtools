@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
 import subprocess
-import pytest
+import sys
+
 from pairtools.lib import pairsam_format
 
 testdir = os.path.dirname(os.path.realpath(__file__))
@@ -21,14 +21,14 @@ def test_preserve():
         raise e
 
     pairsam_body = [
-        l.strip()
-        for l in open(mock_pairsam_path, "r")
-        if not l.startswith("#") and l.strip()
+        line.strip()
+        for line in open(mock_pairsam_path, "r")
+        if not line.startswith("#") and line.strip()
     ]
     output_body = [
-        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
+        line.strip() for line in result.split("\n") if not line.startswith("#") and line.strip()
     ]
-    assert all(l in pairsam_body for l in output_body)
+    assert all(line in pairsam_body for line in output_body)
 
 
 def test_equal():
@@ -50,17 +50,17 @@ def test_equal():
     print(result)
 
     pairsam_body = [
-        l.strip()
-        for l in open(mock_pairsam_path, "r")
-        if not l.startswith("#") and l.strip()
+        line.strip()
+        for line in open(mock_pairsam_path, "r")
+        if not line.startswith("#") and line.strip()
     ]
     output_body = [
-        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
+        line.strip() for line in result.split("\n") if not line.startswith("#") and line.strip()
     ]
 
-    assert all(l.split("\t")[7] in ["RU", "UR", "UU"] for l in output_body)
+    assert all(line.split("\t")[7] in ["RU", "UR", "UU"] for line in output_body)
     assert all(
-        l in output_body for l in pairsam_body if l.split("\t")[7] in ["RU", "UR", "UU"]
+        line in output_body for line in pairsam_body if line.split("\t")[7] in ["RU", "UR", "UU"]
     )
 
 
@@ -83,17 +83,17 @@ def test_csv():
     print(result)
 
     pairsam_body = [
-        l.strip()
-        for l in open(mock_pairsam_path, "r")
-        if not l.startswith("#") and l.strip()
+        line.strip()
+        for line in open(mock_pairsam_path, "r")
+        if not line.startswith("#") and line.strip()
     ]
     output_body = [
-        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
+        line.strip() for line in result.split("\n") if not line.startswith("#") and line.strip()
     ]
 
-    assert all(l.split("\t")[7] in ["RU", "UR", "UU"] for l in output_body)
+    assert all(line.split("\t")[7] in ["RU", "UR", "UU"] for line in output_body)
     assert all(
-        l in output_body for l in pairsam_body if l.split("\t")[7] in ["RU", "UR", "UU"]
+        line in output_body for line in pairsam_body if line.split("\t")[7] in ["RU", "UR", "UU"]
     )
 
 
@@ -116,19 +116,19 @@ def test_wildcard():
     print(result)
 
     pairsam_body = [
-        l.strip()
-        for l in open(mock_pairsam_path, "r")
-        if not l.startswith("#") and l.strip()
+        line.strip()
+        for line in open(mock_pairsam_path, "r")
+        if not line.startswith("#") and line.strip()
     ]
     output_body = [
-        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
+        line.strip() for line in result.split("\n") if not line.startswith("#") and line.strip()
     ]
 
-    assert all(l.split("\t")[7] in ["NU", "MU", "RU", "UU"] for l in output_body)
+    assert all(line.split("\t")[7] in ["NU", "MU", "RU", "UU"] for line in output_body)
     assert all(
-        l in output_body
-        for l in pairsam_body
-        if l.split("\t")[7] in ["NU", "MU", "RU", "UU"]
+        line in output_body
+        for line in pairsam_body
+        if line.split("\t")[7] in ["NU", "MU", "RU", "UU"]
     )
 
 
@@ -151,17 +151,17 @@ def test_regex():
     print(result)
 
     pairsam_body = [
-        l.strip()
-        for l in open(mock_pairsam_path, "r")
-        if not l.startswith("#") and l.strip()
+        line.strip()
+        for line in open(mock_pairsam_path, "r")
+        if not line.startswith("#") and line.strip()
     ]
     output_body = [
-        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
+        line.strip() for line in result.split("\n") if not line.startswith("#") and line.strip()
     ]
 
-    assert all(l.split("\t")[7] in ["NU", "MU"] for l in output_body)
+    assert all(line.split("\t")[7] in ["NU", "MU"] for line in output_body)
     assert all(
-        l in output_body for l in pairsam_body if l.split("\t")[7] in ["NU", "MU"]
+        line in output_body for line in pairsam_body if line.split("\t")[7] in ["NU", "MU"]
     )
 
 
@@ -184,28 +184,16 @@ def test_chrom_subset():
         print(sys.exc_info())
         raise e
 
-    pairsam_body = [
-        l.strip()
-        for l in open(mock_pairsam_path, "r")
-        if not l.startswith("#") and l.strip()
-    ]
-    output_body = [
-        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
-    ]
-    output_header = [
-        l.strip() for l in result.split("\n") if l.startswith("#") and l.strip()
-    ]
-
     chroms_from_chrom_field = [
-        l.strip().split()[1:]
-        for l in result.split("\n")
-        if l.startswith("#chromosomes:")
+        line.strip().split()[1:]
+        for line in result.split("\n")
+        if line.startswith("#chromosomes:")
     ][0]
 
     assert set(chroms_from_chrom_field) == set(["chr1", "chr2"])
 
     chroms_from_chrom_sizes = [
-        l.strip().split()[1] for l in result.split("\n") if l.startswith("#chromsize:")
+        line.strip().split()[1] for line in result.split("\n") if line.startswith("#chromsize:")
     ]
 
     assert set(chroms_from_chrom_sizes) == set(["chr1", "chr2"])
@@ -238,18 +226,18 @@ def test_remove_columns():
         raise e
 
     # check if the columns are removed properly:
-    pairsam_header = [l.strip() for l in result.split("\n") if l.startswith("#")]
-    for l in pairsam_header:
-        if l.startswith("#columns:"):
-            line = l.strip()
+    pairsam_header = [line.strip() for line in result.split("\n") if line.startswith("#")]
+    for line in pairsam_header:
+        if line.startswith("#columns:"):
+            header_line = line.strip()
             assert (
-                line
+                header_line
                 == "#columns: readID chrom1 pos1 chrom2 pos2 strand1 strand2 pair_type"
             )
 
     # check that the pairs got assigned properly
-    for l in result.split("\n"):
-        if l.startswith("#") or not l:
+    for line in result.split("\n"):
+        if line.startswith("#") or not line:
             continue
 
-        assert len(l.split(pairsam_format.PAIRSAM_SEP)) == 8
+        assert len(line.split(pairsam_format.PAIRSAM_SEP)) == 8

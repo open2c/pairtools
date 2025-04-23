@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import click
 import functools
-import sys
-from .. import __version__
 import logging
-from .._logging import get_logger
+import sys
 
+import click
+
+from .. import __version__
+from .._logging import get_logger
 
 CONTEXT_SETTINGS = {
     "help_option_names": ["-h", "--help"],
@@ -56,8 +57,8 @@ def cli(post_mortem, output_profile, verbose, debug):
         sys.excepthook = _excepthook
 
     if output_profile:
-        import cProfile
         import atexit
+        import cProfile
 
         pr = cProfile.Profile()
         pr.enable()
@@ -78,8 +79,9 @@ def cli(post_mortem, output_profile, verbose, debug):
         root_logger.setLevel(logging.DEBUG)
         if verbose > 1:  # pragma: no cover
             try:
-                import psutil
                 import atexit
+
+                import psutil
 
                 @atexit.register
                 def process_dump_at_exit():
@@ -185,21 +187,19 @@ def common_io_options(func):
     return wrapper
 
 
-from . import (
-    dedup,
-    sort,
-    flip,
-    merge,
-    markasdup,
-    select,
-    split,
-    restrict,
-    phase,
-    parse,
-    parse2,
-    stats,
-    sample,
-    filterbycov,
-    header,
-    scaling,
-)
+from . import (dedup, 
+               filterbycov, 
+               flip, 
+               header, 
+               markasdup, 
+               merge, 
+               parse,
+               parse2, 
+               phase, 
+               restrict, 
+               sample, 
+               scaling, 
+               select, 
+               sort, 
+               split,
+               stats)

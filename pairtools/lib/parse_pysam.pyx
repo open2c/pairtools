@@ -1,7 +1,8 @@
-from pysam.libcalignmentfile cimport AlignmentFile
 from pysam.libcalignedsegment cimport AlignedSegment, AlignmentHeader
+from pysam.libcalignmentfile cimport AlignmentFile
 from pysam.libchtslib cimport *
 from pysam.libcutils cimport array_to_qualitystring
+
 
 cdef class AlignmentFilePairtoolized(AlignmentFile):
     """ Modified class that loads each entry as pairtoolozed alignment. """
@@ -96,8 +97,11 @@ cdef class AlignedSegmentPairtoolized(AlignedSegment):
 
 
 from cpython cimport array
+
 import cython
+
 cimport cython
+
 
 cpdef list get_mismatches_c(str seq, array.array quals, list aligned_pairs):
     '''

@@ -1,19 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import glob
 import io
 import os
 import re
-import glob
-
 
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
 try:
-    from Cython.Distutils import build_ext as _build_ext
     from Cython.Build import cythonize
+    from Cython.Distutils import build_ext as _build_ext
 except ImportError:
-    raise ImportError('Cython is now required to build the extension modules.')
+    raise ImportError("Cython is now required to build the extension modules.")
 
 
 def _read(*parts, **kwargs):
@@ -36,16 +35,17 @@ def get_version():
 def get_ext_modules():
     ext = ".pyx"
     src_files = glob.glob(
-        #os.path.join(os.path.dirname(__file__), "pairtools", "lib", "*" + ext)
+        # os.path.join(os.path.dirname(__file__), "pairtools", "lib", "*" + ext)
         os.path.join("pairtools", "lib", "*" + ext)
     )
 
     ext_modules = []
     for src_file in src_files:
         name = "pairtools.lib." + os.path.splitext(os.path.basename(src_file))[0]
-  
-        if 'pysam' in name:
+
+        if "pysam" in name:
             import pysam
+
             ext_modules.append(
                 Extension(
                     name,
@@ -79,7 +79,7 @@ class build_ext(_build_ext):
         # Fix to work with bootstrapped numpy installation
         # http://stackoverflow.com/a/21621689/579416
         # Prevent numpy from thinking it is still in its setup process:
-        #__builtins__.__NUMPY_SETUP__ = False
+        # __builtins__.__NUMPY_SETUP__ = False
         import numpy
 
         self.include_dirs.append(numpy.get_include())

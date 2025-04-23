@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-import sys
 import glob
-import math
+# import math
 import subprocess
+import sys
+
 import click
 
-from ..lib import fileio, pairsam_format, headerops
+from ..lib import fileio, headerops, pairsam_format
 from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_merge"
@@ -111,8 +112,6 @@ UTIL_NAME = "pairtools_merge"
     help="Simple concatenate instead of merging sorted files.",
 )
 # Using custom IO options
-
-
 def merge(
     pairs_path, output, max_nmerge, tmpdir, memory, compress_program, nproc, **kwargs
 ):
@@ -205,8 +204,8 @@ def merge_py(
     else:
         command = r"""
             /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort
-            -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4} 
-            --merge  
+            -k {0},{0} -k {1},{1} -k {2},{2}n -k {3},{3}n -k {4},{4}
+            --merge
             --field-separator=$'\''{5}'\''
             {6}
             {7}

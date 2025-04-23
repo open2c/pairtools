@@ -1,5 +1,6 @@
-from . import pairsam_format
 import warnings
+
+from . import pairsam_format
 
 
 def find_rfrag(rfrags, chrom, pos):

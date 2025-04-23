@@ -1,15 +1,15 @@
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import click
 import sys
 
-from ..lib import fileio, pairsam_format, headerops
-from . import cli, common_io_options
+import click
 
-from ..lib.stats import PairCounter
-from ..lib.parse_pysam import AlignmentFilePairtoolized
+from ..lib import fileio, headerops, pairsam_format
 from ..lib.parse import streaming_classify
+from ..lib.parse_pysam import AlignmentFilePairtoolized
+from ..lib.stats import PairCounter
+from . import cli, common_io_options
 
 UTIL_NAME = "pairtools_parse2"
 
@@ -319,7 +319,7 @@ def parse2_py(
         out_alignments_stream,
         out_stat,
         parse2=True,
-        **kwargs
+        **kwargs,
     )
 
     # save statistics to a file if it was requested:

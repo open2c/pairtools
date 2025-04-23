@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import io
-import sys
-import click
-import subprocess
 import shutil
+import subprocess
+import sys
 import warnings
 
-from ..lib import fileio, pairsam_format, headerops
+import click
+
+from .._logging import get_logger
+from ..lib import fileio, headerops, pairsam_format
 from . import cli, common_io_options
 
+logger = get_logger()
 UTIL_NAME = "pairtools_sort"
 
 
@@ -58,15 +61,16 @@ UTIL_NAME = "pairtools_sort"
     default=pairsam_format.COLUMNS_PAIRS[7],
     help=f"Pair type column; default {pairsam_format.COLUMNS_PAIRS[7]}"
     "[input format option]",
+    required=False,
 )
 @click.option(
     "--extra-col",
     nargs=1,
     type=str,
     multiple=True,
-    help="Extra column (name or numerical index) that is also used for sorting."
-    "The option can be provided multiple times."
-    'Example: --extra-col "phase1" --extra-col "phase2". [output format option]',
+    help="Extra column (name or numerical index) to sort by. "
+         "If not defined in pairsam format, treated as a string and a warning is issued. "
+         "Can be provided multiple times, e.g., --extra-col phase1 --extra-col phase2.",
 )
 @click.option(
     "--nproc",
@@ -157,7 +161,6 @@ def sort_py(
     compress_program,
     **kwargs,
 ):
-
     instream = fileio.auto_open(
         pairs_path,
         mode="r",
@@ -176,7 +179,6 @@ def sort_py(
     header = headerops.mark_header_as_sorted(header)
 
     outstream.writelines((l + "\n" for l in header))
-
     outstream.flush()
 
     if compress_program == "auto":
@@ -191,16 +193,53 @@ def sort_py(
             compress_program = "gzip"
 
     column_names = headerops.extract_column_names(header)
-    columns = [c1, c2, p1, p2, pt] + list(extra_col)
-    # Now generating the "-k <i>,<i><mode>" expressions for all columns.
-    # If column name is in the default pairsam format and has an integer dtype there, do numerical sorting
+    column_names = headerops.canonicalize_columns(column_names)
+
+    # Get column indices with fallbacks
+    try:
+        col1 = headerops.get_column_index(column_names, c1)
+        col2 = headerops.get_column_index(column_names, c2)
+        colp1 = headerops.get_column_index(column_names, p1)
+        colp2 = headerops.get_column_index(column_names, p2)
+
+        # Make pair_type optional
+        try:
+            colpt = headerops.get_column_index(column_names, pt) if pt else None
+        except ValueError:
+            colpt = None
+
+        extra_cols = []
+        for col in extra_col:
+            try:
+                extra_cols.append(headerops.get_column_index(column_names, col))
+            except ValueError:
+                logger.warning(f"Extra column {col} not found in header, skipping")
+                continue
+    except ValueError as e:
+        raise ValueError(f"Column error: {str(e)}") from e
+
+    # Generate sort command columns
     cols = []
-    for col in columns:
-        colindex = int(col) if col.isnumeric() else column_names.index(col) + 1
-        cols.append(
-            f"-k {colindex},{colindex}{'n' if issubclass(pairsam_format.DTYPES_PAIRSAM.get(column_names[colindex-1], str), int) else ''}"
-        )
+    sort_columns = [
+        col1,
+        col2,
+        colp1,
+        colp2,
+        colpt,
+    ] + extra_cols  # Order: chrom1, chrom2, pos1, pos2, pair_type
+    for col in sort_columns:
+        if col is None:
+            continue  # Skip optional columns
+        col_name = column_names[col]
+        dtype = pairsam_format.DTYPES_PAIRSAM.get(col_name, str)
+        if col_name not in pairsam_format.DTYPES_PAIRSAM:
+            logger.warning(
+                f"Column '{col_name}' not found in pairsam format definitions. "
+                "Assuming string type for sorting, which may affect sort order if numeric."
+            )
+        cols.append(f"-k {col + 1},{col + 1}{'n' if issubclass(dtype, int) else ''}")
     cols = " ".join(cols)
+
     command = rf"""
         /bin/bash -c 'export LC_COLLATE=C; export LANG=C; sort 
         {cols}
@@ -213,6 +252,7 @@ def sort_py(
         """.replace(
         "\n", " "
     )
+
     with subprocess.Popen(
         command, stdin=subprocess.PIPE, bufsize=-1, shell=True, stdout=outstream
     ) as process:
@@ -224,7 +264,6 @@ def sort_py(
 
     if instream != sys.stdin:
         instream.close()
-
     if outstream != sys.stdout:
         outstream.close()
 

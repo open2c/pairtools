@@ -2,6 +2,7 @@ import pandas as pd
 
 from . import fileio, headerops
 
+
 def read_pairs(pairs, nproc=3, cmd_in=None, **kwargs):
     """
     Reads a file with .pairs format and returns a header, a dataframe of pairs, and chromsizes.
@@ -43,7 +44,7 @@ def read_pairs(pairs, nproc=3, cmd_in=None, **kwargs):
         names=cols,
         sep="\t",
         dtype={"chrom1": str, "chrom2": str},
-        **kwargs
+        **kwargs,
     )
 
     return pairs_df, header, chromsizes

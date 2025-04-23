@@ -1,11 +1,12 @@
+import fnmatch
+import re
 import sys
+
 import click
-import re, fnmatch
 
-from ..lib import fileio, pairsam_format, headerops
+from ..lib import fileio, headerops, pairsam_format
+from ..lib.phase import phase_side_XA, phase_side_XB
 from . import cli, common_io_options
-
-from ..lib.phase import phase_side_XB, phase_side_XA
 
 UTIL_NAME = "pairtools_phase"
 
@@ -80,7 +81,7 @@ def phase(
         clean_output,
         tag_mode,
         report_scores,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -203,7 +204,7 @@ def phase_py(
     outstream.writelines((l + "\n" for l in header))
 
     for line in body_stream:
-        cols = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
+        cols = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
         cols.append("!")
         cols.append("!")
         if report_scores:
