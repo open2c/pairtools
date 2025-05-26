@@ -167,7 +167,7 @@ class CommandFormatter():
     
     def __call__(self) -> CommandRunResult:
         if not self.path or self.path == "-":
-            return CommandRunResult(input=sys.stdin, errors=None, output=sys.stdout, mode=self.mode)
+            return CommandRunResult(input=sys.stdout, errors=None, output=sys.stdin, mode=self.mode)
         if self.__nocommand:
             self.__process_file = open(self.path, self.file_mode)
             return CommandRunResult(input=self.__process_file, errors=None, output=self.__process_file, mode=self.mode)
