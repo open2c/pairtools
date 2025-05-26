@@ -160,9 +160,9 @@ class CommandFormatter():
     def __form_command(self):
         self.__process_file = open(self.path, self.file_mode)
         if self.mode == 'r':
-            cmd=subprocess.Popen(self.__command_to_sp, stdin=self.__process_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            cmd=subprocess.Popen(self.__command_to_sp, stdin=self.__process_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         else:
-            cmd=subprocess.Popen(self.__command_to_sp, stdout=self.__process_file, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            cmd=subprocess.Popen(self.__command_to_sp, stdout=self.__process_file, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         return cmd
     
     def __call__(self) -> CommandRunResult:
