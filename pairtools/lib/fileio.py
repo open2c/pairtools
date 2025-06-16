@@ -23,7 +23,7 @@ MODES_TO_FILES_PRESET = {
 #WE NEED COVER
 COMMANDS = {
     ('bam', 'w'): [
-        {'tool': 'samtools', 'command': 'samtools view -bS {} -'}
+        {'tool': 'samtools', 'command': 'samtools view -bS -@ {} -'}
     ],
     ('bam', 'r'): [
         {'tool': 'samtools', 'command': 'samtools view -h'}
@@ -92,8 +92,9 @@ class CommandFormatter():
 
     Attributes:
         mode (str): Mode in which the file is to be opened ('r', 'w', or 'a').
-        path (Optional[str]): Path to the target file.
-        command (Optional[Union[List[str], str]]): Custom command for file processing.
+        path (Optional[str]): Path to the target file. Empty or '-' indicates standard input/output (for || case).
+        command (Optional[Union[List[str], str]]): Custom command for file processing. For some file formats we have default commands. If empty or None, the class will try to find a suitable command based on the file format and mode.
+        If a command is provided, it will be used directly.
         nproc (int): Number of threads for multithreaded tools. Defaults to 1.
         is_binary (bool): Indicates if the file should be opened in binary mode. Defaults to False.
 
@@ -166,8 +167,12 @@ class CommandFormatter():
         return cmd
     
     def __call__(self) -> CommandRunResult:
+        # Empty path or path '-' means that we just read from stdin or write to stdout (for || case)
         if not self.path or self.path == "-":
+            # we will write at sys.stdout and read from sys.stdin it's strnga but...
             return CommandRunResult(input=sys.stdout, errors=None, output=sys.stdin, mode=self.mode)
+        # if we have no command, just open file in given mode
+        # nocammand means that there is empty cmd AND we have no format in MODES_TO_FILES_PRESET
         if self.__nocommand:
             self.__process_file = open(self.path, self.file_mode)
             return CommandRunResult(input=self.__process_file, errors=None, output=self.__process_file, mode=self.mode)
