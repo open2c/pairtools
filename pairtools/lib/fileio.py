@@ -20,7 +20,7 @@ MODES_TO_FILES_PRESET = {
 # dictionary of automatic opener commands
 # key is tuple from fomat and mode and value is dictionary 
 # with keys tools - tool which we will try to find via shutil and command which will be formatted by thread number
-#WE NEED COVER
+#dict ('file_format', 'mode'): 'command formatted to set threads number'
 COMMANDS = {
     ('bam', 'w'): [
         {'tool': 'samtools', 'command': 'samtools view -bS -@ {} -'}
