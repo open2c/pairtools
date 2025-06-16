@@ -9,24 +9,28 @@ class ParseError(Exception):
     pass
 
 
-# dictionary of allowed automatic opener formats and modes 
-# key is format, value is list with allowed modes
-MODES_TO_FILES_PRESET = {
+# dictionary of allowed modes for each file type: 
+# key: format, 
+# value: list with allowed modes
+PRESET_EXT2MODE = {
     'bam': ['w', 'r'],
     'gz': ['w', 'r', 'a'],
     'lz4': ['w', 'r', 'a'],
 }
 
 # dictionary of automatic opener commands
-# key is tuple from fomat and mode and value is dictionary 
-# with keys tools - tool which we will try to find via shutil and command which will be formatted by thread number
-#dict ('file_format', 'mode'): 'command formatted to set threads number'
-COMMANDS = {
+# key: tuple (file format, mode)
+# value: dictionary with keys tools - 
+#       'tool': name of the tool that the CommandRun will attempt to find via shutil,
+#       'command': command line with the number of threads to be formatted before the execution.
+# In summary:
+# dict ('file_format', 'mode'): ['tool': 'tool_name', 'command': 'command formatted to set threads number']
+PRESET_COMMANDS = {
     ('bam', 'w'): [
         {'tool': 'samtools', 'command': 'samtools view -bS -@ {} -'}
     ],
     ('bam', 'r'): [
-        {'tool': 'samtools', 'command': 'samtools view -h'}
+        {'tool': 'samtools', 'command': 'samtools view -@ {} -h'}
     ],
     ('gz', 'w'): [
         {'tool': 'pbgzip', 'command': 'pbgzip -c -n {}'},
@@ -58,12 +62,18 @@ COMMANDS = {
 @dataclass
 class CommandRunResult:
     """
-    CommandRunResult represents the outcome of executing a command, encapsulating the standard input, output, and error streams, along with the mode of operation.
+    CommandRunResult is a simple class that represents the IO command execution.
+    It encapsulates the standard input, output, and error streams, along with the mode of operation.
+
+    Mode of operation dictates the choice of input/output files: 
+        'r' = reading, when output file is disabled,
+        'w' = writing, when the input file is disabled,
+        'a' = appending (input file is disabled).
 
     Attributes:
-        errors (Optional[TextIO]): The standard error stream (stderr) of the process. Can be None if not applicable.
-        output (Optional[TextIO]): The standard output stream (stdout) of the process. Can be None if not applicable.
-        input (Optional[TextIO]): The standard input stream (stdin) of the process. Can be None if not applicable.
+        input (Optional[TextIO]): The standard input stream (stdin) of the process. Can be None.
+        errors (Optional[TextIO]): The standard error stream (stderr) of the process. Can be None.
+        output (Optional[TextIO]): The standard output stream (stdout) of the process. Can be None.
         mode (Optional[Literal['r', 'w', 'a']]): The mode in which the file is opened: 'r' for reading, 'w' for writing, or 'a' for appending.
 
     Properties:
@@ -72,9 +82,9 @@ class CommandRunResult:
             - 'w' or 'a': Returns the input stream (stdin) for writing or appending.
     """
 
+    input: tp.Optional[tp.TextIO]
     errors: tp.Optional[tp.TextIO]
     output: tp.Optional[tp.TextIO]
-    input: tp.Optional[tp.TextIO]
     mode: tp.Optional[tp.Literal['r', 'w', 'a']]
 
     @property
@@ -88,7 +98,7 @@ class CommandRunResult:
 @dataclass
 class CommandFormatter():
     """
-    A class to manage file opening operations with support for various compression formats.
+    CommandFormatter is a class that manages file opening operations with support for various compression formats.
 
     Attributes:
         mode (str): Mode in which the file is to be opened ('r', 'w', or 'a').
@@ -96,7 +106,7 @@ class CommandFormatter():
         command (Optional[Union[List[str], str]]): Custom command for file processing. For some file formats we have default commands. If empty or None, the class will try to find a suitable command based on the file format and mode.
         If a command is provided, it will be used directly.
         nproc (int): Number of threads for multithreaded tools. Defaults to 1.
-        is_binary (bool): Indicates if the file should be opened in binary mode. Defaults to False.
+        is_binary (bool): Indicates if the file should be opened in binary mode. Default is False.
 
     Methods:
         __call__(): Executes the command or opens the file based on the provided parameters. Return pairtools.lib.fileio.CommandRunResult object
@@ -108,76 +118,105 @@ class CommandFormatter():
     nproc: int=1
     is_binary: bool=False
 
-    #Error textm formatter. If some bash tools is needed but not found, user catch error like SomeTool not found, cannot compress output
-    #This method is used to construct understandable error text
     @staticmethod
-    def form_notfounderror_text(searched_tools: tp.List[str], is_read: bool) -> str:
-        tools_article = 'is' if len(searched_tools) == 1 else 'are'
-        tools_defenition = 'compress output' if is_read else 'decompress input'
-        tools_list = f'{"", "".join(searched_tools[:-1])} and {searched_tools[-1]}' if len(searched_tools) > 1 else searched_tools[0]
-        return f"{tools_list} {tools_article} not found, cannot {tools_defenition}"
+    def format_notfounderror(checked_tools: tp.List[str], mode: bool) -> str:
+        """
+        Format a neat error message, used in case when none tools were found in the system.
+        """
+        text_task = 'read input file' if mode=='r' else 'write input file'
+        if len(checked_tools)==0:
+            raise ValueError('Something went wrong while IO operations. None tools were checked.')
+        elif len(checked_tools)==1:
+            text_verb = 'is'
+            text_tools = checked_tools[0]
+        else:
+            text_verb = 'are'
+            text_tools = f'{"", "".join(checked_tools[:-1])} and {checked_tools[-1]}'
+        return f"{text_tools} {text_verb} not found, cannot {text_task}"
 
     def __post_init__(self):
+        """
+        Post-initialization modification of the command instructions.
+        Adds instructions for binary files, detects file extension, checks and picks the tools available in the system.
+        """
         self.__nocommand = False
+
+        # Add instruction for the binary files:
         if self.is_binary:
             self.file_mode = f'{self.mode}b'
         else:
             self.file_mode = self.mode
 
-        #if we have command, just run it
+        # If the command was provided by the user, simply run it, no urther modifications needed:
         if self.command:
             return
         
-        self.__format = self.path.split('.')[-1]
+        # Get the file extension:
+        self.__extension = self.path.split('.')[-1]
 
-        #if format not in MODES_TO_FILES_PRESET, we will return opened file in given mode
-        if self.__format not in MODES_TO_FILES_PRESET.keys():
+        # If extension is not in the keys of PRESET_EXT2MODE, 
+        # simply return opened file in a given mode
+        if self.__extension not in PRESET_EXT2MODE.keys():
             self.__nocommand = True
             return
         
-        #cannot open given format in given mode
-        if (self.__format, self.mode) not in COMMANDS.keys():
-            raise ValueError(f'{self.__format} can not to be opened in {self.mode}')
+        # If given mode is not applicable to the given extension, raise an error:
+        if (self.__extension, self.mode) not in PRESET_COMMANDS.keys():
+            raise ValueError(f'{self.__extension} can not to be opened in "{self.mode}" mode')
         
-        #iterate over tools. Function calling ends when tool is founded
-        #just forms self.command
+        # Next, iterate over possible tools. When the tool is found, constructs a command.
         checked_tools = []
-        for possible_solution in COMMANDS[(self.__format, self.mode)]:
+        for possible_solution in PRESET_COMMANDS[(self.__extension, self.mode)]:
             if shutil.which(possible_solution['tool']) is None:
                 checked_tools.append(possible_solution['tool'])
                 continue
             self.command = possible_solution['command'].format(str(self.nproc))
             return
 
-        #if we have no return (in iterate over tools), catch an error
-        raise ValueError(self.form_notfounderror_text(checked_tools, self.mode=='r'))
-    
-    def __convert_command(self):
-        if isinstance(self.command, str):
-            self.__command_to_sp = shlex.split(self.command)
-        else:
-            self.__command_to_sp = self.command
+        # No suitable command was found in the system, raise and format an error message.
+        raise ValueError(self.format_notfounderror(checked_tools, self.mode=='r'))
 
-    def __form_command(self):
-        self.__process_file = open(self.path, self.file_mode)
-        if self.mode == 'r':
-            cmd=subprocess.Popen(self.__command_to_sp, stdin=self.__process_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    def __construct_process(self):
+        """
+        Construct subprocess Popen object for a command, file path and file opening mode.
+        """
+
+        # Split the command, if needed:
+        if isinstance(self.command, str):
+            command_split = shlex.split(self.command)
         else:
-            cmd=subprocess.Popen(self.__command_to_sp, stdout=self.__process_file, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            command_split = self.command
+
+        # Open the file:
+        self.__process_file = open(self.path, self.file_mode)
+
+        # Run Popen:
+        if self.mode == 'r':
+            cmd = subprocess.Popen(command_split, stdin=self.__process_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        else:
+            cmd = subprocess.Popen(command_split, stdout=self.__process_file, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
         return cmd
     
     def __call__(self) -> CommandRunResult:
-        # Empty path or path '-' means that we just read from stdin or write to stdout (for || case)
+        """
+        Execute the command.
+        """
+
+        # Empty path or path '-' means that we just read from stdin or write to stdout (in case of piping)
         if not self.path or self.path == "-":
-            # we will write at sys.stdout and read from sys.stdin it's strnga but...
+            # sys.stdout and sys.stdin are inverted:
             return CommandRunResult(input=sys.stdout, errors=None, output=sys.stdin, mode=self.mode)
-        # if we have no command, just open file in given mode
-        # nocammand means that there is empty cmd AND we have no format in MODES_TO_FILES_PRESET
+
+        # No command can happen when: 
+        # (1) the provided extension is not in PRESET_EXT2MODE 
+        # and (2) no command was provided by user.
+        # We then simply open file in given mode and do not run any command on it:
         if self.__nocommand:
             self.__process_file = open(self.path, self.file_mode)
             return CommandRunResult(input=self.__process_file, errors=None, output=self.__process_file, mode=self.mode)
-        self.__convert_command()
-        process = self.__form_command()
+
+        process = self.__construct_process()
         return CommandRunResult(input=process.stdin, errors=process.stderr, output=process.stdout, mode=self.mode)
 
 
@@ -187,20 +226,21 @@ def auto_open(path, mode, nproc=1, command=None):
 
     Determines the file format from its extension and selects the appropriate
     command for reading or writing, utilizing available compression or
-    decompression tools. If a specific command is provided, it will be used
-    directly.
+    decompression tools. If user defines an input command, it will be used
+    instead.
 
     Parameters:
-        path (str): Path to the file or '-' for standard input/output.
+        path (str): Path to the file or '-' for standard input/output. Can be None in a piping regime.
         mode (str): File access mode: 'r' (read), 'w' (write), or 'a' (append).
-        nproc (int, optional): Number of threads for multithreaded tools. Defaults to 1.
-        command (str or list, optional): Custom command for file processing. Defaults to None.
+        nproc (int, optional): Number of threads for multithreaded tools. Default is 1.
+        command (str or list, optional): Custom command for file processing. Default is None.
 
     Returns:
         file-like object: A file object ready for reading or writing data.
 
     Raises:
-        ValueError: If the file format is unsupported or the required tool is not found.
+        ValueError: File format detected from extension is not supported.
+        ValueError: Required tool is not found available in the system.
     """
     command = CommandFormatter(mode=mode, path=path, command=command, nproc=nproc)
     result = command()
