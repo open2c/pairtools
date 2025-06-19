@@ -106,7 +106,6 @@ class CommandFormatter():
         command (Optional[Union[List[str], str]]): Custom command for file processing. For some file formats we have default commands. If empty or None, the class will try to find a suitable command based on the file format and mode.
         If a command is provided, it will be used directly.
         nproc (int): Number of threads for multithreaded tools. Defaults to 1.
-        is_binary (bool): Indicates if the file should be opened in binary mode. Default is False.
 
     Methods:
         __call__(): Executes the command or opens the file based on the provided parameters. Return pairtools.lib.fileio.CommandRunResult object
@@ -116,7 +115,6 @@ class CommandFormatter():
     path: tp.Optional[str]=None
     command: tp.Optional[tp.Union[tp.List[str], str]]=None
     nproc: int=1
-    is_binary: bool=False
 
     @staticmethod
     def format_notfounderror(checked_tools: tp.List[str], mode: bool) -> str:
@@ -136,21 +134,15 @@ class CommandFormatter():
 
     def __post_init__(self):
         """
-        Post-initialization modification of the command instructions.
-        Adds instructions for binary files, detects file extension, checks and picks the tools available in the system.
+        Auto-detect file extension, check and pick the tool available in the system.
         """
         self.__nocommand = False
 
-        # Add instruction for the binary files:
-        if self.is_binary:
-            self.file_mode = f'{self.mode}b'
-        else:
-            self.file_mode = self.mode
-
-        # If the command was provided by the user, simply run it, no urther modifications needed:
+        # If the command was provided by the user, simply run it, no further modifications needed:
         if self.command:
             return
         
+        # If no user-defined command was provided, detect the command automatically.
         # Get the file extension:
         self.__extension = self.path.split('.')[-1]
 
@@ -167,9 +159,20 @@ class CommandFormatter():
         # Next, iterate over possible tools. When the tool is found, constructs a command.
         checked_tools = []
         for possible_solution in PRESET_COMMANDS[(self.__extension, self.mode)]:
+            # Check for the presence of the tool:
             if shutil.which(possible_solution['tool']) is None:
                 checked_tools.append(possible_solution['tool'])
                 continue
+
+            # bgzip sometimes is outdated in the system, causing -@ option to crash. 
+            # we explicitly check bgzip version, and if it is not up-to-date, skip bgzip:
+            if possible_solution['tool']=='bgzip':
+                cmd_check = subprocess.Popen(shlex.split('bgzip --version'), stderr=subprocess.PIPE, text=True)
+                cmd_error = cmd_check.stderr.buffer.readline().decode()
+                if 'invalid' in cmd_error:
+                    checked_tools.append(possible_solution['tool'])
+                    continue
+
             self.command = possible_solution['command'].format(str(self.nproc))
             return
 
@@ -181,20 +184,26 @@ class CommandFormatter():
         Construct subprocess Popen object for a command, file path and file opening mode.
         """
 
-        # Split the command, if needed:
+        # Check if command is a string and contains shell operators like pipes
+        use_shell = False
         if isinstance(self.command, str):
-            command_split = shlex.split(self.command)
+            if '|' in self.command or '>' in self.command or '<' in self.command:
+                use_shell = True
+                command_exec = self.command
+            else:
+                command_exec = shlex.split(self.command)
         else:
-            command_split = self.command
+            # If already a list, assume no shell needed:
+            command_exec = self.command
 
         # Open the file:
-        self.__process_file = open(self.path, self.file_mode)
+        self.__process_file = open(self.path, self.mode)
 
         # Run Popen:
         if self.mode == 'r':
-            cmd = subprocess.Popen(command_split, stdin=self.__process_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            cmd = subprocess.Popen(command_exec, stdin=self.__process_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=use_shell)
         else:
-            cmd = subprocess.Popen(command_split, stdout=self.__process_file, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            cmd = subprocess.Popen(command_exec, stdout=self.__process_file, stdin=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=use_shell)
         
         return cmd
     
@@ -213,7 +222,7 @@ class CommandFormatter():
         # and (2) no command was provided by user.
         # We then simply open file in given mode and do not run any command on it:
         if self.__nocommand:
-            self.__process_file = open(self.path, self.file_mode)
+            self.__process_file = open(self.path, self.mode)
             return CommandRunResult(input=self.__process_file, errors=None, output=self.__process_file, mode=self.mode)
 
         process = self.__construct_process()
@@ -246,6 +255,35 @@ def auto_open(path, mode, nproc=1, command=None):
     result = command()
     return result.outfile
 
+
+def get_stream_handlers(instream):
+    """
+    Get the readline and peek functions for the provided input stream.
+
+    Parameters:
+        instream (file-like object): The input stream to get the handlers for.
+
+    Returns:
+        tuple: A tuple containing the following elements:
+            - readline_f (function): The readline function for the input stream.
+            - peek_f (function): The peek function for the input stream.
+
+    Raises:
+        ValueError: If the peek function cannot be found for the provided stream.
+    """
+    readline_f, peek_f = None, None
+    if hasattr(instream, "buffer"):
+        peek_f = instream.buffer.peek
+        readline_f = instream.buffer.readline
+    elif hasattr(instream, "peek"):
+        peek_f = instream.peek
+        readline_f = instream.readline
+    else:
+        raise ValueError("Cannot find the peek() function of the provided stream!")
+    return readline_f, peek_f
+
+
+#### Legacy code (consider removing):
 
 class PipedIO:
     def __init__(self, file_or_path, command, mode="r"):
@@ -328,32 +366,3 @@ class PipedIO:
         self._stream.close()
         retcode = self._proc.wait(timeout=timeout)
         return retcode
-
-
-def get_stream_handlers(instream):
-    """
-    Get the readline and peek functions for the provided input stream.
-
-    Parameters:
-        instream (file-like object): The input stream to get the handlers for.
-
-    Returns:
-        tuple: A tuple containing the following elements:
-            - readline_f (function): The readline function for the input stream.
-            - peek_f (function): The peek function for the input stream.
-
-    Raises:
-        ValueError: If the peek function cannot be found for the provided stream.
-    """
-    readline_f, peek_f = None, None
-    if hasattr(instream, "buffer"):
-        peek_f = instream.buffer.peek
-        readline_f = instream.buffer.readline
-    elif hasattr(instream, "peek"):
-        peek_f = instream.peek
-        readline_f = instream.readline
-    else:
-        raise ValueError("Cannot find the peek() function of the provided stream!")
-    return readline_f, peek_f
-
-
