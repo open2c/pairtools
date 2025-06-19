@@ -102,7 +102,7 @@ class CommandFormatter():
 
     Attributes:
         mode (str): Mode in which the file is to be opened ('r', 'w', or 'a').
-        path (Optional[str]): Path to the target file. Empty or '-' indicates standard input/output (for || case).
+        path (Optional[str]): Path to the target file. Empty (None) or '-' indicates standard input/output (for the case of piping).
         command (Optional[Union[List[str], str]]): Custom command for file processing. For some file formats we have default commands. If empty or None, the class will try to find a suitable command based on the file format and mode.
         If a command is provided, it will be used directly.
         nproc (int): Number of threads for multithreaded tools. Defaults to 1.
@@ -116,22 +116,6 @@ class CommandFormatter():
     command: tp.Optional[tp.Union[tp.List[str], str]]=None
     nproc: int=1
 
-    @staticmethod
-    def format_notfounderror(checked_tools: tp.List[str], mode: bool) -> str:
-        """
-        Format a neat error message, used in case when none tools were found in the system.
-        """
-        text_task = 'read input file' if mode=='r' else 'write input file'
-        if len(checked_tools)==0:
-            raise ValueError('Something went wrong while IO operations. None tools were checked.')
-        elif len(checked_tools)==1:
-            text_verb = 'is'
-            text_tools = checked_tools[0]
-        else:
-            text_verb = 'are'
-            text_tools = f'{"", "".join(checked_tools[:-1])} and {checked_tools[-1]}'
-        return f"{text_tools} {text_verb} not found, cannot {text_task}"
-
     def __post_init__(self):
         """
         Auto-detect file extension, check and pick the tool available in the system.
@@ -144,7 +128,10 @@ class CommandFormatter():
         
         # If no user-defined command was provided, detect the command automatically.
         # Get the file extension:
-        self.__extension = self.path.split('.')[-1]
+        if not self.path or self.path == '-':
+            self.__extension = ''
+        else:
+            self.__extension = self.path.split('.')[-1]
 
         # If extension is not in the keys of PRESET_EXT2MODE, 
         # simply return opened file in a given mode
@@ -179,6 +166,22 @@ class CommandFormatter():
         # No suitable command was found in the system, raise and format an error message.
         raise ValueError(self.format_notfounderror(checked_tools, self.mode=='r'))
 
+    @staticmethod
+    def format_notfounderror(checked_tools: tp.List[str], mode: bool) -> str:
+        """
+        Format a neat error message, used in case when none tools were found in the system.
+        """
+        text_task = 'read input file' if mode=='r' else 'write input file'
+        if len(checked_tools)==0:
+            raise ValueError('Something went wrong while IO operations. None tools were checked.')
+        elif len(checked_tools)==1:
+            text_verb = 'is'
+            text_tools = checked_tools[0]
+        else:
+            text_verb = 'are'
+            text_tools = f'{"", "".join(checked_tools[:-1])} and {checked_tools[-1]}'
+        return f"{text_tools} {text_verb} not found, cannot {text_task}"
+    
     def __construct_process(self):
         """
         Construct subprocess Popen object for a command, file path and file opening mode.
