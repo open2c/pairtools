@@ -160,7 +160,9 @@ UTIL_NAME = "pairtools_dedup"
     "duplicates. Can be either provided as 0-based column indices or as column "
     'names (requires the "#columns" header field). The option can be provided '
     "multiple times if multiple column pairs must match. "
-    'Example, to dedup phased pairs:'
+    'Example for dedup of phased pairs, remove duplicates matching in columns '
+    'phase1 and (independently) in column phase2. '
+    'Note how each --extra-col-pair expects a pair of columns as input:'
     '--extra-col-pair "phase1" "phase1" --extra-col-pair "phase2" "phase2". [output format option]',
 )
 
