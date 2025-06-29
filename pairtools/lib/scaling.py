@@ -358,7 +358,7 @@ def compute_scaling(
         Additional dataframe with chromosome sizes, if different from regions.
     dist_range : tuple of int, optional
         The range of distances to calculate the scaling curve. Default is (10, 1000000000).
-    n_dist_bins : int, optional
+    n_dist_bins_decade : int, optional
         The number of distance bins per order of magnitude in a log10-space. Default is 8.
     chunksize : int, optional
         Size of chunks for calculations. Default is 10000000.
