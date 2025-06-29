@@ -22,6 +22,51 @@ COMMENT_CHAR = "#"
 
 
 
+def canonicalize_columns(columns):
+    """Convert between common column name variants."""
+    canonical_map = {
+        'chr1': 'chrom1',
+        'chr2': 'chrom2',
+        'chrom1': 'chrom1',  # Ensure identity mapping
+        'chrom2': 'chrom2',
+        'pt': 'pair_type',
+        'pair_type': 'pair_type'
+    }
+    return [canonical_map.get(col.lower(), col) for col in columns]
+
+def get_column_index(column_names, column_spec):
+    """Get column index with flexible name matching."""
+    if isinstance(column_spec, int):
+        if -len(column_names) <= column_spec < len(column_names):
+            return column_spec % len(column_names)  # Handle negative indices
+        raise ValueError(f"Column index {column_spec} out of range")
+    
+    if not isinstance(column_spec, (str, int)):
+        raise AttributeError(f"Column spec must be string or integer, got {type(column_spec)}")
+
+    # Try direct match first
+    try:
+        return column_names.index(column_spec)
+    except ValueError:
+        pass
+        
+    # Try canonical name
+    canonical = canonicalize_columns([column_spec])[0]
+    try:
+        return column_names.index(canonical)
+    except ValueError:
+        pass
+        
+    # Try case-insensitive
+    lower_columns = [c.lower() for c in column_names]
+    try:
+        return lower_columns.index(canonical.lower())
+    except ValueError:
+        available = ', '.join(f"'{c}'" for c in column_names)
+        raise ValueError(
+            f"Column '{column_spec}' not found. Available columns: {available}"
+        )
+
 def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
     """Returns a header from the stream and an the reaminder of the stream
     with the actual data.
