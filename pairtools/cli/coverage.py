@@ -175,5 +175,7 @@ def coverage_py(
 
     if output_bigwig is not None:
         bioframe.to_bigwig(
-            coverage_df[["chrom", "start", "end", "count"]], chromsizes, output_bigwig
+            coverage_df[["chrom", "start", "end", "count"]],
+            chromsizes_dict,
+            output_bigwig,
         )
