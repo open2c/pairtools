@@ -10,12 +10,13 @@ import click
 import bioframe
 
 from ..lib.coverage import calculate_coverage, read_pairs, save_coverage
+from . import cli, common_io_options
 
 
 UTIL_NAME = "pairtools_coverage"
 
 
-@click.command()
+@cli.command()
 @click.argument(
     "pairs_path",
     type=str,
@@ -89,6 +90,45 @@ UTIL_NAME = "pairtools_coverage"
     default=None,
     help="Output BigWig file (optional)",
 )
+@common_io_options
+def coverage(
+    pairs_path,
+    side,
+    end,
+    shift,
+    window_size,
+    chunksize,
+    threads,
+    chromsizes,
+    output,
+    output_bigwig,
+    **kwargs,
+):
+    """Generate coverage from pairs file.
+
+    PAIRS_PATH : input .pairs/.pairsam file. If the path ends with .gz or .lz4, the
+    input is decompressed by bgzip/lz4c.
+    By default, the input is read from stdin.
+    """
+    coverage_py(
+        pairs_path=pairs_path,
+        output=output,
+        side=side,
+        end=end,
+        shift=shift,
+        window_size=window_size,
+        chunksize=chunksize,
+        threads=threads,
+        chromsizes=chromsizes,
+        output_bigwig=output_bigwig,
+        **kwargs,
+    )
+
+
+if __name__ == "__main__":
+    coverage()
+
+
 def coverage_py(
     pairs_path,
     output,
@@ -100,6 +140,7 @@ def coverage_py(
     threads,
     chromsizes,
     output_bigwig,
+    **kwargs,
 ):
     """Generate coverage from pairs file.
 
