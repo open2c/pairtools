@@ -202,4 +202,5 @@ from . import (
     filterbycov,
     header,
     scaling,
+    coverage,
 )
