@@ -140,7 +140,7 @@ def produce_chunks(
     for pairs_df in pairs_stream:
         if pairs_df.shape[0] == 0:
             continue
-        if side != 0:
+        if side != "0":
             pairs_df["start"] = pairs_df[f"pos{end}{side}"] - 1
             pairs_df["end"] = pairs_df[f"pos{end}{side}"]
             pairs_df["chrom"] = pairs_df[f"chrom{side}"]
