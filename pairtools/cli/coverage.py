@@ -25,10 +25,10 @@ UTIL_NAME = "pairtools_coverage"
 @click.option(
     "--side",
     "-s",
-    type=click.Choice(["0", "1", "2"]),
+    type=click.Choice(["both", "1", "2"]),
     default="1",
     show_default=True,
-    help="0: both sides, 1: first side, 2: second side",
+    help="both: both sides, 1: first side, 2: second side",
 )
 @click.option(
     "--end",
@@ -42,7 +42,9 @@ UTIL_NAME = "pairtools_coverage"
     type=int,
     default=0,
     show_default=True,
-    help="Shift value for strand-specific adjustment",
+    help="Shift value for strand-specific adjustment. Positive values shift downstream "
+    "relative to the corresponding strand, negative values shift upstream. "
+    "Can be useful to e.g. account for nucleosome size in micro-C by shifting by 73 bp",
 )
 @click.option(
     "--window-size",

@@ -140,7 +140,7 @@ def produce_chunks(
     for pairs_df in pairs_stream:
         if pairs_df.shape[0] == 0:
             continue
-        if side != "0":
+        if side != "both":
             pairs_df["start"] = pairs_df[f"pos{end}{side}"] - 1
             pairs_df["end"] = pairs_df[f"pos{end}{side}"]
             pairs_df["chrom"] = pairs_df[f"chrom{side}"]
@@ -242,19 +242,3 @@ def calculate_coverage(
 
     return coverage_df
 
-
-def save_coverage(
-    coverage_df: pd.DataFrame,
-    output_file: str,
-    chromsizes: dict,
-    output_bigwig: Optional[str] = None,
-) -> None:
-    """
-    Save coverage data to file(s).
-
-    Args:
-        coverage_df: DataFrame with coverage data
-        output_file: Path to output tab-separated file
-        chromsizes: Dictionary of chromosome sizes
-        output_bigwig: Optional path to output BigWig file
-    """
