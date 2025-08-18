@@ -9,7 +9,7 @@ This module provides a Click-based CLI that wraps the coverage_api module.
 import click
 import bioframe
 
-from ..lib.coverage import calculate_coverage, read_pairs, save_coverage
+from ..lib.coverage import calculate_coverage, read_pairs
 from . import cli, common_io_options
 
 
