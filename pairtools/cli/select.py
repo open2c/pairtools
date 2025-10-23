@@ -112,7 +112,10 @@ def select(
     - regex_match(x, regex) - True if variable x matches a Python-flavor regex,
     e.g. regex_match(chrom1, 'chr\d')
 
-    \b
+    - region_match(chrom, pos, region_chrom, region_start, region_end) - True if the
+    position (chrom, pos) lies within the region defined by
+    (region_chrom, region_start, region_end).
+
     Examples:
     pairtools select '(pair_type=="UU") or (pair_type=="UR") or (pair_type=="RU")'
     pairtools select 'chrom1==chrom2'
@@ -120,6 +123,7 @@ def select(
     pairtools select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
     pairtools select '(chrom1=="!") and (chrom2!="!")'
     pairtools select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
+    pairtools select 'region_match(chrom1, pos1, "chr1", 100, 500)' and region_match(chrom2, pos2, "chr1", 100, 500)'
 
     pairtools select 'True' --chrom-subset mm9.reduced.chromsizes
 
@@ -229,7 +233,7 @@ def select_py(
     for filter_passed, line in evaluate_stream(
         body_stream, condition, column_names, type_cast, startup_code
     ):
-        COLS = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
+        COLS = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
 
         if remove_columns:
             COLS = [

@@ -1,5 +1,6 @@
 from ..lib import fileio, pairsam_format, headerops
 import re, fnmatch
+import numpy as np
 
 # Create environment of important functions:
 wildcard_library = {}
@@ -30,6 +31,13 @@ def regex_match(x, regex):
         reobj = re.compile(regex)
         regex_library[regex] = reobj
     return regex_library[regex].fullmatch(x)
+
+
+def region_match(chrom, pos, region_chrom, region_start=-1, region_end=-1):
+    if region_end == -1:
+        region_end = np.inf
+    return chrom == region_chrom and region_start <= pos <= region_end
+
 
 
 # Define default data types:
@@ -66,17 +74,19 @@ def evaluate_stream(
     for i, col in enumerate(column_names):
         if col in TYPES:
             col_type = TYPES[col]
-            condition = re.sub(r"\b%s\b" % col , "{}(COLS[{}])".format(col_type, i), condition)
-            #condition.replace(col, "{}(COLS[{}])".format(col_type, i))
+            condition = re.sub(
+                r"\b%s\b" % col, "{}(COLS[{}])".format(col_type, i), condition
+            )
+            # condition.replace(col, "{}(COLS[{}])".format(col_type, i))
         else:
             condition = re.sub(r"\b%s\b" % col, "COLS[{}]".format(i), condition)
-            #condition = condition.replace(col, "COLS[{}]".format(i))
-
+            # condition = condition.replace(col, "COLS[{}]".format(i))
+    print(condition)
     # Compile the filtering expression:
     match_func = compile(condition, "<string>", "eval")
 
     for line in headerless_stream:
-        COLS = line.rstrip('\n').split(pairsam_format.PAIRSAM_SEP)
+        COLS = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
 
         # Evaluate filtering expression:
         filter_passed = eval(match_func)
@@ -124,7 +134,7 @@ def evaluate_df(df, condition, type_cast=(), startup_code=None, engine="pandas")
         # Set up the columns indexing
         for i, col in enumerate(df.columns):
             condition = re.sub(r"\b%s\b" % col, "COLS[{}]".format(i), condition)
-            #condition = condition.replace(col, "COLS[{}]".format(i))
+            # condition = condition.replace(col, "COLS[{}]".format(i))
 
         filter_passed_output = []
         match_func = compile(condition, "<string>", "eval")
