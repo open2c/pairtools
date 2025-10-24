@@ -39,7 +39,6 @@ def region_match(chrom, pos, region_chrom, region_start=-1, region_end=-1):
     return chrom == region_chrom and region_start <= pos <= region_end
 
 
-
 # Define default data types:
 TYPES = {"pos1": "int", "pos2": "int", "mapq1": "int", "mapq2": "int"}
 
@@ -81,7 +80,6 @@ def evaluate_stream(
         else:
             condition = re.sub(r"\b%s\b" % col, "COLS[{}]".format(i), condition)
             # condition = condition.replace(col, "COLS[{}]".format(i))
-    print(condition)
     # Compile the filtering expression:
     match_func = compile(condition, "<string>", "eval")
 
