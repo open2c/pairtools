@@ -253,3 +253,87 @@ def test_remove_columns():
             continue
 
         assert len(l.split(pairsam_format.PAIRSAM_SEP)) == 8
+
+
+def test_region_match():
+    try:
+        result = subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "select",
+                'region_match(chrom1, pos1, "chr1", 0, 50)',
+                mock_pairsam_path,
+            ],
+        ).decode("ascii")
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
+    print(result)
+
+    pairsam_body = [
+        l.strip()
+        for l in open(mock_pairsam_path, "r")
+        if not l.startswith("#") and l.strip()
+    ]
+    output_body = [
+        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
+    ]
+
+    # Verify all output rows have chrom1="chr1" and pos1 within range
+    for l in output_body:
+        fields = l.split("\t")
+        chrom1, pos1 = fields[1], int(fields[2])
+        assert chrom1 == "chr1"
+        assert 0 <= pos1 <= 50
+
+    # Verify all matching rows from input are in output
+    for l in pairsam_body:
+        fields = l.split("\t")
+        chrom1, pos1 = fields[1], int(fields[2])
+        if chrom1 == "chr1" and 0 <= pos1 <= 50:
+            assert l in output_body
+
+
+def test_region_match_no_end():
+    try:
+        result = subprocess.check_output(
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "select",
+                'region_match(chrom1, pos1, "chr1", 50)',
+                mock_pairsam_path,
+            ],
+        ).decode("ascii")
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(sys.exc_info())
+        raise e
+    print(result)
+
+    pairsam_body = [
+        l.strip()
+        for l in open(mock_pairsam_path, "r")
+        if not l.startswith("#") and l.strip()
+    ]
+    output_body = [
+        l.strip() for l in result.split("\n") if not l.startswith("#") and l.strip()
+    ]
+
+    # Verify all output rows have chrom1="chr1" and pos1 >= 50
+    for l in output_body:
+        fields = l.split("	")
+        chrom1, pos1 = fields[1], int(fields[2])
+        assert chrom1 == "chr1"
+        assert pos1 >= 50
+
+    # Verify all matching rows from input are in output
+    for l in pairsam_body:
+        fields = l.split("	")
+        chrom1, pos1 = fields[1], int(fields[2])
+        if chrom1 == "chr1" and pos1 >= 100:
+            assert l in output_body
