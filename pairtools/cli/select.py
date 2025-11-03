@@ -123,7 +123,7 @@ def select(
     pairtools select '(chrom1==chrom2) and (abs(pos1 - pos2) < 1e6)'
     pairtools select '(chrom1=="!") and (chrom2!="!")'
     pairtools select 'regex_match(chrom1, "chr\d+") and regex_match(chrom2, "chr\d+")'
-    pairtools select 'region_match(chrom1, pos1, "chr1", 100, 500)' and region_match(chrom2, pos2, "chr1", 100, 500)'
+    pairtools select 'region_match(chrom1, pos1, "chr1", 100, 500) and region_match(chrom2, pos2, "chr1", 100, 500)'
 
     pairtools select 'True' --chrom-subset mm9.reduced.chromsizes
 
