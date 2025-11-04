@@ -386,7 +386,6 @@ def dedup_py(
     n_proc,
     **kwargs,
 ):
-
     sep = ast.literal_eval('"""' + sep + '"""')
     send_header_to_dedup = send_header_to in ["both", "dedup"]
     send_header_to_dup = send_header_to in ["both", "dups"]
@@ -488,6 +487,34 @@ def dedup_py(
         logger.warning(
             "Pairs file appears not to be sorted, dedup might produce wrong results."
         )
+    
+    # Canonicalize column names for flexible matching
+    column_names = headerops.extract_column_names(header)
+    column_names = headerops.canonicalize_columns(column_names)
+    
+    # Get column indices with fallbacks
+    try:
+        col1 = headerops.get_column_index(column_names, c1)
+        col2 = headerops.get_column_index(column_names, c2)
+        colp1 = headerops.get_column_index(column_names, p1)
+        colp2 = headerops.get_column_index(column_names, p2)
+        cols1 = headerops.get_column_index(column_names, s1)
+        cols2 = headerops.get_column_index(column_names, s2)
+        
+        # Handle extra column pairs
+        extra_cols1 = []
+        extra_cols2 = []
+        if extra_col_pair is not None:
+            for col1_spec, col2_spec in extra_col_pair:
+                try:
+                    extra_cols1.append(headerops.get_column_index(column_names, col1_spec))
+                    extra_cols2.append(headerops.get_column_index(column_names, col2_spec))
+                except ValueError:
+                    logger.warning(f"Extra column pair ({col1_spec}, {col2_spec}) not found in header, skipping")
+                    continue
+    except ValueError as e:
+        raise ValueError(f"Column error: {str(e)}") from e
+
     header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
     dups_header = header.copy()
     if keep_parent_id and len(dups_header) > 0:
@@ -505,38 +532,17 @@ def dedup_py(
     ):
         outstream_unmapped.writelines((l + "\n" for l in header))
 
-    column_names = headerops.extract_column_names(header)
-    extra_cols1 = []
-    extra_cols2 = []
-    if extra_col_pair is not None:
-        for col1, col2 in extra_col_pair:
-            extra_cols1.append(column_names[col1] if col1.isnumeric() else col1)
-            extra_cols2.append(column_names[col2] if col2.isnumeric() else col2)
-
     if backend == "cython":
-        # warnings.warn(
-        #     "'cython' backend is deprecated and provided only"
-        #     " for backwards compatibility",
-        #     DeprecationWarning,
-        # )
-        extra_cols1 = [column_names.index(col) for col in extra_cols1]
-        extra_cols2 = [column_names.index(col) for col in extra_cols2]
-        c1 = column_names.index(c1)
-        c2 = column_names.index(c2)
-        p1 = column_names.index(p1)
-        p2 = column_names.index(p2)
-        s1 = column_names.index(s1)
-        s2 = column_names.index(s2)
         streaming_dedup_cython(
             method,
             max_mismatch,
             sep,
-            c1,
-            c2,
-            p1,
-            p2,
-            s1,
-            s2,
+            col1,
+            col2,
+            colp1,
+            colp2,
+            cols1,
+            cols2,
             extra_cols1,
             extra_cols2,
             unmapped_chrom,
@@ -557,7 +563,7 @@ def dedup_py(
             method=method,
             mark_dups=mark_dups,
             max_mismatch=max_mismatch,
-            extra_col_pairs=list(extra_col_pair),
+            extra_col_pairs=list(zip(extra_cols1, extra_cols2)) if extra_cols1 else [],
             keep_parent_id=keep_parent_id,
             unmapped_chrom=unmapped_chrom,
             outstream=outstream,
@@ -566,12 +572,12 @@ def dedup_py(
             out_stat=out_stat,
             backend=backend,
             n_proc=n_proc,
-            c1=c1,
-            c2=c2,
-            p1=p1,
-            p2=p2,
-            s1=s1,
-            s2=s2,
+            c1=col1,
+            c2=col2,
+            p1=colp1,
+            p2=colp2,
+            s1=cols1,
+            s2=cols2,
         )
     else:
         raise ValueError("Unknown backend")
