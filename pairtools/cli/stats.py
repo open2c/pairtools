@@ -29,6 +29,11 @@ UTIL_NAME = "pairtools_stats"
     " the end of the file. Supported for tsv stats with single filter.",
 )
 @click.option(
+    "--single-mapped-by-side",
+    is_flag=True,
+    help="If specified, count single-mapped reads separately for read1 and read2.",
+)
+@click.option(
     "--n-dist-bins-decade",
     type=int,
     default=PairCounter.N_DIST_BINS_DECADE_DEFAULT,
@@ -115,7 +120,15 @@ UTIL_NAME = "pairtools_stats"
 )
 @common_io_options
 def stats(
-    input_path, output, merge, n_dist_bins_decade, bytile_dups, output_bytile_stats, filter, **kwargs
+    input_path,
+    output,
+    merge,
+    single_mapped_by_side,
+    n_dist_bins_decade,
+    bytile_dups,
+    output_bytile_stats,
+    filter,
+    **kwargs,
 ):
     """Calculate pairs statistics.
 
@@ -131,6 +144,7 @@ def stats(
         input_path,
         output,
         merge,
+        single_mapped_by_side,
         n_dist_bins_decade,
         bytile_dups,
         output_bytile_stats,
@@ -140,7 +154,15 @@ def stats(
 
 
 def stats_py(
-    input_path, output, merge, n_dist_bins_decade, bytile_dups, output_bytile_stats, filter, **kwargs
+    input_path,
+    output,
+    merge,
+    single_mapped_by_side,
+    n_dist_bins_decade,
+    bytile_dups,
+    output_bytile_stats,
+    filter,
+    **kwargs,
 ):
     if merge:
         do_merge(output, input_path, n_dist_bins_decade=n_dist_bins_decade, **kwargs)
@@ -190,6 +212,7 @@ def stats_py(
         filter = None
 
     stats = PairCounter(
+        single_mapped_by_side=single_mapped_by_side,
         n_dist_bins_decade=n_dist_bins_decade,
         bytile_dups=bytile_dups,
         filters=filter,
@@ -213,9 +236,9 @@ def stats_py(
     stats.save(
         outstream,
         yaml=kwargs.get("yaml", False),  # format as yaml
-        filter=first_filter_name
-        if not kwargs.get("yaml", False)
-        else None,  # output only the first filter if non-YAML output
+        filter=(
+            first_filter_name if not kwargs.get("yaml", False) else None
+        ),  # output only the first filter if non-YAML output
     )
 
     if instream != sys.stdin:
