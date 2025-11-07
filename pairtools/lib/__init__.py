@@ -9,3 +9,4 @@ from . import parse_pysam
 from . import restrict
 from . import stats
 from . import select
+from . import coverage
