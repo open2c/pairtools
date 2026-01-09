@@ -1,3 +1,33 @@
+### 1.1.3 (2025-01-31) ###
+
+Bugfixes of parse2:
+- Standartiation of complex pair types: names R1&2 and R1-2 are now uniform in the code.
+This was inconistent before leading to the bugs at the positions assignment for R1&2.
+
+- Walk policies are applied not only to complex walks but also to non-chimeric reads in parse2.
+
+
+Bugfizes of pairtools select: 
+- Empty columns at the end of the .pairs file are not truncated anymore.
+
+New tests: 
+- parse2 tests for R1&2 and R2 reads (read25/27). 
+- parse2 tests for correct flipping (read25/26).
+
+### 1.1.2 (2024-12-11) ###
+
+Bugfixes:
+- Drop Cython-generated .c/.cpp files from the sdist
+
+### 1.1.1 (2024-12-10) ###
+
+Bugfixes:
+- Migrating to pyproject.toml + cibuildwheel. pairtools will now release binary wheels for Linux. --no-build-isolation is a mandatory flag now.
+- Require Cython during build to avoid the "circular import" bug.
+- fix API incomplete functionality for read-side detection by @agalitsyna 
+
+**Full Changelog**: https://github.com/open2c/pairtools/compare/v1.1.0...v1.1.1
+
 ### 1.1.0 (2024-04-23) ###
 Major bugfixes:
 - Fix a major bug in sort that previously broke the sorting order. This bug was introduced in recent versions of pairtools #230

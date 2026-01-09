@@ -43,10 +43,10 @@ UTIL_NAME = "pairtools_parse2"
     help="""Reported position of alignments in pairs of complex walks (pos columns). 
     Each alignment in .bam/.sam Hi-C-like data has two ends, and you can report one or another depending of the position of alignment on a read or in a pair.  
     
-    "junction" - inner ends of sequential alignments in each pair, aka ligation junctions (complex walks default),
+    "junction" - inner ends of sequential alignments in each pair, aka ligation junctions,
     "read" - 5'-end of alignments relative to R1 or R2 read coordinate system (as in traditional Hi-C),
     "walk" - 5'-end of alignments relative to the whole walk coordinate system,
-    "outer" - outer ends of sequential alignments in each pair. """,
+    "outer" - outer ends of sequential alignments in each pair (parse2 default). """,
 )
 @click.option(
     "--report-orientation",

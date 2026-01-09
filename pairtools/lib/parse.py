@@ -9,7 +9,7 @@ I. pysam-based:
         each sam entry is in fact special AlignedSegmentPairtoolized Cython object
         that has alignment attributes and can be easily accessed from Python.
     
-        Sam entries are gathered into reads by `push_pysam` function.
+        Sam entries are gathered into reads by `group_alignments_by_side` function.
     
     2. **read** is a collection of sam entries corresponding to a single Hi-C molecule.
         It is represented by three variables:
@@ -36,36 +36,6 @@ II. python-based data types are parsed from pysam-based ones:
 """
 from . import pairsam_format
 from .parse_pysam import get_mismatches_c
-
-
-def group_alignments_by_side(sams):
-    return [sam for sam in sams if sam.is_read1], [sam for sam in sams if sam.is_read2]
-
-
-def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
-    sams = []
-
-    prev_readID = None
-    while True:
-        sam_entry = next(instream, None)
-        readID = sam_entry.query_name if sam_entry else None
-
-        # Read is fully populated, then parse and write:
-        if not (sam_entry) or ((readID != prev_readID) and prev_readID):
-            if sort:
-                sams = sorted(sams, key=lambda a: (a.is_read2, a.query_alignment_start))
-            out = sams if not group_by_side else group_alignments_by_side(sams)
-            out = out if not return_readID else (prev_readID, out)
-            yield out
-            
-            sams.clear()
-            
-        if sam_entry is None:
-            break
-        else:
-            sams.append(sam_entry)
-            prev_readID = readID
-
 
 def streaming_classify(
     instream, outstream, chromosomes, out_alignments_stream, out_stat, **kwargs
@@ -124,9 +94,7 @@ def streaming_classify(
 
     ### Iterate over input pysam:
     instream = iter(instream)
-    for (readID, (sams1, sams2)) in read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True):
-        if readID_transform is not None:
-            readID = eval(readID_transform)
+    for (readID, (sams1, sams2)) in read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True, readID_transform=readID_transform):
 
         ### Parse
         if not parse2:  # regular parser:
@@ -216,17 +184,6 @@ def streaming_classify(
 ### Alignment utilities: ###
 ############################
 
-
-def push_pysam(sam_entry, sams1, sams2):
-    """Parse pysam AlignedSegment (sam) into pairtools sams entry"""
-    flag = sam_entry.flag
-    if (flag & 0x40) != 0:
-        sams1.append(sam_entry)  # left read, or first read in a pair
-    else:
-        sams2.append(sam_entry)  # right read, or mate pair
-    return
-
-
 def empty_alignment():
     return {
         "chrom": pairsam_format.UNMAPPED_CHROM,
@@ -251,6 +208,45 @@ def empty_alignment():
         "mismatches": "",
     }
 
+def group_alignments_by_side(sams):
+    """Group pysam AlignedSegments (sams) into left-read (R1) and right-read (R2) sam entries"""
+
+    sams1 = []
+    sams2 = []
+    for sam_entry in sams:
+        flag = sam_entry.flag
+        if (flag & 0x40) != 0:
+            sams1.append(sam_entry)  # left read, or first read in a pair
+        else:
+            sams2.append(sam_entry)  # right read, or mate pair
+    return sams1, sams2
+
+
+def read_alignment_block(instream, sort=True, group_by_side=True, return_readID=True, readID_transform=None):
+    sams = []
+
+    prev_readID = None
+    while True:
+        sam_entry = next(instream, None)
+        readID = sam_entry.query_name if sam_entry else None
+        if readID_transform is not None and readID is not None: 
+            readID = eval(readID_transform)
+
+        # Read is fully populated, then parse and write:
+        if not (sam_entry) or ((readID != prev_readID) and prev_readID):
+            if sort:
+                sams = sorted(sams, key=lambda a: (a.is_read2, a.query_alignment_start))
+            out = sams if not group_by_side else group_alignments_by_side(sams)
+            out = out if not return_readID else (prev_readID, out)
+            yield out
+            
+            sams.clear()
+            
+        if sam_entry is None:
+            break
+        else:
+            sams.append(sam_entry)
+            prev_readID = readID
 
 def parse_pysam_entry(
     sam,
@@ -672,7 +668,7 @@ def parse2_read(
         ]
         
         algns1 = normalize_alignment_list(algns1, 1, sort_by="dist_to_5", max_inter_align_gap=max_inter_align_gap)
-        algns2 = [empty_alignment()]  # Empty alignment dummy
+        algns2 = []  # Empty alignment dummy
 
         if len(algns1) > 1:
             # Look for ligation pair, and report linear alignments after deduplication of complex walks:
@@ -684,6 +680,8 @@ def parse2_read(
                 report_position,
                 report_orientation,
                 dedup_max_mismatch,
+                expand,
+                max_expansion_depth,
             )
             output = [x for x in output if x[-1][-1] != "R1-2"]
             return (output, algns1, algns2)
@@ -752,13 +750,15 @@ def parse2_read(
             )
         else:
             # If no additional information, we assume each molecule is a single ligation with single unconfirmed pair:
-            algn2 = algns2[0]
-            if report_orientation == "walk":
-                algn2 = flip_orientation(algn2)
-            if report_position == "walk":
-                algn2 = flip_position(algn2)
             pair_index = (1, "R1-2")
-            return iter([(algns1[0], algn2, pair_index)]), algns1, algns2
+            algn1, algn2, pair_index = format_pair(
+                algns1[0],
+                algns2[0],
+                pair_index=pair_index,
+                report_position=report_position,
+                report_orientation=report_orientation,
+            )
+            return iter([(algn1, algn2, pair_index)]), algns1, algns2
 
 
 ####################
@@ -893,11 +893,11 @@ def parse_complex_walk(
 
     **Intramolecular deduplication**
 
-     Forward read (left):                       right read (right):
+    Forward read (left):                       right read (right):
     5'------------------------->3'     3'<--------------------------5'
-             algns1                              algns2
+            algns1                              algns2
     <5---3><5---3><5---3><5---3>        <3---5><3---5><3---5><3---5>
-       l0     l1    l2     l3              r3     r2     r1    r0
+        l0     l1    l2     l3              r3     r2     r1    r0
 
     Alignment - bwa mem reported hit or alignment after gaps conversion.
     Left and right alignments (algns1: [l0, l1, l2, l3], algns2: [r0, r1, r2, r3])
@@ -931,8 +931,8 @@ def parse_complex_walk(
                 If comparison is successful, go to 6.
         6. Verify.
             Check that downstream pairs on the left read overlap with the upstream pairs on the right read.
-                 If yes, exit.
-                 If not, we do not have an overlap, go to step 3.
+                If yes, exit.
+                If not, we do not have an overlap, go to step 3.
     """
 
     AVAILABLE_REPORT_POSITION = ["outer", "junction", "read", "walk"]
@@ -1009,66 +1009,70 @@ def parse_complex_walk(
         if not is_overlap:
             current_right_pair = 1
 
-    # II. Search of partial overlap if there are less than 2 alignments at either sides, or no overlaps found
-    if current_right_pair == 1:
-        last_reported_alignment_left = last_reported_alignment_right = 1
-        if partial_overlap(
-            algns1[-1],
-            algns2[-1],
-            max_insert_size=max_insert_size,
-            dedup_max_mismatch=dedup_max_mismatch,
-        ):
-            if (
-                n_algns1 >= 2
-            ):  # single alignment on right read and multiple alignments on left
-                pair_index = (len(algns1) - 1, "R1")
+    if (n_algns2 == 0):
+        last_reported_alignment_left = 1
+        last_reported_alignment_right = 0
+    else:
+        # II. Search of partial overlap if there are less than 2 alignments at either sides, or no overlaps found
+        if (current_right_pair == 1):
+            last_reported_alignment_left = last_reported_alignment_right = 1
+            if partial_overlap(
+                algns1[-1],
+                algns2[-1],
+                max_insert_size=max_insert_size,
+                dedup_max_mismatch=dedup_max_mismatch,
+            ):
+                if (
+                    n_algns1 >= 2
+                ):  # single alignment on right read and multiple alignments on left
+                    pair_index = (len(algns1) - 1, "R1")
+                    output_pairs.append(
+                        format_pair(
+                            algns1[-2],
+                            algns1[-1],
+                            pair_index=pair_index,
+                            algn2_pos3=algns2[-1]["pos5"],
+                            report_position=report_position,
+                            report_orientation=report_orientation,
+                        )
+                    )
+                    last_reported_alignment_left = 2  # set the pointer for reporting
+
+                if (
+                    n_algns2 >= 2
+                ):  # single alignment on left read and multiple alignments on right
+                    pair_index = (len(algns1), "R2")
+                    output_pairs.append(
+                        format_pair(
+                            algns2[-1],
+                            algns2[-2],
+                            pair_index=pair_index,
+                            algn1_pos3=algns1[-1]["pos5"],
+                            report_position=report_position,
+                            report_orientation=report_orientation,
+                        )
+                    )
+                    last_reported_alignment_right = 2  # set the pointer for reporting
+
+                # Note that if n_algns1==n_algns2==1 and alignments overlap, then we don't need to check,
+                # it's a non-ligated DNA fragment that we don't report.
+
+            else:  # end alignments do not overlap, report regular pair:
+                pair_index = (len(algns1), "R1-2")
                 output_pairs.append(
                     format_pair(
-                        algns1[-2],
                         algns1[-1],
-                        pair_index=pair_index,
-                        algn2_pos3=algns2[-1]["pos5"],
-                        report_position=report_position,
-                        report_orientation=report_orientation,
-                    )
-                )
-                last_reported_alignment_left = 2  # set the pointer for reporting
-
-            if (
-                n_algns2 >= 2
-            ):  # single alignment on left read and multiple alignments on right
-                pair_index = (len(algns1), "R2")
-                output_pairs.append(
-                    format_pair(
                         algns2[-1],
-                        algns2[-2],
                         pair_index=pair_index,
-                        algn1_pos3=algns1[-1]["pos5"],
                         report_position=report_position,
                         report_orientation=report_orientation,
                     )
                 )
-                last_reported_alignment_right = 2  # set the pointer for reporting
 
-            # Note that if n_algns1==n_algns2==1 and alignments overlap, then we don't need to check,
-            # it's a non-ligated DNA fragment that we don't report.
-
-        else:  # end alignments do not overlap, report regular pair:
-            pair_index = (len(algns1), "R1-2")
-            output_pairs.append(
-                format_pair(
-                    algns1[-1],
-                    algns2[-1],
-                    pair_index=pair_index,
-                    report_position=report_position,
-                    report_orientation=report_orientation,
-                )
-            )
-
-    else:  # there was an overlap, set some pointers:
-        last_reported_alignment_left = (
-            last_reported_alignment_right
-        ) = current_right_pair
+        else:  # there was an overlap, set some pointers:
+            last_reported_alignment_left = (
+                last_reported_alignment_right
+            ) = current_right_pair
 
     # III. Report all remaining alignments.
     # Report all unique alignments on left read (sequential):
@@ -1148,7 +1152,6 @@ def expand_pairs(pairs_list, max_expansion_depth=None):
     list of expanded pairs
 
     """
-
     for algn1, _algn1, pair_index1 in pairs_list:
         for _algn2, algn2, pair_index2 in pairs_list:
             if pair_index1 > pair_index2:
@@ -1362,12 +1365,12 @@ def format_pair(
         elif pair_type == "R1-2":
             hic_algn2 = flip_orientation(hic_algn2)
     elif report_orientation == "pair":
-        if pair_type == "R1" or pair_type == "R1&R2":
+        if pair_type == "R1" or pair_type == "R1&2":
             hic_algn2 = flip_orientation(hic_algn2)
         elif pair_type == "R2":
             hic_algn1 = flip_orientation(hic_algn1)
     elif report_orientation == "junction":
-        if pair_type == "R1" or pair_type == "R1&R2":
+        if pair_type == "R1" or pair_type == "R1&2":
             hic_algn1 = flip_orientation(hic_algn1)
         elif pair_type == "R2":
             hic_algn2 = flip_orientation(hic_algn2)
@@ -1384,18 +1387,20 @@ def format_pair(
         elif pair_type == "R1-2":
             hic_algn2 = flip_position(hic_algn2)
     elif report_position == "outer":
-        if pair_type == "R1" or pair_type == "R1&R2":
+        if pair_type == "R1" or pair_type == "R1&2":
             hic_algn2 = flip_position(hic_algn2)
         elif pair_type == "R2":
             hic_algn1 = flip_position(hic_algn1)
     elif report_position == "junction":
-        if pair_type == "R1" or pair_type == "R1&R2":
+        if pair_type == "R1" or pair_type == "R1&2":
             hic_algn1 = flip_position(hic_algn1)
         elif pair_type == "R2":
             hic_algn2 = flip_position(hic_algn2)
-        else:
+        elif pair_type == "R1-2":
             hic_algn1 = flip_position(hic_algn1)
             hic_algn2 = flip_position(hic_algn2)
+        else:
+            raise ValueError(f"Unknown pair type: {pair_type}")
 
     return [hic_algn1, hic_algn2, pair_index]
 
