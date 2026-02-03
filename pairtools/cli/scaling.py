@@ -53,7 +53,9 @@ UTIL_NAME = "pairtools_scaling"
     help="Number of bins to split the distance range in log10-space, specified per a factor of 10 difference.",
 )
 @common_io_options
-def scaling(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs):
+def scaling(
+    input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs
+):
     """Calculate pairs scalings.
 
     INPUT_PATH : by default, a .pairs/.pairsam file to calculate statistics.
@@ -63,10 +65,14 @@ def scaling(input_path, output, view, chunksize, dist_range, n_dist_bins_decade,
 
     Output is .tsv file with scaling stats (both cis scalings and trans levels).
     """
-    scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs)
+    scaling_py(
+        input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs
+    )
 
 
-def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs):
+def scaling_py(
+    input_path, output, view, chunksize, dist_range, n_dist_bins_decade, **kwargs
+):
 
     if len(input_path) == 0:
         raise ValueError(f"No input paths: {input_path}")
@@ -87,11 +93,11 @@ def scaling_py(input_path, output, view, chunksize, dist_range, n_dist_bins_deca
     if view is not None:
         view = pd.read_table(view)
 
-    # Pass the header to the instream so that it can parse the header automatically
+    # chromsizes will be automatically extracted from the pairs file header
     cis_scalings, trans_levels = compute_scaling(
         instream,
         regions=view,
-        chromsizes=None,
+        chromsizes=None,  # Will be extracted from pairs header
         dist_range=dist_range,
         n_dist_bins_decade=n_dist_bins_decade,
         chunksize=chunksize,
