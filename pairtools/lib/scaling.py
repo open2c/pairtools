@@ -143,6 +143,8 @@ def bins_pairs_by_distance(
 ):
 
     dist_bins = np.r_[dist_bins, np.iinfo(np.int64).max]
+    # Explicitly remove unmapped pair
+    pairs_df = pairs_df[(pairs_df["chrom1"] != "!") & (pairs_df["chrom2"] != "!")]
     if regions is None:
         if chromsizes is None:
             chroms = sorted(
