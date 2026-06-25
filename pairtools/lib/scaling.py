@@ -389,7 +389,11 @@ def compute_scaling(
         pairs_df = pairs
 
     elif isinstance(pairs, str) or hasattr(pairs, "buffer") or hasattr(pairs, "peek"):
-        pairs_df, _, _ = pairsio.read_pairs(pairs, nproc=nproc_in, chunksize=chunksize)
+        pairs_df, _, header_chromsizes = pairsio.read_pairs(
+            pairs, nproc=nproc_in, chunksize=chunksize
+        )
+        if chromsizes is None and header_chromsizes is not None and len(header_chromsizes):
+            chromsizes = header_chromsizes
     else:
         raise ValueError(
             "pairs must be either a path to a pairs file or a pd.DataFrame"
