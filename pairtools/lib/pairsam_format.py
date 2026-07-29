@@ -123,3 +123,11 @@ DTYPES_EXTRA_COLUMNS = {
     "algn_idx": int,
     "same_side_algn_count": int,
 }
+
+# Standard column aliases for flexibility
+COLUMN_ALIASES = {
+    'chr1': 'chrom1',
+    'chr2': 'chrom2',
+    'pt': 'pair_type',
+}
+
