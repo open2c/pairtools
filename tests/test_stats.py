@@ -15,7 +15,15 @@ def test_mock_pairsam():
     mock_pairsam_path = os.path.join(testdir, "data", "mock.4stats.pairs")
     try:
         result = subprocess.check_output(
-            ["python", "-m", "pairtools", "stats", "--yaml", mock_pairsam_path],
+            [
+                "python",
+                "-m",
+                "pairtools",
+                "stats",
+                "--yaml",
+                "--single-mapped-by-side",
+                mock_pairsam_path,
+            ],
         ).decode("ascii")
     except subprocess.CalledProcessError as e:
         print(e.output)
@@ -32,6 +40,8 @@ def test_mock_pairsam():
 
     assert stats["no_filter"]["total"] == 9
     assert stats["no_filter"]["total_single_sided_mapped"] == 2
+    assert stats["no_filter"]["total_left_only_mapped"] == 0
+    assert stats["no_filter"]["total_right_only_mapped"] == 2
     assert stats["no_filter"]["total_mapped"] == 6
     assert stats["no_filter"]["total_dups"] == 1
     assert stats["no_filter"]["cis"] == 3
@@ -138,13 +148,14 @@ def test_merge_stats():
 
 from pairtools.lib.stats import PairCounter
 
+
 @pytest.fixture
 def pair_counter():
     counter = PairCounter(filters={"f1": "filter1", "f2": "filter2"})
     counter._dist_bins = np.array([1, 1000, 10000, 100000, 1000000])
     # Populate the counter with some sample data
     counter._stat["f1"]["dist_freq"] = {
-        "++": {1: 80, 1000: 80,   10000: 91, 100000: 95},
+        "++": {1: 80, 1000: 80, 10000: 91, 100000: 95},
         "--": {1: 100, 1000: 100, 10000: 100, 100000: 100},
         "-+": {1: 100, 1000: 100, 10000: 100, 100000: 100},
         "+-": {1: 120, 1000: 120, 10000: 109, 100000: 105},
@@ -156,7 +167,7 @@ def pair_counter():
         "-+": {1: 210, 1000: 185, 10000: 165, 100000: 145},
         "+-": {1: 230, 1000: 195, 10000: 175, 100000: 155},
     }
- 
+
     return counter
 
 
@@ -183,7 +194,6 @@ def test_find_dist_freq_convergence_distance(pair_counter):
     assert f1_result["convergence_rel_diff_threshold"] == 0.1
     assert f1_result["convergence_dist"] == 10000
     assert f1_result["strands_w_max_convergence_dist"] == "++"
-    
 
     # f2_result = result["f2"]
     # assert "convergence_dist" in f2_result
