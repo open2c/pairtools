@@ -22,6 +22,39 @@ COMMENT_CHAR = "#"
 
 
 
+def standardize_column(col):
+    """Standardize column name."""
+    # Resolve aliases using centralized map
+    return pairsam_format.COLUMN_ALIASES.get(col, col)
+
+def get_column_index(column_names, col):
+    """Get column index with flexible name matching."""
+    if isinstance(col, int):
+        if -len(column_names) <= col < len(column_names):
+            return col % len(column_names)  # Handle negative indices
+        raise ValueError(f"Column index {col} out of range")
+    
+    if not isinstance(col, (str, int)):
+        raise AttributeError(f"Column spec must be string or integer, got {type(col)}")
+
+    # Try direct match first
+    try:
+        return column_names.index(col)
+    except ValueError:
+        pass
+        
+    # Try standardized name
+    standardized = standardize_column(col)
+    try:
+        return column_names.index(standardized)
+    except ValueError:
+        pass
+
+    available = ', '.join(f"'{c}'" for c in column_names)
+    raise ValueError(
+        f"Column '{col}' not found. Available columns: {available}"
+    )
+
 def get_header(instream, comment_char=COMMENT_CHAR, ignore_warning=False):
     """Returns a header from the stream and an the reaminder of the stream
     with the actual data.
