@@ -19,11 +19,11 @@ cdef class AlignmentFilePairtoolized(AlignmentFile):
 cdef AlignedSegmentPairtoolized makeAlignedSegmentPairtoolized(bam1_t *src,
                                        AlignmentHeader header):
     '''return an AlignedSegmentPairtoolized object constructed from `src`'''
-    # note that the following does not call __init__
-    # Redefine the constructed object:
-    cdef AlignedSegmentPairtoolized dest = AlignedSegmentPairtoolized.__new__(AlignedSegmentPairtoolized)
-    dest._delegate = bam_dup1(src)
-    dest.header = header
+    # Call __init__ so AlignedSegment initializes all internal fields
+    # (including _AlignedSegment_Cache in pysam >= 0.23.2), then copy src.
+    cdef AlignedSegmentPairtoolized dest = AlignedSegmentPairtoolized(header)
+    if bam_copy1(dest._delegate, src) == NULL:
+        raise MemoryError("Could not copy alignment into AlignedSegmentPairtoolized")
     return dest
 
 cdef class AlignedSegmentPairtoolized(AlignedSegment):

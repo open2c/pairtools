@@ -358,7 +358,8 @@ def parse_pysam_entry(
                     continue
 
     if store_seq:
-        algn["seq"] = sam.seq
+        seq = sam.query_sequence
+        algn["seq"] = seq if seq is not None else "*"
 
     return algn
 
