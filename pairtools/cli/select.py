@@ -182,10 +182,15 @@ def select_py(
     # Modify the header:
     header = headerops.append_new_pg(header, ID=UTIL_NAME, PN=UTIL_NAME)
 
+    # Extract original input column names before any header modification so
+    # condition evaluation always indexes the unmodified input rows:
+    input_columns = headerops.extract_column_names(header)
+    column_names = input_columns if len(input_columns) > 0 else pairsam_format.COLUMNS
+
     # Filter out unwanted columns:
+    column_scheme = None
     if remove_columns:
-        input_columns = headerops.extract_column_names(header)
-        remove_columns = remove_columns.split(",")
+        remove_columns = list(dict.fromkeys(remove_columns.split(",")))
         for col in remove_columns:
             if col in pairsam_format.COLUMNS_PAIRS:
                 warnings.warn(
@@ -203,6 +208,9 @@ def select_py(
             )
         else:
             header = headerops.set_columns(header, updated_columns)
+            column_scheme = [
+                idx for idx, col in enumerate(input_columns) if col not in remove_columns
+            ]
 
     # Update the chromosomes:
     new_chroms = None
@@ -215,14 +223,6 @@ def select_py(
     if output_rest:
         outstream_rest.writelines((l + "\n" for l in header))
 
-    column_names = headerops.extract_column_names(header)
-    if len(column_names) == 0:
-        column_names = pairsam_format.COLUMNS
-
-    # Columns filtration rule:
-    if remove_columns:
-        column_scheme = [input_columns.index(COL) for COL in updated_columns]
-
     # Format the condition:
     condition = condition.strip()
     if new_chroms is not None:
@@ -233,18 +233,18 @@ def select_py(
     for filter_passed, line in evaluate_stream(
         body_stream, condition, column_names, type_cast, startup_code
     ):
-        COLS = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
+        if filter_passed or outstream_rest:
+            if column_scheme is not None:
+                COLS = line.rstrip("\n").split(pairsam_format.PAIRSAM_SEP)
+                COLS = [
+                    COLS[idx] for idx in column_scheme
+                ]  # re-order the columns according to the scheme:
+                line = pairsam_format.PAIRSAM_SEP.join(COLS) + "\n"  # form the line
 
-        if remove_columns:
-            COLS = [
-                COLS[idx] for idx in column_scheme
-            ]  # re-order the columns according to the scheme:
-            line = pairsam_format.PAIRSAM_SEP.join(COLS) + "\n"  # form the line
-
-        if filter_passed:
-            outstream.write(line)
-        elif outstream_rest:
-            outstream_rest.write(line)
+            if filter_passed:
+                outstream.write(line)
+            else:
+                outstream_rest.write(line)
 
     if instream != sys.stdin:
         instream.close()
